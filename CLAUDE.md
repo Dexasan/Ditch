@@ -172,3 +172,50 @@ The goal of Phase 1 is a working end-to-end session: creator authenticates, conf
 - No database schema written yet
 - No routes or socket events implemented yet — all stubbed with comments
 - Next logical step: `pnpm install`, create Supabase project, write the DB schema
+
+---
+
+### Day 2 — 2026-04-16
+
+**What was done (solo, before session):**
+- Ran `pnpm install` — all workspace dependencies installed, `pnpm-lock.yaml` generated
+- Created Supabase project — project URL: `https://kgdlmfybxnqpkhfbjull.supabase.co`
+- Filled server-side credentials in `.env`: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+
+**What we did (in session):**
+
+Step 1 — Fixed `.env`
+- Updated `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to match the real project credentials (were still placeholder values)
+
+Step 2 — DB schema (`supabase/migrations/001_initial_schema.sql`)
+- Created all 4 Postgres enums: `stream_platform`, `session_status`, `participant_status`, `destination_status`
+- Created all 6 tables: `users`, `channels`, `live_sessions`, `stream_destinations`, `participants`, `chat_messages`
+- Added indexes on all FK columns plus high-traffic query paths (slug, session+status, session+timestamp)
+- Wrote `handle_new_user()` trigger — auto-creates `public.users` profile on every Supabase auth signup
+- Wrote full RLS policies for all 6 tables (public read where appropriate, owner-only write, RTMP creds owner-only read)
+- Schema applied to Supabase project via SQL editor
+
+Step 3 — TypeScript types (`packages/db/src/database.types.ts`)
+- Hand-wrote the full `Database` type (Row / Insert / Update shapes for all 6 tables + all 4 enums)
+- Wired `Database` generic into both `supabase` and `supabaseAdmin` clients in `packages/db/src/index.ts`
+- Re-exported `User` and `Session` types from `@supabase/supabase-js` via `@ditch/db` so other packages don't need a direct dep
+- Fixed missing `@types/node` in `packages/db`
+- Updated `generate-types` script from `--local` to `--project-id kgdlmfybxnqpkhfbjull`
+
+Step 4 — API routes (partial)
+- `apps/api/src/lib/authenticate.ts` — reusable Fastify preHandler; validates Supabase JWT via `supabaseAdmin.auth.getUser()`, attaches `User` to `request.user`
+- `apps/api/src/lib/guards.ts` — `assertSessionOwner` and `assertChannelOwner` helpers; used by all protected routes to verify ownership in one query
+- `apps/api/src/routes/auth.ts` — `POST /auth/signup`, `POST /auth/signin`
+- `apps/api/src/routes/channels.ts` — `GET /channels/:slug` (public; returns channel + active session)
+- `apps/api/src/routes/sessions.ts` — `POST /sessions`, `PATCH /sessions/:id` (state machine with transition enforcement), `DELETE /sessions/:id` (force-end)
+- Registered CORS plugin in `index.ts`; all new routes registered
+
+**State at end of day:**
+- DB schema live in Supabase, TypeScript types fully wired
+- Auth routes working: signup + signin proxy to Supabase, return tokens
+- Channel + session routes implemented and type-checking clean (all 5 packages pass)
+- Remaining API routes still stubbed: destinations (GET/POST/DELETE) and participants (GET/PATCH)
+- No realtime events implemented yet
+- No web pages built yet
+
+**Next logical step (Day 3):** destinations routes → participants routes → realtime events → web frontend
