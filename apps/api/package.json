@@ -3,9 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "node --env-file=.env --import tsx --watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "tsx src/index.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -13,11 +13,11 @@
     "@ditch/types": "workspace:*",
     "@fastify/cors": "^9.0.0",
     "@fastify/jwt": "^8.0.0",
-    "fastify": "^4.27.0"
+    "fastify": "^4.27.0",
+    "tsx": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "tsx": "^4.0.0",
     "typescript": "^5.4.0"
   }
 }

@@ -1,16 +1,29 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import { validateEnv } from "./lib/env";
 import { authRoutes } from "./routes/auth";
 import { channelRoutes } from "./routes/channels";
 import { sessionRoutes } from "./routes/sessions";
+import { destinationRoutes } from "./routes/destinations";
+import { participantRoutes } from "./routes/participants";
+
+validateEnv();
 
 const server = Fastify({ logger: true });
+
+// Allowed origins: comma-separated WEB_URL env var + any *.vercel.app preview URL
+function isOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) return true;
+  const explicit = (process.env.WEB_URL ?? "http://localhost:3000")
+    .split(",").map((s) => s.trim());
+  return explicit.includes(origin) || origin.endsWith(".vercel.app");
+}
 
 async function start() {
   // ── Plugins ──────────────────────────────────────────────────────────────
 
   await server.register(cors, {
-    origin: process.env.WEB_URL ?? "http://localhost:3000",
+    origin: (origin, cb) => cb(null, isOriginAllowed(origin)),
     credentials: true,
   });
 
@@ -21,17 +34,12 @@ async function start() {
   await server.register(authRoutes);
   await server.register(channelRoutes);
   await server.register(sessionRoutes);
-
-  // Phase 1 routes (to be implemented):
-  // GET    /sessions/:id/destinations       — list RTMP destinations
-  // POST   /sessions/:id/destinations       — add a destination (platform + stream key)
-  // DELETE /sessions/:id/destinations/:did  — remove a destination
-  // GET    /sessions/:id/participants       — list participant queue
-  // PATCH  /sessions/:id/participants/:pid  — approve or remove a participant
+  await server.register(destinationRoutes);
+  await server.register(participantRoutes);
 
   // ── Start ─────────────────────────────────────────────────────────────────
 
-  const PORT = Number(process.env.PORT) || 3001;
+  const PORT = Number(process.env.PORT) || 3002;
 
   await server.listen({ port: PORT, host: "0.0.0.0" });
 }

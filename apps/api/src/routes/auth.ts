@@ -50,7 +50,6 @@ export async function authRoutes(server: FastifyInstance) {
       });
 
       if (error) {
-        // Supabase returns 400-level errors as AuthError
         const status = error.status ?? 400;
         return reply.status(status).send({ error: error.message });
       }
@@ -65,16 +64,6 @@ export async function authRoutes(server: FastifyInstance) {
           email:        data.user.email,
           display_name: data.user.user_metadata?.display_name ?? null,
         },
-        // If email confirmation is disabled in Supabase, a session is returned
-        // immediately. Surface the tokens so the client can log in without a
-        // second round-trip.
-        session: data.session
-          ? {
-              access_token:  data.session.access_token,
-              refresh_token: data.session.refresh_token,
-              expires_in:    data.session.expires_in,
-            }
-          : null,
       });
     }
   );

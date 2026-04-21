@@ -47,8 +47,8 @@ ditch/
 
 ### Port assignments
 - `3000` — web (Next.js dev server)
-- `3001` — api (Fastify)
-- `3002` — realtime (Socket.io)
+- `3001` — realtime (Socket.io)
+- `3002` — api (Fastify)
 
 ---
 
@@ -219,3 +219,146 @@ Step 4 — API routes (partial)
 - No web pages built yet
 
 **Next logical step (Day 3):** destinations routes → participants routes → realtime events → web frontend
+
+---
+
+### Day 3 — 2026-04-17
+
+**What we did:**
+
+Step 1 — Destinations routes (`apps/api/src/routes/destinations.ts`)
+- `POST /destinations` — adds RTMP destination to a session; rejects if session is `ended`
+- `GET /destinations?channel_id=` — returns destinations for the active session on a channel
+- `PATCH /destinations/:id` — updates destination status
+- `DELETE /destinations/:id` — hard deletes, returns 204
+- `assertDestinationOwner` added to `guards.ts` — walks destination → session → channel to verify ownership
+- RTMP credentials (`rtmp_url`, `stream_key`) stripped from all responses — never sent to browser
+
+Step 2 — Participants routes (`apps/api/src/routes/participants.ts`)
+- `POST /participants` — optional auth (anonymous viewers supported, `user_id` nullable); rejects if session `ended`
+- `GET /participants?session_id=` — public; returns all non-removed participants
+- `PATCH /participants/:id` — creator-only; enforces status transitions with `slot_index` required for `live`
+- `DELETE /participants/:id` — soft-delete (`status: removed`); allowed for creator OR the participant themselves
+- `assertParticipantAccess` added to `guards.ts` — allows creator or self
+
+Step 3 — Realtime server (`apps/realtime/src/`)
+- Added `@ditch/db` as workspace dependency (needed for JWT validation + DB writes)
+- `src/types.ts` — typed `ClientToServerEvents`, `ServerToClientEvents`, `SocketData`
+- `src/middleware/auth.ts` — JWT validation via `supabaseAdmin`; anonymous connections allowed (`user_id = null`)
+- `src/handlers/session.ts` — `session:join` (joins room, acks with current participants), `session:leave`
+- `src/handlers/participant.ts` — `participant:status_change` (creator-only, validates ownership, writes to DB, broadcasts to room), `participant:queue_update` (pull request, responds to requesting socket)
+- `src/handlers/chat.ts` — `chat:message` (persists to DB, broadcasts to room)
+- Rooms keyed by `session_id`
+
+Step 4 — Channel model + env hardening
+- `POST /channels` — auth required; slug validated as `^[a-z0-9-]+$`; owner set from JWT not body; 409 on slug conflict or owner conflict
+- `GET /channels/mine` — returns authenticated user's channel or null; used by onboarding/dashboard
+- `supabase/migrations/002_one_channel_per_user.sql` — `UNIQUE (owner_id)` constraint on `channels` table (one channel per user, Twitch-style)
+- `src/lib/env.ts` — validates `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` on startup; exits with clear message if any are missing
+- Fixed env loading: added `--env-file=.env` to `apps/api` dev/start scripts; `--env-file=../../.env` for `apps/realtime`. Root cause: ES module imports are hoisted — `packages/db` throws at module evaluation before any executable code, so env must be loaded by the Node process itself via `--env-file`, not application code.
+
+Step 5 — Test script (`scripts/test-api.sh`)
+- 16-step happy path: signup → signin → create channel → create session → create destination → list destinations → join as participant → list participants → approve → set live → update destination status → delete participant → delete destination → go live → force-end session
+- All 16 steps passing end-to-end against the live Supabase project
+
+**Temporary dev decision — `POST /auth/signup` uses `supabaseAdmin.auth.admin.createUser({ email_confirm: true })`**
+- Reason: `supabase.auth.signUp()` sends a confirmation email, which hits Supabase free tier's 3 emails/hour rate limit during testing, and rejects non-real email domains
+- **Must revert to `supabase.auth.signUp()` before frontend is live** so users go through the proper confirmation email → verify → signin flow
+- When reverting: disable email confirmation in Supabase dashboard (Auth → Email → toggle off "Confirm email") for dev to avoid the rate limit during frontend development
+
+**State at end of day:**
+- All Phase 1 API routes complete and tested end-to-end
+- Realtime server fully implemented with typed Socket.io events
+- DB migrations 001 + 002 both applied to Supabase project
+- One channel per user enforced at both DB and API layer
+- Env validation guards against misconfigured deploys
+
+**Next logical step (Day 4):** Web frontend — `/auth` page → onboarding (watch vs. create) → `/dashboard` → `/c/[slug]` → `/c/[slug]/live`
+
+---
+
+### Day 4 — 2026-04-20
+
+**What we did:**
+
+Step 0 — Pre-flight fixes
+- Reverted `POST /auth/signup` from `supabaseAdmin.auth.admin.createUser()` back to `supabase.auth.signUp()` — the admin version bypassed email confirmation, which would cause issues with the frontend auth flow
+- Fixed port conflict: API moved to `3002`, realtime to `3001`. Updated all env files (`.env`, `.env.example`, `apps/api/.env`), server fallbacks (`apps/api/src/index.ts`, `apps/realtime/src/index.ts`), and `NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_REALTIME_URL` everywhere
+- Fixed bug in `OnboardingForm` — `POST /channels` requires `display_name` but the form was only sending `slug`; now sends both
+
+Step 1 — Frontend setup (`apps/web`)
+- Installed Tailwind CSS v4 + `@tailwindcss/postcss`; configured `postcss.config.mjs`
+- `src/app/globals.css` — `@import "tailwindcss"` + CSS custom properties for dark theme (`--color-brand`, `--color-surface`, `--color-surface-raised`, `--color-surface-border`, `--color-text`, `--color-text-muted`)
+- `src/lib/supabase/browser.ts` — `createBrowserClient` for client components
+- `src/lib/supabase/server.ts` — `createServerClient` with Next.js cookie store for server components
+- `src/middleware.ts` — refreshes Supabase session on every request; redirects unauthenticated users away from `/dashboard` and `/onboarding`, redirects authenticated users away from `/auth`
+- `src/lib/api.ts` — typed fetch wrapper for Fastify on `:3002`; `ApiError` class with status code; reads `NEXT_PUBLIC_API_URL` env var with fallback
+
+Step 2 — `/auth` page
+- `src/app/auth/page.tsx` — client component; tab toggle between sign in / sign up; sign up shows "check your email" confirmation state
+- `src/app/auth/callback/route.ts` — Route Handler that exchanges Supabase email confirmation code for a session, then redirects to `/dashboard`
+- Uses Supabase browser client directly (not the Fastify API) — the only way SSR session cookies get set correctly
+
+Step 3 — `/onboarding` page
+- `src/app/onboarding/page.tsx` — server component; checks for existing channel via `GET /channels/mine`; redirects returning users to `/dashboard`
+- `src/app/onboarding/OnboardingForm.tsx` — client form; collects display name + channel slug; auto-slugifies input as you type; shows full URL preview (`ditch.live/c/your-handle`); calls `supabase.auth.updateUser()` for display name, then `POST /channels` for the channel
+
+Step 4 — `/dashboard` page
+- `src/app/dashboard/page.tsx` — server component; guards to `/onboarding` if no channel; fetches channel + active session + destinations in parallel
+- `src/app/dashboard/SessionPanel.tsx` — client component; full session state machine (start → go live → start ending → force end); status dot with pulse animation
+- `src/app/dashboard/DestinationList.tsx` — client component; add/remove RTMP destinations; stream key masked; only shown when session is active
+- `src/app/dashboard/SignOutButton.tsx` — signs out via Supabase browser client, redirects to `/auth`
+- "Control room →" link in nav only appears when a non-ended session exists
+
+Step 5 — `/c/[slug]` and `/c/[slug]/live`
+- `src/lib/socket.ts` — Socket.io client singleton keyed by `(REALTIME_URL, token)`; prevents duplicate connections in React strict mode; exports `SessionJoinAck` type for typed ack callbacks
+- `src/app/c/[slug]/page.tsx` — public server component; 404 if channel not found; shows offline state if no active session
+- `src/app/c/[slug]/ChannelView.tsx` — client component; connects socket, joins session room, renders unified chat + live participant row + "Request to join" sidebar panel; tracks viewer's own participant status via socket events
+- `src/app/c/[slug]/live/page.tsx` — protected server component; redirects non-owners to `/c/[slug]`, redirects if no active session
+- `src/app/c/[slug]/live/LiveRoom.tsx` — client component; 3-panel layout: participant queue (approve / set live / remove), 4-slot video grid (clean Agora stubs — each slot marked for `AgoraVideoTrack` replacement), unified chat
+
+**Architectural decisions made:**
+- Auth pages use the Supabase browser client directly, not the Fastify API — required for SSR session cookies to work with `@supabase/ssr`
+- Socket.io rooms keyed by `session_id` (not `channel_slug`) — matches the realtime server implementation
+- Agora video slots are isolated stubs in `LiveRoom.tsx`; swapping in real video tracks is a single-component change with no impact on queue or chat logic
+- Email confirmation is required for new signups — testers must confirm via email before signing in. To skip during dev, disable "Confirm email" in Supabase dashboard → Auth → Email
+
+**State at end of day:**
+- All Phase 1 web pages built and type-checking clean across all 5 packages
+- Full golden path exists: sign up → confirm email → onboarding → dashboard → start session → go live → viewer joins channel → chat works → request to join → creator approves from control room
+- Agora video not yet wired — slots are stubs
+- No end-to-end browser test run yet
+
+**Next logical step (Day 5):** End-to-end browser test of the full golden path, then Agora integration for live video in participant slots
+
+---
+
+### Day 5 — 2026-04-21
+
+**What we did:**
+
+Step 1 — Bug fixes from first browser test
+- Owner check on `/c/[slug]` — creator now sees "Go to Control Room →" instead of the viewer join panel; `isOwner` computed server-side from `authSession.user.id === channel.owner_id`
+- RTMP URL validation — `rtmp_url` schema pattern tightened to `^rtmps?://.+`; garbage values now rejected with 400 before touching DB
+- Chat persistence — `session:join` ack extended to return last 50 messages (`recentMessages`) alongside participants; both `ChannelView` and `LiveRoom` seed state from ack on mount so chat survives navigation
+- Stale session bug ("Session has ended" in incognito) — root cause: Next.js 14 cached GET fetches by default; added `cache: "no-store"` globally to `api.ts`; also added `sessionError` state in `ChannelView` with proper UI fallback
+
+Step 2 — Agora WebRTC integration (`apps/web`)
+- Installed `agora-rtc-sdk-ng`
+- `src/lib/agora.ts` — App ID env var, lazy `getAgoraRTC()` loader (deferred import to avoid SSR), `slotToUid()` mapping (slot 0–3 → UID 1–4; creator = UID 0)
+- `src/hooks/useAgoraRoom.ts` — join/publish/subscribe lifecycle; role/uid changes trigger leave+rejoin; `toggleScreenShare` swaps camera track for screen track and handles browser native "Stop sharing" via `track-ended` event
+- `src/components/AgoraVideoTile.tsx` — plays a local or remote video track into a div; dynamically imported with `ssr: false` in all consumers
+- `LiveRoom.tsx` — creator joins as host/UID 0, publishes camera+mic; slot grid maps remote users by UID to participant slots; creator preview tile in center header; bottom toolbar: Mute/Unmute, Cam off/Cam on, Share screen/Stop share
+- `ChannelView.tsx` — joins as audience; upgrades to host+publish when `myParticipant.status === "live"`; live slots row shows actual video tracks; Mute/Cam off controls visible when live
+
+Step 3 — Product architecture clarification (critical)
+- **DITCH is a browser-native studio, not an OBS relay.** Creator streams FROM the DITCH browser tab — no external software.
+- The full outbound pipeline does not yet exist: canvas compositor → server relay → ffmpeg fan-out to RTMP destinations
+- This pipeline is the core product differentiator vs StreamYard/Restream: the *composed feed* (creator + live audience participants) is what gets pushed to every platform simultaneously
+
+**State at end of day:**
+- Agora WebRTC working end-to-end: real camera feeds in participant tiles, creator toolbar functional, viewer camera/mic toggles working
+- All Phase 1 interactive features complete
+- **The outbound streaming pipeline (canvas compositor → relay → ffmpeg → RTMP) does not exist yet — this is the next and most critical build**
+
+**Next logical step (Day 6):** Browser canvas compositor → server relay → ffmpeg fan-out to RTMP destinations. In that order, nothing else first.

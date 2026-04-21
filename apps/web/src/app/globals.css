@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #7c3aed;
+  --color-brand-light: #a78bfa;
+  --color-surface: #0f0f10;
+  --color-surface-raised: #1a1a1d;
+  --color-surface-border: #2a2a2e;
+  --color-text: #f4f4f5;
+  --color-text-muted: #71717a;
+}
+
+html,
+body {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-family: system-ui, sans-serif;
+}
