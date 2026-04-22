@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "@ditch/db": "workspace:*",
+    "ffmpeg-static": "^5.3.0",
     "tsx": "^4.0.0",
     "ws": "^8.17.0"
   },
   "devDependencies": {
+    "@types/ffmpeg-static": "^5.1.0",
     "@types/node": "^20.0.0",
     "@types/ws": "^8.5.0",
     "typescript": "^5.4.0"

@@ -1,4 +1,7 @@
 import { spawn, type ChildProcess } from "child_process";
+import ffmpegStatic from "ffmpeg-static";
+
+const FFMPEG_BIN = ffmpegStatic ?? "ffmpeg";
 
 export interface FfmpegSession {
   write: (chunk: Buffer) => void;
@@ -9,7 +12,7 @@ export interface FfmpegSession {
 
 export function spawnFfmpeg(rtmpTargets: string[]): FfmpegSession {
   const args = buildArgs(rtmpTargets);
-  const proc: ChildProcess = spawn("ffmpeg", args, { stdio: ["pipe", "ignore", "pipe"] });
+  const proc: ChildProcess = spawn(FFMPEG_BIN, args, { stdio: ["pipe", "ignore", "pipe"] });
 
   proc.stderr?.on("data", (chunk: Buffer) => process.stderr.write(chunk));
 
