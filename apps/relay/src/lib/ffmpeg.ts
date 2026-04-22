@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from "child_process";
-import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 
-const FFMPEG_BIN = ffmpegInstaller.path;
+// Use system ffmpeg (installed via apt in Railway start command)
+const FFMPEG_BIN = "ffmpeg";
 
 export interface FfmpegSession {
   write: (chunk: Buffer) => void;
