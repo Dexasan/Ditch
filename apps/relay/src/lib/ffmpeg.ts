@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from "child_process";
+import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 
-// Use system ffmpeg (installed via apt in Railway start command)
-const FFMPEG_BIN = "ffmpeg";
+const FFMPEG_BIN = ffmpegInstaller.path;
 
 export interface FfmpegSession {
   write: (chunk: Buffer) => void;
@@ -52,15 +52,11 @@ function buildArgs(targets: string[]): string[] {
     "-i", "pipe:0",
   ];
 
+  // -c:v copy: pass H264 from browser directly into RTMP without re-encoding.
+  // Avoids libx264/libvpx JIT compilation which segfaults in Railway containers.
+  // Audio must still be transcoded (Opus → AAC) since RTMP doesn't carry Opus.
   const encodeFlags = [
-    "-c:v", "libx264",
-    "-preset", "ultrafast",
-    "-tune", "zerolatency",
-    "-b:v", "2500k",
-    "-maxrate", "2500k",
-    "-bufsize", "5000k",
-    "-pix_fmt", "yuv420p",
-    "-g", "60",
+    "-c:v", "copy",
     "-c:a", "aac",
     "-b:a", "128k",
     "-ar", "44100",

@@ -48,9 +48,14 @@ export function useRelayStream({
       }
 
       if (msg.type === "started") {
-        const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
-          ? "video/webm;codecs=vp8,opus"
-          : "video/webm";
+        // Prefer H264 so ffmpeg can copy the stream directly without re-encoding.
+        // VP8 requires libvpx+libx264 transcoding which segfaults on Railway.
+        const mimeType =
+          MediaRecorder.isTypeSupported("video/webm;codecs=h264,opus")
+            ? "video/webm;codecs=h264,opus"
+            : MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+            ? "video/webm;codecs=vp8,opus"
+            : "video/webm";
 
         const recorder = new MediaRecorder(stream, {
           mimeType,
