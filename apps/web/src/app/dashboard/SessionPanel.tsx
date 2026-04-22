@@ -128,11 +128,14 @@ export default function SessionPanel({
           <>
             {status === "idle" && (
               <button
-                onClick={() => transitionSession("live")}
+                onClick={async () => {
+                  await transitionSession("live");
+                  router.push(`/c/${channelSlug}/live`);
+                }}
                 disabled={loading}
                 className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
-                {loading ? "..." : "Go live"}
+                {loading ? "..." : "Go live →"}
               </button>
             )}
             {status === "live" && (

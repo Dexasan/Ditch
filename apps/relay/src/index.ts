@@ -68,8 +68,7 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
       const { data: destinations } = await supabaseAdmin!
         .from("stream_destinations")
         .select("rtmp_url, stream_key")
-        .eq("session_id", session_id)
-        .neq("status", "stopped");
+        .eq("session_id", session_id);
 
       if (!destinations?.length) {
         send(ws, { type: "error", message: "No active destinations configured for this session" });
