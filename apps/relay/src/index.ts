@@ -1,5 +1,5 @@
 import { WebSocketServer, WebSocket } from "ws";
-import type { IncomingMessage } from "http";
+import { createServer, type IncomingMessage, type ServerResponse } from "http";
 import { supabaseAdmin } from "@ditch/db";
 import { validateEnv } from "./lib/env.js";
 import { spawnFfmpeg, type FfmpegSession } from "./lib/ffmpeg.js";
@@ -16,8 +16,14 @@ function isOriginAllowed(origin: string | undefined): boolean {
   return explicit.includes(origin) || origin.endsWith(".vercel.app");
 }
 
+// HTTP server handles Railway health checks; WebSocket server piggybacks on it
+const httpServer = createServer((_req: IncomingMessage, res: ServerResponse) => {
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("ok");
+});
+
 const wss = new WebSocketServer({
-  port: PORT,
+  server: httpServer,
   verifyClient: ({ origin }: { origin: string }) => isOriginAllowed(origin),
 });
 
@@ -125,4 +131,6 @@ function send(ws: WebSocket, payload: Record<string, unknown>) {
   }
 }
 
-console.log(`[relay] WebSocket server listening on port ${PORT}`);
+httpServer.listen(PORT, () => {
+  console.log(`[relay] listening on port ${PORT}`);
+});
