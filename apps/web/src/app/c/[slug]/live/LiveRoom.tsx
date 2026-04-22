@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { getSocket, type SessionJoinAck } from "@/lib/socket";
 import { useAgoraRoom } from "@/hooks/useAgoraRoom";
+import { useCompositor } from "@/hooks/useCompositor";
+import { useRelayStream } from "@/hooks/useRelayStream";
 import { slotToUid, CREATOR_CAM_UID, CREATOR_SCREEN_UID } from "@/lib/agora";
 import type { ChatMessage, Participant, ParticipantStatus } from "@ditch/types";
 
@@ -26,6 +28,7 @@ export default function LiveRoom({
   const [chatBody, setChatBody] = useState("");
   const [micEnabled, setMicEnabled] = useState(true);
   const [camEnabled, setCamEnabled] = useState(true);
+  const [streamingEnabled, setStreamingEnabled] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,6 +87,23 @@ export default function LiveRoom({
     screenShareUid: CREATOR_SCREEN_UID,
   });
 
+  const liveParticipants = participants.filter((p) => p.status === "live");
+
+  const { stream: compositeStream } = useCompositor({
+    localVideoTrack,
+    localAudioTrack,
+    remoteUsers,
+    liveParticipants,
+    enabled: streamingEnabled,
+  });
+
+  const { streaming, error: streamError } = useRelayStream({
+    stream: compositeStream,
+    sessionId,
+    token,
+    enabled: streamingEnabled,
+  });
+
   function toggleMic() {
     if (!localAudioTrack) return;
     const next = !micEnabled;
@@ -127,7 +147,6 @@ export default function LiveRoom({
 
   const waiting = participants.filter((p) => p.status === "waiting");
   const approved = participants.filter((p) => p.status === "approved");
-  const liveParticipants = participants.filter((p) => p.status === "live");
 
   const slots = Array.from({ length: TOTAL_SLOTS }, (_, i) =>
     liveParticipants.find((p) => p.slot_index === i) ?? null
@@ -195,6 +214,22 @@ export default function LiveRoom({
           <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider flex-1">
             Live slots
           </p>
+
+          {/* Streaming status */}
+          {streamingEnabled && (
+            <div className="flex items-center gap-1.5">
+              {streamError ? (
+                <span className="text-xs text-red-400">{streamError}</span>
+              ) : streaming ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-xs font-semibold text-red-400">LIVE</span>
+                </>
+              ) : (
+                <span className="text-xs text-[var(--color-text-muted)]">Connecting...</span>
+              )}
+            </div>
+          )}
 
           {/* Camera preview — always present */}
           <div className="relative w-32 rounded-lg overflow-hidden border border-[var(--color-surface-border)] bg-zinc-900 flex items-center justify-center"
@@ -284,6 +319,12 @@ export default function LiveRoom({
             active={isScreenSharing}
             activeColor="text-blue-400 border-blue-500"
             label={isScreenSharing ? "Stop share" : "Share screen"}
+          />
+          <ToolbarButton
+            onClick={() => setStreamingEnabled((v) => !v)}
+            active={streamingEnabled}
+            activeColor="text-red-400 border-red-500"
+            label={streaming ? "● Stop stream" : streamingEnabled ? "Starting..." : "Go live →"}
           />
         </div>
       </main>

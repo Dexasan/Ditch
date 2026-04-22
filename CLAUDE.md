@@ -362,3 +362,92 @@ Step 3 — Product architecture clarification (critical)
 - **The outbound streaming pipeline (canvas compositor → relay → ffmpeg → RTMP) does not exist yet — this is the next and most critical build**
 
 **Next logical step (Day 6):** Browser canvas compositor → server relay → ffmpeg fan-out to RTMP destinations. In that order, nothing else first.
+
+---
+
+### Day 5 continued — Production deployment
+
+**What we did:**
+
+Step 1 — Deployment blockers fixed
+- `start` scripts had `--env-file=.env` — Railway injects env vars natively, no file exists on server; removed flag, changed both services to `tsx src/index.ts`
+- `tsx` moved from `devDependencies` to `dependencies` in api and realtime so it's available under `NODE_ENV=production`
+- CORS hardened: both api and realtime now accept a comma-separated `WEB_URL` env var AND any `*.vercel.app` origin (covers Vercel preview deployments automatically)
+- Lockfile updated via `pnpm install`
+
+Step 2 — Docker + Railway config
+- `apps/api/Dockerfile` and `apps/realtime/Dockerfile` — monorepo-aware: copy full workspace structure, run `pnpm install` from root so workspace symlinks resolve, then start from service subdirectory
+- `.dockerignore` at repo root
+
+Step 3 — Supabase live domain
+- Site URL and redirect URL updated in Supabase dashboard to point to Vercel production URL
+
+**Production URLs:**
+- Frontend: https://ditch-web-drab.vercel.app (Vercel)
+- API: Railway, port 3002
+- Realtime: Railway, port 3001
+- Database: Supabase (kgdlmfybxnqpkhfbjull)
+
+**Verified in production (mobile device, real network):**
+- Host camera feed renders on live URL
+- Host screenshare renders on live URL
+- Admitted participant camera renders correctly
+- Chat working end-to-end
+- Mute / Cam off controls functional
+- Supabase auth working on live domain
+- Socket.io connecting from Vercel to Railway
+
+**State at end of day:**
+- Full Phase 1 stack live in production
+- No known bugs in the interactive layer
+- Canvas compositor / RTMP pipeline is the only remaining Phase 1 piece
+
+**Next logical step (Day 6):** Browser canvas compositor → server relay → ffmpeg fan-out to RTMP destinations.
+
+---
+
+### Day 6 — 2026-04-22
+
+**Audio fix (pre-Day 6)**
+- Remote Agora audio was silently subscribed but never played — `user.audioTrack.play()` was missing from the `user-published` handler in `useAgoraRoom.ts`. One-line fix; also added `user.audioTrack.stop()` on `user-unpublished`.
+
+**What we built:**
+
+Step 1 — `apps/relay` (new service, port 3003)
+- Raw WebSocket server (`ws` package) — not Socket.io. Binary frames pipe directly to ffmpeg stdin with zero overhead.
+- Protocol: text `{ type: "start", session_id, token }` → validate JWT + verify session ownership via `supabaseAdmin` → fetch RTMP destinations (credentials never leave the server) → spawn ffmpeg → reply `{ type: "started" }`. Binary frames → piped to ffmpeg stdin. Text `{ type: "stop" }` or WebSocket close → `stdin.end()` → ffmpeg exits cleanly.
+- `src/lib/ffmpeg.ts` — builds ffmpeg args: single destination uses direct `-f flv` output; multiple destinations use the tee muxer (`-f tee "[onfail=ignore:f=flv]url1|[onfail=ignore:f=flv]url2"`) so the stream is encoded once and pushed to all destinations simultaneously. `onfail=ignore` keeps surviving destinations alive if one drops.
+- `Dockerfile` — Alpine + `apk add ffmpeg` + monorepo-aware install (same pattern as api/realtime).
+- Env vars: `RELAY_PORT=3003`, reads `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`.
+
+Step 2 — `useCompositor` hook (`apps/web/src/hooks/useCompositor.ts`)
+- Creates an offscreen `<canvas>` (1280×720) and an `AudioContext` when `enabled` flips to true.
+- `requestAnimationFrame` draw loop: creator cam in top-left cell (640×360), live participants by `slot_index` in remaining cells (slot_index 0 → grid[1], 1 → grid[2], 2 → grid[3]). Slot_index 3 is audio-only in the composite.
+- Each video track gets a hidden `<video>` element (muted) keyed by `MediaStreamTrack.id`; frames drawn via `ctx.drawImage`.
+- Audio: `AudioContext` + `MediaStreamDestinationNode`; local mic + all remote audio tracks connected via `createMediaStreamSource`. New tracks are connected on each render; already-connected tracks are skipped by a `Set<string>` guard.
+- Returns `{ stream: MediaStream }` = canvas `captureStream(30)` video track + audio destination track.
+
+Step 3 — `useRelayStream` hook (`apps/web/src/hooks/useRelayStream.ts`)
+- Opens a WebSocket to `NEXT_PUBLIC_RELAY_URL` when `enabled && stream` are both truthy.
+- On open: sends `start` message. On `started` ack: creates `MediaRecorder` (prefers `video/webm;codecs=vp8,opus`, 3Mbps video + 128kbps audio) with 250ms chunk interval. Each `dataavailable` chunk is sent as a binary WebSocket frame.
+- Returns `{ streaming: boolean, error: string | null }`.
+
+Step 4 — `LiveRoom.tsx` wired
+- `streamingEnabled` state (boolean) controls both hooks.
+- "Go Live →" button in toolbar; while starting shows "Starting...", while live shows "● Stop stream" in red. Status indicator (pulsing red dot + "LIVE" / "Connecting..." / error text) in the slots header.
+- `liveParticipants` computed once, shared between compositor and the existing slot grid.
+
+**New env vars:**
+- `RELAY_PORT=3003` (relay server)
+- `NEXT_PUBLIC_RELAY_URL=ws://localhost:3003` (web → relay WS URL; set to `wss://` Railway URL in production)
+
+**State at end of day:**
+- Full outbound streaming pipeline implemented end-to-end
+- All 6 packages type-checking clean
+- To test locally: `pnpm dev` (starts all services incl. relay), add destinations in dashboard, open control room, click "Go live →"
+- ffmpeg must be installed locally for relay to work (`brew install ffmpeg` / `apt install ffmpeg`)
+- Relay needs a Railway service + env vars set before production use
+
+**Next logical step (Day 7):** Deploy relay to Railway, set `NEXT_PUBLIC_RELAY_URL` on Vercel, do a live end-to-end test pushing to a real RTMP destination.
+
+**Next logical step (Day 6):** Browser canvas compositor → server relay → ffmpeg fan-out to RTMP destinations.

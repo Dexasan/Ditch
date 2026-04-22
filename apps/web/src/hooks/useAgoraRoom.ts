@@ -67,9 +67,15 @@ export function useAgoraRoom(options: {
 
       client.on("user-published", async (user, mediaType) => {
         await client.subscribe(user, mediaType);
+        if (mediaType === "audio" && user.audioTrack) {
+          user.audioTrack.play();
+        }
         syncRemote();
       });
-      client.on("user-unpublished", syncRemote);
+      client.on("user-unpublished", (user, mediaType) => {
+        if (mediaType === "audio") user.audioTrack?.stop();
+        syncRemote();
+      });
       client.on("user-left", syncRemote);
 
       await client.setClientRole(role);
