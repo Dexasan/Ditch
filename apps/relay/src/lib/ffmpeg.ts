@@ -1,20 +1,28 @@
 import { spawn, type ChildProcess } from "child_process";
-import ffmpegStatic from "ffmpeg-static";
+import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 
-const FFMPEG_BIN = ffmpegStatic ?? "ffmpeg";
+const FFMPEG_BIN = ffmpegInstaller.path;
 
 export interface FfmpegSession {
   write: (chunk: Buffer) => void;
   stop: () => void;
-  onExit: (cb: (code: number | null) => void) => void;
+  onExit: (cb: (code: number | null, signal: string | null) => void) => void;
   onError: (cb: (err: Error) => void) => void;
 }
 
 export function spawnFfmpeg(rtmpTargets: string[]): FfmpegSession {
   const args = buildArgs(rtmpTargets);
+
+  console.log("[ffmpeg] spawning:", FFMPEG_BIN, args.join(" "));
+
   const proc: ChildProcess = spawn(FFMPEG_BIN, args, { stdio: ["pipe", "ignore", "pipe"] });
 
-  proc.stderr?.on("data", (chunk: Buffer) => process.stderr.write(chunk));
+  // Buffer stderr so the full output (including RTMP errors) is flushed before exit
+  const stderrBuf: Buffer[] = [];
+  proc.stderr?.on("data", (chunk: Buffer) => {
+    stderrBuf.push(chunk);
+    process.stderr.write(chunk);
+  });
 
   return {
     write(chunk: Buffer) {
@@ -24,7 +32,12 @@ export function spawnFfmpeg(rtmpTargets: string[]): FfmpegSession {
       if (proc.stdin && !proc.stdin.destroyed) proc.stdin.end();
     },
     onExit(cb) {
-      proc.on("exit", (code) => cb(code));
+      proc.on("exit", (code, signal) => {
+        if (code !== 0) {
+          console.error("[ffmpeg] full stderr on exit:\n" + Buffer.concat(stderrBuf).toString());
+        }
+        cb(code, signal);
+      });
     },
     onError(cb) {
       proc.on("error", cb);

@@ -86,14 +86,14 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
       }
 
       session.onError((err) => {
-        console.error("[relay] ffmpeg error:", err.message);
-        send(ws, { type: "error", message: err.message });
+        console.error("[relay] ffmpeg spawn error:", err.message);
+        send(ws, { type: "error", message: `ffmpeg spawn error: ${err.message}` });
         session = null;
       });
 
-      session.onExit((code) => {
-        console.log(`[relay] ffmpeg exited with code ${code}`);
-        send(ws, { type: "stopped", code });
+      session.onExit((code, signal) => {
+        console.log(`[relay] ffmpeg exited — code: ${code}, signal: ${signal}`);
+        send(ws, { type: "stopped", code, signal });
         session = null;
       });
 
