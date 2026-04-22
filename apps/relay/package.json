@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node --env-file=../../.env --import tsx --watch src/index.ts",
-    "build": "tsc",
+    "build": "apt-get install -y -qq ffmpeg 2>/dev/null || true && tsc",
     "start": "tsx src/index.ts",
     "type-check": "tsc --noEmit"
   },
