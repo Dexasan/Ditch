@@ -1,7 +1,8 @@
 import { spawn, type ChildProcess } from "child_process";
-import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 
-const FFMPEG_BIN = ffmpegInstaller.path;
+// Use system ffmpeg from PATH. The @ffmpeg-installer npm binary is glibc-linked
+// and segfaults on Alpine/musl. System ffmpeg (apk add ffmpeg) is musl-compatible.
+const FFMPEG_BIN = process.env.FFMPEG_PATH ?? "ffmpeg";
 
 export interface FfmpegSession {
   write: (chunk: Buffer) => void;

@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@ditch/db": "workspace:*",
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "tsx": "^4.0.0",
     "ws": "^8.17.0"
   },
