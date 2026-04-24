@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node --env-file=../../.env --import tsx --watch src/index.ts",
-    "build": "apt-get update -qq && apt-get install -y -qq ffmpeg && mkdir -p vendor && cp /usr/bin/ffmpeg vendor/ffmpeg; tsc",
+    "build": "mkdir -p vendor && curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz | tar -xJ --strip-components=1 -C vendor --wildcards '*/ffmpeg' && chmod +x vendor/ffmpeg && tsc",
     "start": "tsx src/index.ts",
     "type-check": "tsc --noEmit"
   },
