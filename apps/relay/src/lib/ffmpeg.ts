@@ -1,8 +1,22 @@
 import { spawn, type ChildProcess } from "child_process";
+import { existsSync } from "fs";
 
-// Use system ffmpeg from PATH. The @ffmpeg-installer npm binary is glibc-linked
-// and segfaults on Alpine/musl. System ffmpeg (apk add ffmpeg) is musl-compatible.
-const FFMPEG_BIN = process.env.FFMPEG_PATH ?? "ffmpeg";
+// Railpack/Nixpacks installs ffmpeg during the build layer but it may not land in
+// the spawned-process PATH. Try explicit paths before falling back to PATH lookup.
+function resolveFfmpeg(): string {
+  if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
+  const candidates = [
+    "/usr/bin/ffmpeg",        // apt / apk install
+    "/usr/local/bin/ffmpeg",  // homebrew / manual install
+    "vendor/ffmpeg",          // copied by build script
+  ];
+  const found = candidates.find(existsSync);
+  if (found) return found;
+  return "ffmpeg"; // last resort: PATH lookup
+}
+
+const FFMPEG_BIN = resolveFfmpeg();
+console.log("[ffmpeg] resolved binary:", FFMPEG_BIN);
 
 export interface FfmpegSession {
   write: (chunk: Buffer) => void;
