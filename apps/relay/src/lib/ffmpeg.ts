@@ -17,6 +17,11 @@ export function spawnFfmpeg(rtmpTargets: string[]): FfmpegSession {
 
   const proc: ChildProcess = spawn(FFMPEG_BIN, args, { stdio: ["pipe", "ignore", "pipe"] });
 
+  // Swallow EPIPE — ffmpeg may exit while browser is still sending chunks
+  proc.stdin?.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code !== "EPIPE") console.error("[ffmpeg] stdin error:", err.message);
+  });
+
   // Buffer stderr so the full output (including RTMP errors) is flushed before exit
   const stderrBuf: Buffer[] = [];
   proc.stderr?.on("data", (chunk: Buffer) => {
