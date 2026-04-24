@@ -16,10 +16,19 @@ const PLATFORM_LABEL: Record<StreamPlatform, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
+  idle:       "text-zinc-400",
   connecting: "text-yellow-400",
   live:       "text-green-400",
   error:      "text-red-400",
   stopped:    "text-zinc-500",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  idle:       "Ready",
+  connecting: "Connecting",
+  live:       "Live",
+  error:      "Error",
+  stopped:    "Stopped",
 };
 
 async function getToken() {
@@ -101,8 +110,8 @@ export default function DestinationList({
           >
             <div className="space-y-0.5">
               <span className="font-medium">{PLATFORM_LABEL[d.platform]}</span>
-              <p className={`text-xs capitalize ${STATUS_COLOR[d.status] ?? "text-zinc-400"}`}>
-                {d.status}
+              <p className={`text-xs ${STATUS_COLOR[d.status] ?? "text-zinc-400"}`}>
+                {STATUS_LABEL[d.status] ?? d.status}
               </p>
             </div>
             <button

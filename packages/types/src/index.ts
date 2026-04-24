@@ -14,7 +14,7 @@ export type SessionStatus = "idle" | "live" | "ending" | "ended";
 
 export type ParticipantStatus = "waiting" | "approved" | "live" | "removed";
 
-export type DestinationStatus = "connecting" | "live" | "error" | "stopped";
+export type DestinationStatus = "idle" | "connecting" | "live" | "error" | "stopped";
 
 // ─── Entities ─────────────────────────────────────────────────────────────────
 

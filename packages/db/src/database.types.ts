@@ -246,7 +246,7 @@ export type Database = {
       stream_platform: "twitch" | "youtube" | "tiktok" | "kick" | "ditch"
       session_status: "idle" | "live" | "ending" | "ended"
       participant_status: "waiting" | "approved" | "live" | "removed"
-      destination_status: "connecting" | "live" | "error" | "stopped"
+      destination_status: "idle" | "connecting" | "live" | "error" | "stopped"
     }
     CompositeTypes: {
       [_ in never]: never
