@@ -429,7 +429,7 @@ Step 2 — `useCompositor` hook (`apps/web/src/hooks/useCompositor.ts`)
 
 Step 3 — `useRelayStream` hook (`apps/web/src/hooks/useRelayStream.ts`)
 - Opens a WebSocket to `NEXT_PUBLIC_RELAY_URL` when `enabled && stream` are both truthy.
-- On open: sends `start` message. On `started` ack: creates `MediaRecorder` (prefers `video/webm;codecs=vp8,opus`, 3Mbps video + 128kbps audio) with 250ms chunk interval. Each `dataavailable` chunk is sent as a binary WebSocket frame.
+- On open: sends `start` message. On `started` ack: creates `MediaRecorder` (prefers `video/webm;codecs=h264,opus`, falls back to vp8, then bare webm; 3Mbps video + 128kbps audio) with 250ms chunk interval. Each `dataavailable` chunk is sent as a binary WebSocket frame.
 - Returns `{ streaming: boolean, error: string | null }`.
 
 Step 4 — `LiveRoom.tsx` wired
@@ -437,17 +437,22 @@ Step 4 — `LiveRoom.tsx` wired
 - "Go Live →" button in toolbar; while starting shows "Starting...", while live shows "● Stop stream" in red. Status indicator (pulsing red dot + "LIVE" / "Connecting..." / error text) in the slots header.
 - `liveParticipants` computed once, shared between compositor and the existing slot grid.
 
+Step 5 — Railway deployment prep for relay
+- `nixpacks.toml` at repo root — `nixPkgs = ["ffmpeg"]` so Railway Nixpacks builder includes ffmpeg in the image
+- `apps/relay/package.json` build script — also runs `apt-get install -y ffmpeg` + copies binary to `vendor/ffmpeg` as a belt-and-suspenders fallback for Docker-based deploys
+- H264 codec path hardened end-to-end: browser prefers `video/webm;codecs=h264,opus` so ffmpeg can use `-c:v copy` (stream copy, no re-encoding); VP8 would require libvpx+libx264 JIT compilation which segfaults in Railway containers
+- `apps/relay/src/lib/ffmpeg.ts` — `-c:v copy` passes H264 NAL units directly into the FLV container; audio still transcoded Opus → AAC (RTMP doesn't carry Opus); origin comment documents the Railway segfault reason
+
 **New env vars:**
 - `RELAY_PORT=3003` (relay server)
 - `NEXT_PUBLIC_RELAY_URL=ws://localhost:3003` (web → relay WS URL; set to `wss://` Railway URL in production)
 
 **State at end of day:**
-- Full outbound streaming pipeline implemented end-to-end
+- Full outbound streaming pipeline implemented end-to-end: canvas compositor → WebSocket → relay → ffmpeg → RTMP
 - All 6 packages type-checking clean
+- H264 codec path avoids re-encoding and Railway container segfaults
+- Railway deployment config in place (`nixpacks.toml`, Dockerfile build script)
 - To test locally: `pnpm dev` (starts all services incl. relay), add destinations in dashboard, open control room, click "Go live →"
 - ffmpeg must be installed locally for relay to work (`brew install ffmpeg` / `apt install ffmpeg`)
-- Relay needs a Railway service + env vars set before production use
 
 **Next logical step (Day 7):** Deploy relay to Railway, set `NEXT_PUBLIC_RELAY_URL` on Vercel, do a live end-to-end test pushing to a real RTMP destination.
-
-**Next logical step (Day 6):** Browser canvas compositor → server relay → ffmpeg fan-out to RTMP destinations.
