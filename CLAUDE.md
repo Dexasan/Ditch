@@ -456,3 +456,39 @@ Step 5 — Railway deployment prep for relay
 - ffmpeg must be installed locally for relay to work (`brew install ffmpeg` / `apt install ffmpeg`)
 
 **Next logical step (Day 7):** Deploy relay to Railway, set `NEXT_PUBLIC_RELAY_URL` on Vercel, do a live end-to-end test pushing to a real RTMP destination.
+
+---
+
+### Day 7 — 2026-04-24 (in progress)
+
+**What we did:**
+
+Step 1 — Relay deployed to Railway
+- `NEXT_PUBLIC_RELAY_URL=wss://relay-production-8243.up.railway.app` was already set on Vercel from Day 6 prep
+- Relay service was already live on Railway (`relay-production-8243.up.railway.app`); confirmed health check returns 200
+
+Step 2 — Bug: relay crashes on EPIPE when browser disconnects mid-stream
+- Root cause: `proc.stdin.write()` throws EPIPE if ffmpeg exits while chunks are still arriving; no error handler on `proc.stdin` → unhandled error event → process crash → Railway restarts
+- Fix: added `proc.stdin?.on("error", ...)` in `apps/relay/src/lib/ffmpeg.ts` to swallow EPIPE silently
+
+Step 3 — Bug: "Go Live →" showed "Starting..." / "Connecting..." forever (Bug 1)
+- Symptom: button never transitioned to "● Stop stream"; status never showed "LIVE"
+- Root cause (first layer): `@ffmpeg-installer/ffmpeg` npm binary is a 2018 glibc-linked static build. Railway runs a glibc (Ubuntu/Railpack) environment, NOT Alpine — but the binary still segfaulted. Removed the npm package entirely.
+- Root cause (second layer after removing npm binary): `spawn("ffmpeg", ...)` returned ENOENT — system `ffmpeg` was not in the spawned-process PATH even though Railway installs it via `RAILPACK_APT_PACKAGES=ffmpeg` (build-layer install doesn't land in runtime PATH).
+- Fix: `resolveFfmpeg()` in `apps/relay/src/lib/ffmpeg.ts` probes candidate paths at module load (`/usr/bin/ffmpeg`, `/usr/local/bin/ffmpeg`, `vendor/ffmpeg`) before falling back to PATH. Logs which binary is resolved on startup.
+- Result: relay resolves `vendor/ffmpeg` (the copy made by the build script's `apt-get install + cp`) — this is an apt-installed binary in the same glibc environment, so no segfault.
+- Key diagnostic: the `started` ack WAS being sent; ffmpeg crashed ~1s later; `stopped` was sent; React batched both state updates so the user never saw "● Stop stream".
+
+Step 4 — Bug: destinations always showed "Stopped" on creation (Bug 2)
+- Root cause: `stream_destinations.status` column default was `'stopped'` in the initial migration — no `idle`/ready state existed in the enum
+- Fix: DB migration `003_destination_idle_status.sql` — adds `'idle'` to `destination_status` enum, changes column default to `'idle'`, backfills existing `stopped` rows
+- Updated `packages/types/src/index.ts`, `packages/db/src/database.types.ts`, `apps/api/src/routes/destinations.ts` (PATCH schema), `apps/web/src/app/dashboard/DestinationList.tsx` (STATUS_LABEL map: idle → "Ready")
+- Migration applied to Supabase in two steps (Postgres requires `ADD VALUE` to commit before use in same session)
+
+**State mid-day:**
+- Relay is live, EPIPE crash fixed, ffmpeg binary resolution hardened
+- "Go Live →" flow unblocked pending real end-to-end stream test
+- Destination status bug fixed; new destinations show "Ready"
+- All services redeployed
+
+**Next logical step (Day 7 continued):** Do a real end-to-end stream test — creator opens control room, clicks "Go live →", verify ffmpeg pushes to RTMP destination and the stream appears live on the target platform.
