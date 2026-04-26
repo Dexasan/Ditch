@@ -1,5 +1,8 @@
 # DITCH
 
+<img width="1887" height="1056" alt="image" src="https://github.com/user-attachments/assets/ea2b837d-2496-4a3e-b156-ec31dcebe9fc" />
+
+
 A video-first live platform: go live once, stream everywhere, bring viewers back into one interactive space.
 
 ## What is DITCH
