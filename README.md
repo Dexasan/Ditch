@@ -50,6 +50,46 @@ ditch/
 - `3002` — api (Fastify)
 - `3003` — relay (WebSocket → RTMP)
 
+## Database Setup (Supabase Migrations)
+
+DITCH uses Supabase for the database. Migrations are stored in `supabase/migrations/` and can be applied two ways:
+
+### Option A — Supabase CLI (recommended for production)
+
+Requires a [Supabase access token](https://supabase.com/dashboard/project/_/settings/api).
+
+```bash
+# Set your token once
+export SUPABASE_ACCESS_TOKEN=your-token-here
+
+# Link to your Supabase project (creates .config.yml)
+pnpm db:link --project-ref kgdlmfybxnqpkhfbjull
+
+# Push migrations to the linked project
+pnpm db:push
+
+# Or apply step by step:
+pnpm db:migrate:new your_migration_name  # create a new migration file
+pnpm db:migrate:status                   # check applied vs unapplied
+pnpm db:push                             # apply pending migrations
+pnpm db:reset                            # destroy + re-apply all (dev only)
+```
+
+### Option B — SQL Editor
+
+1. Go to your [Supabase SQL Editor](https://supabase.com/dashboard/project/_/sql/editor)
+2. Open each file in `supabase/migrations/` and run it in order
+
+### Local Development with Supabase CLI
+
+```bash
+pnpm db:start   # start a local Supabase instance (Docker)
+pnpm db:stop    # stop it
+pnpm db:reset   # reset local database
+```
+
+---
+
 ## Getting Started
 
 ```bash
@@ -59,7 +99,8 @@ pnpm install
 # Copy env file and fill in Supabase credentials
 cp .env.example .env
 
-# Start all services
+# Run database migrations (Option A or B above)
+# Then start all services
 pnpm dev
 ```
 
@@ -67,6 +108,7 @@ pnpm dev
 
 | Variable | Description |
 |----------|-------------|
+| `SUPABASE_ACCESS_TOKEN` | Supabase CLI access token (for `db:push` and `db:link` scripts) |
 | `SUPABASE_URL` | Project URL |
 | `SUPABASE_ANON_KEY` | Public anon key |
 | `NEXT_PUBLIC_SUPABASE_URL` | Public project URL |
