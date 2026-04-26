@@ -4,7 +4,7 @@ import type { ClientToServerEvents, ServerToClientEvents, SocketData } from "./t
 import { authMiddleware } from "./middleware/auth.js";
 import { registerHandlers } from "./handlers/index.js";
 
-const PORT = Number(process.env.PORT) || 3001;
+const PORT = Number(process.env.REALTIME_PORT) || 3001;
 
 // Allowed origins: comma-separated WEB_URL env var + any *.vercel.app preview URL
 function isOriginAllowed(origin: string | undefined): boolean {

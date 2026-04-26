@@ -39,7 +39,7 @@ async function start() {
 
   // ── Start ─────────────────────────────────────────────────────────────────
 
-  const PORT = Number(process.env.PORT) || 3002;
+  const PORT = Number(process.env.API_PORT) || 3002;
 
   await server.listen({ port: PORT, host: "0.0.0.0" });
 }
