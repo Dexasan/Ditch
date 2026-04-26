@@ -1,6 +1,19 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (session) {
+    redirect("/dashboard");
+  }
+
+  return <HomePageContent />;
+}
+
+function HomePageContent() {
   return (
     <div className="min-h-screen">
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-[var(--color-surface-border)] bg-[var(--color-surface)]/80 backdrop-blur-md">
