@@ -1,18 +1,25 @@
-import { spawn, type ChildProcess } from "child_process";
+import { spawn, execSync, type ChildProcess } from "child_process";
 import { existsSync } from "fs";
 
-// Railpack/Nixpacks installs ffmpeg during the build layer but it may not land in
-// the spawned-process PATH. Try explicit paths before falling back to PATH lookup.
+// Prefer the system/PATH ffmpeg (Nixpacks, apt, apk) over the static vendor
+// binary. The johnvansickle.com static build reliably SIGSEGVs on Railway after
+// input detection — the Nix-installed binary does not. We use `which` to find
+// whatever is in PATH before falling back to well-known absolute paths, and only
+// use vendor/ffmpeg as a last resort.
 function resolveFfmpeg(): string {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
+
+  try {
+    const found = execSync("which ffmpeg 2>/dev/null", { encoding: "utf8" }).trim();
+    if (found) return found;
+  } catch (_) {}
+
   const candidates = [
-    "/usr/bin/ffmpeg",        // apt / apk install
-    "/usr/local/bin/ffmpeg",  // homebrew / manual install
-    "vendor/ffmpeg",          // copied by build script
+    "/usr/bin/ffmpeg",
+    "/usr/local/bin/ffmpeg",
+    "vendor/ffmpeg",  // last resort: static binary, known to SIGSEGV on Railway
   ];
-  const found = candidates.find(existsSync);
-  if (found) return found;
-  return "ffmpeg"; // last resort: PATH lookup
+  return candidates.find(existsSync) ?? "ffmpeg";
 }
 
 const FFMPEG_BIN = resolveFfmpeg();
@@ -67,10 +74,6 @@ export function spawnFfmpeg(rtmpTargets: string[]): FfmpegSession {
 
 function buildArgs(targets: string[]): string[] {
   const inputFlags = [
-    // Disable all SIMD optimizations — the johnvansickle.com static build
-    // segfaults (SIGSEGV) when AVX2/SSE4 codec paths are initialized inside
-    // Railway's container environment. Baseline C paths are stable.
-    "-cpuflags", "0",
     "-fflags", "nobuffer",
     "-f", "webm",
     "-i", "pipe:0",
