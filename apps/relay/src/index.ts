@@ -85,7 +85,7 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
 
       // 4. Spawn ffmpeg
       try {
-        session = spawnFfmpeg(rtmpTargets);
+        session = spawnFfmpeg(rtmpTargets, session_id);
       } catch (err) {
         send(ws, { type: "error", message: `Failed to spawn ffmpeg: ${String(err)}` });
         return;

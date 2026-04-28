@@ -32,23 +32,22 @@ export interface FfmpegSession {
   onError: (cb: (err: Error) => void) => void;
 }
 
-export function spawnFfmpeg(rtmpTargets: string[]): FfmpegSession {
+export function spawnFfmpeg(rtmpTargets: string[], sessionId: string): FfmpegSession {
   const args = buildArgs(rtmpTargets);
+  const tag = `[ffmpeg ${sessionId.slice(0, 8)}]`;
 
-  console.log("[ffmpeg] spawning:", FFMPEG_BIN, args.join(" "));
+  console.log(tag, "spawning:", FFMPEG_BIN, args.join(" "));
 
   const proc: ChildProcess = spawn(FFMPEG_BIN, args, { stdio: ["pipe", "ignore", "pipe"] });
 
-  // Swallow EPIPE — ffmpeg may exit while browser is still sending chunks
   proc.stdin?.on("error", (err: NodeJS.ErrnoException) => {
-    if (err.code !== "EPIPE") console.error("[ffmpeg] stdin error:", err.message);
+    if (err.code !== "EPIPE") console.error(tag, "stdin error:", err.message);
   });
 
-  // Buffer stderr so the full output (including RTMP errors) is flushed before exit
   const stderrBuf: Buffer[] = [];
   proc.stderr?.on("data", (chunk: Buffer) => {
     stderrBuf.push(chunk);
-    process.stderr.write(chunk);
+    console.log(tag, chunk.toString().trimEnd());
   });
 
   return {
@@ -61,7 +60,7 @@ export function spawnFfmpeg(rtmpTargets: string[]): FfmpegSession {
     onExit(cb) {
       proc.on("exit", (code, signal) => {
         if (code !== 0) {
-          console.error("[ffmpeg] full stderr on exit:\n" + Buffer.concat(stderrBuf).toString());
+          console.error(tag, "full stderr on exit:\n" + Buffer.concat(stderrBuf).toString());
         }
         cb(code, signal);
       });
@@ -74,14 +73,20 @@ export function spawnFfmpeg(rtmpTargets: string[]): FfmpegSession {
 
 function buildArgs(targets: string[]): string[] {
   const inputFlags = [
-    "-fflags", "nobuffer",
+    // Replace container timestamps with wall-clock arrival time — critical for
+    // live streams where WebM PTS are relative to recording start, not real-time.
+    // Without this, buffered/bursty input produces stale timestamps in RTMP output.
+    "-use_wallclock_as_timestamps", "1",
+    "-fflags", "+nobuffer+genpts",
+    "-thread_queue_size", "512",
+    "-probesize", "32",
+    "-analyzeduration", "0",
     "-f", "webm",
     "-i", "pipe:0",
   ];
 
-  // -c:v copy: pass H264 from browser directly into RTMP without re-encoding.
-  // Avoids libx264/libvpx JIT compilation which segfaults in Railway containers.
-  // Audio must still be transcoded (Opus → AAC) since RTMP doesn't carry Opus.
+  // -c:v copy: pass H264 NAL units directly into FLV without re-encoding.
+  // Audio transcoded Opus → AAC since RTMP does not carry Opus.
   const encodeFlags = [
     "-c:v", "copy",
     "-c:a", "aac",
@@ -89,12 +94,18 @@ function buildArgs(targets: string[]): string[] {
     "-ar", "44100",
   ];
 
+  // Flush every packet immediately; skip duration/filesize fields in FLV header
+  // (they can't be known for a live stream and cause noisy errors on shutdown).
+  const outputFlags = [
+    "-flvflags", "no_duration_filesize",
+    "-flush_packets", "1",
+  ];
+
   if (targets.length === 1) {
-    return [...inputFlags, ...encodeFlags, "-f", "flv", targets[0]];
+    return [...inputFlags, ...encodeFlags, ...outputFlags, "-f", "flv", targets[0]];
   }
 
   // Tee muxer: encode once, push to all destinations simultaneously.
-  // onfail=ignore keeps remaining destinations alive if one drops.
   const tee = targets.map((t) => `[onfail=ignore:f=flv]${t}`).join("|");
-  return [...inputFlags, ...encodeFlags, "-f", "tee", "-map", "0:v", "-map", "0:a", tee];
+  return [...inputFlags, ...encodeFlags, ...outputFlags, "-f", "tee", "-map", "0:v", "-map", "0:a", tee];
 }
