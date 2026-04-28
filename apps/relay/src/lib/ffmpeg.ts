@@ -67,6 +67,10 @@ export function spawnFfmpeg(rtmpTargets: string[]): FfmpegSession {
 
 function buildArgs(targets: string[]): string[] {
   const inputFlags = [
+    // Disable all SIMD optimizations — the johnvansickle.com static build
+    // segfaults (SIGSEGV) when AVX2/SSE4 codec paths are initialized inside
+    // Railway's container environment. Baseline C paths are stable.
+    "-cpuflags", "0",
     "-fflags", "nobuffer",
     "-f", "webm",
     "-i", "pipe:0",

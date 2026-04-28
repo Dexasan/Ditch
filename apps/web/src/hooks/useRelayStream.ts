@@ -57,6 +57,8 @@ export function useRelayStream({
             ? "video/webm;codecs=vp8,opus"
             : "video/webm";
 
+        console.log("[relay-stream] MediaRecorder mimeType selected:", mimeType);
+
         const recorder = new MediaRecorder(stream, {
           mimeType,
           videoBitsPerSecond: 3_000_000,
