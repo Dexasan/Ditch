@@ -492,3 +492,66 @@ Step 4 — Bug: destinations always showed "Stopped" on creation (Bug 2)
 - All services redeployed
 
 **Next logical step (Day 7 continued):** Do a real end-to-end stream test — creator opens control room, clicks "Go live →", verify ffmpeg pushes to RTMP destination and the stream appears live on the target platform.
+
+---
+
+### Day 8 — 2026-04-28
+
+**What we did:**
+
+Step 1 — Diagnosed "LIVE for ~1s then Connecting... forever" bug (three-phase investigation)
+- Phase 1 (read-only): traced full data flow — `useRelayStream` → WebSocket → relay → ffmpeg → RTMP. Key finding: when ffmpeg exits for any reason, relay sends `{ type: "stopped" }`, `setStreaming(false)`, but the WebSocket stays open and MediaRecorder keeps running with no recovery path. The UI shows "Connecting..." forever.
+- Phase 2 (hypotheses): top candidates were VP8 fallback → FLV codec incompatibility, bad RTMP credentials, ffmpeg SIGSEGV on static binary
+- Phase 3 (diagnostics): added `console.log("[relay-stream] MediaRecorder mimeType selected:", mimeType)` to `useRelayStream.ts`. ffmpeg stderr was already being logged to Railway via `process.stderr.write(chunk)`.
+- Evidence from Railway logs: `signal: SIGSEGV, code: null` — ffmpeg binary crashing after successfully probing the input stream (H264 + Opus detected fine, crash on first frame processing)
+
+Step 2 — Binary resolution chase (multiple iterations)
+- First attempt: `-cpuflags 0` to disable SIMD — SIGSEGV persisted. Hypothesis was wrong: crash wasn't SIMD-related.
+- Discovery: **the relay service had never been connected to the GitHub repo**. All previous deploys were 4 days stale. Every "fix" was never actually tested.
+- Second attempt after reconnecting repo: added `which ffmpeg` before checking static paths in `resolveFfmpeg()` — still resolved `vendor/ffmpeg` (johnvansickle.com static binary) because Nixpacks puts ffmpeg in PATH at build time but not runtime.
+- Root cause: `pnpm build` script downloads the johnvansickle.com static binary to `vendor/ffmpeg` during Nixpacks build. `resolveFfmpeg()` found it before the PATH fallback. The static binary consistently SIGSEGV's on Railway after input detection regardless of CPU flags.
+- Fix: recreated the Railway relay service from scratch, configured it to use Railpack with start command `pnpm --filter @ditch/relay start`. The Nix-installed ffmpeg (`nixPkgs = ["ffmpeg"]` in `nixpacks.toml`) lands at `/usr/bin/ffmpeg` and is found first by `which ffmpeg`. Confirmed via `[ffmpeg] resolved binary: /usr/bin/ffmpeg` in startup logs.
+
+Step 3 — Railway service configuration lessons
+- The relay Dockerfile (`apps/relay/Dockerfile`) was never being used — Railway was auto-detecting Nixpacks from the repo root
+- To use the Dockerfile would require setting Root Directory + Dockerfile Path in Railway settings; the UI made this difficult
+- Railpack approach works: set start command `pnpm --filter @ditch/relay start`, rely on `nixpacks.toml` for ffmpeg, use `SUPABASE_URL` + `SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_ROLE_KEY` + `WEB_URL` as env vars
+- **Required env vars for relay service:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `WEB_URL`
+- `SUPABASE_ANON_KEY` (not `NEXT_PUBLIC_SUPABASE_ANON_KEY`) — `@ditch/db` validates both keys on import even though the relay only uses the admin client
+- New relay domain: `wss://relay-production-8f90.up.railway.app` — updated `NEXT_PUBLIC_RELAY_URL` on Vercel
+
+Step 4 — First successful end-to-end RTMP stream to YouTube ✓
+- Stream appeared on YouTube Live
+- ffmpeg running `/usr/bin/ffmpeg` (Alpine 15.2.0, ffmpeg 8.0.1) — no SIGSEGV
+- Full pipeline confirmed: browser canvas compositor → WebSocket → relay → ffmpeg → YouTube RTMP
+
+Step 5 — Streaming quality analysis from Railway logs
+Three symptoms observed and diagnosed:
+
+**Symptom 1 — 20-second startup delay:**
+- Cause A (unavoidable): YouTube's own ingest buffer (~5-10s minimum before going live)
+- Cause B (fixable): ffmpeg default `-probesize` (5MB) and `-analyzeduration` (5s) cause unnecessary buffering before output starts, even though format is explicitly `-f webm`
+
+**Symptom 2 — 10-second-stale video:**
+- Root cause: WebM timestamps from MediaRecorder are relative to recording start, not wall-clock. With `-c:v copy`, these timestamps pass straight to RTMP. When stdin backpressure causes data to queue (ffmpeg stalls → Node.js buffers chunks → bursts all at once), the timestamps are now 10-20 seconds behind real-time. YouTube plays the stale timestamps. Confirmed in logs: frame count frozen at 295 for 19 real-time seconds, then burst to frame 320 with time jumping from 16.79s to 35.57s.
+
+**Symptom 3 — Stream dropping shortly after:**
+- Root cause: `requestAnimationFrame` in `useCompositor.ts` is throttled by the browser to ~1fps when the tab is not in focus. No new canvas frames → MediaRecorder produces no chunks → ffmpeg stdin stalls → YouTube sees "No data" → stream ends. Confirmed in logs: complete freeze (no audio OR video) for 27 seconds before stream ended.
+
+Step 6 — Fix E + Fix A applied (`apps/relay/src/lib/ffmpeg.ts`)
+- **Fix E (logging):** `spawnFfmpeg` now takes `sessionId` parameter; all ffmpeg log lines prefixed with `[ffmpeg <short-id>]` for legibility in multi-stream Railway logs
+- **Fix A (latency + timestamp flags):**
+  - `-use_wallclock_as_timestamps 1` — replaces WebM container PTS with wall-clock arrival time; directly fixes Symptom 2
+  - `-fflags +nobuffer+genpts` — nobuffer was already present; `+genpts` regenerates PTS when missing
+  - `-thread_queue_size 512` — prevents ffmpeg blocking the input thread during chunk bursts
+  - `-probesize 32 -analyzeduration 0` — start writing output immediately; fixes part of Symptom 1
+  - `-flvflags no_duration_filesize` — eliminates "Failed to update header" shutdown noise
+  - `-flush_packets 1` — flush output after every packet; prevents data sitting in ffmpeg's output buffer
+
+**State at end of day:**
+- Relay live at `wss://relay-production-8f90.up.railway.app`
+- First successful YouTube RTMP stream confirmed
+- Fix A deployed but not yet tested for symptom resolution
+- Symptom 3 (compositor `requestAnimationFrame` throttling) identified but not yet fixed — needs `setInterval` replacement in `useCompositor.ts`
+
+**Next logical step (Day 9):** Test Fix A (latency flags) against all three symptoms. If Symptoms 1 and 2 are resolved, apply compositor fix (replace `requestAnimationFrame` with `setInterval` in `useCompositor.ts` draw loop). Then do sustained stream test with tab in background.
