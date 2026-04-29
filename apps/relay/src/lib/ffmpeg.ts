@@ -81,7 +81,10 @@ function buildArgs(targets: string[]): string[] {
     "-i", "pipe:0",
   ];
 
-  // -c:v copy: pass H264 NAL units directly into FLV without re-encoding.
+  // -c:v copy: pass H264 NAL units from the browser directly into FLV without
+  // re-encoding. Re-encoding causes generation loss: the browser's encoder
+  // aggressively drops bitrate on static scenes, producing a degraded source
+  // that a second H264 encode can only make worse.
   // Audio transcoded Opus → AAC since RTMP does not carry Opus.
   const encodeFlags = [
     "-c:v", "copy",
