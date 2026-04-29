@@ -1,18 +1,25 @@
-import { spawn, type ChildProcess } from "child_process";
+import { spawn, execSync, type ChildProcess } from "child_process";
 import { existsSync } from "fs";
 
-// Railpack/Nixpacks installs ffmpeg during the build layer but it may not land in
-// the spawned-process PATH. Try explicit paths before falling back to PATH lookup.
+// Prefer the system/PATH ffmpeg (Nixpacks, apt, apk) over the static vendor
+// binary. The johnvansickle.com static build reliably SIGSEGVs on Railway after
+// input detection — the Nix-installed binary does not. We use `which` to find
+// whatever is in PATH before falling back to well-known absolute paths, and only
+// use vendor/ffmpeg as a last resort.
 function resolveFfmpeg(): string {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
+
+  try {
+    const found = execSync("which ffmpeg 2>/dev/null", { encoding: "utf8" }).trim();
+    if (found) return found;
+  } catch (_) {}
+
   const candidates = [
-    "/usr/bin/ffmpeg",        // apt / apk install
-    "/usr/local/bin/ffmpeg",  // homebrew / manual install
-    "vendor/ffmpeg",          // copied by build script
+    "/usr/bin/ffmpeg",
+    "/usr/local/bin/ffmpeg",
+    "vendor/ffmpeg",  // last resort: static binary, known to SIGSEGV on Railway
   ];
-  const found = candidates.find(existsSync);
-  if (found) return found;
-  return "ffmpeg"; // last resort: PATH lookup
+  return candidates.find(existsSync) ?? "ffmpeg";
 }
 
 const FFMPEG_BIN = resolveFfmpeg();
@@ -25,23 +32,22 @@ export interface FfmpegSession {
   onError: (cb: (err: Error) => void) => void;
 }
 
-export function spawnFfmpeg(rtmpTargets: string[]): FfmpegSession {
+export function spawnFfmpeg(rtmpTargets: string[], sessionId: string): FfmpegSession {
   const args = buildArgs(rtmpTargets);
+  const tag = `[ffmpeg ${sessionId.slice(0, 8)}]`;
 
-  console.log("[ffmpeg] spawning:", FFMPEG_BIN, args.join(" "));
+  console.log(tag, "spawning:", FFMPEG_BIN, args.join(" "));
 
   const proc: ChildProcess = spawn(FFMPEG_BIN, args, { stdio: ["pipe", "ignore", "pipe"] });
 
-  // Swallow EPIPE — ffmpeg may exit while browser is still sending chunks
   proc.stdin?.on("error", (err: NodeJS.ErrnoException) => {
-    if (err.code !== "EPIPE") console.error("[ffmpeg] stdin error:", err.message);
+    if (err.code !== "EPIPE") console.error(tag, "stdin error:", err.message);
   });
 
-  // Buffer stderr so the full output (including RTMP errors) is flushed before exit
   const stderrBuf: Buffer[] = [];
   proc.stderr?.on("data", (chunk: Buffer) => {
     stderrBuf.push(chunk);
-    process.stderr.write(chunk);
+    console.log(tag, chunk.toString().trimEnd());
   });
 
   return {
@@ -54,7 +60,7 @@ export function spawnFfmpeg(rtmpTargets: string[]): FfmpegSession {
     onExit(cb) {
       proc.on("exit", (code, signal) => {
         if (code !== 0) {
-          console.error("[ffmpeg] full stderr on exit:\n" + Buffer.concat(stderrBuf).toString());
+          console.error(tag, "full stderr on exit:\n" + Buffer.concat(stderrBuf).toString());
         }
         cb(code, signal);
       });
@@ -67,14 +73,16 @@ export function spawnFfmpeg(rtmpTargets: string[]): FfmpegSession {
 
 function buildArgs(targets: string[]): string[] {
   const inputFlags = [
-    "-fflags", "nobuffer",
+    "-fflags", "+nobuffer+genpts",
+    "-thread_queue_size", "512",
+    "-probesize", "32",
+    "-analyzeduration", "0",
     "-f", "webm",
     "-i", "pipe:0",
   ];
 
-  // -c:v copy: pass H264 from browser directly into RTMP without re-encoding.
-  // Avoids libx264/libvpx JIT compilation which segfaults in Railway containers.
-  // Audio must still be transcoded (Opus → AAC) since RTMP doesn't carry Opus.
+  // -c:v copy: pass H264 NAL units directly into FLV without re-encoding.
+  // Audio transcoded Opus → AAC since RTMP does not carry Opus.
   const encodeFlags = [
     "-c:v", "copy",
     "-c:a", "aac",
@@ -82,12 +90,18 @@ function buildArgs(targets: string[]): string[] {
     "-ar", "44100",
   ];
 
+  // Flush every packet immediately; skip duration/filesize fields in FLV header
+  // (they can't be known for a live stream and cause noisy errors on shutdown).
+  const outputFlags = [
+    "-flvflags", "no_duration_filesize",
+    "-flush_packets", "1",
+  ];
+
   if (targets.length === 1) {
-    return [...inputFlags, ...encodeFlags, "-f", "flv", targets[0]];
+    return [...inputFlags, ...encodeFlags, ...outputFlags, "-f", "flv", targets[0]];
   }
 
   // Tee muxer: encode once, push to all destinations simultaneously.
-  // onfail=ignore keeps remaining destinations alive if one drops.
   const tee = targets.map((t) => `[onfail=ignore:f=flv]${t}`).join("|");
-  return [...inputFlags, ...encodeFlags, "-f", "tee", "-map", "0:v", "-map", "0:a", tee];
+  return [...inputFlags, ...encodeFlags, ...outputFlags, "-f", "tee", "-map", "0:v", "-map", "0:a", tee];
 }

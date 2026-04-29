@@ -492,3 +492,125 @@ Step 4 — Bug: destinations always showed "Stopped" on creation (Bug 2)
 - All services redeployed
 
 **Next logical step (Day 7 continued):** Do a real end-to-end stream test — creator opens control room, clicks "Go live →", verify ffmpeg pushes to RTMP destination and the stream appears live on the target platform.
+
+---
+
+### Day 8 — 2026-04-28
+
+**What we did:**
+
+Step 1 — Diagnosed "LIVE for ~1s then Connecting... forever" bug (three-phase investigation)
+- Phase 1 (read-only): traced full data flow — `useRelayStream` → WebSocket → relay → ffmpeg → RTMP. Key finding: when ffmpeg exits for any reason, relay sends `{ type: "stopped" }`, `setStreaming(false)`, but the WebSocket stays open and MediaRecorder keeps running with no recovery path. The UI shows "Connecting..." forever.
+- Phase 2 (hypotheses): top candidates were VP8 fallback → FLV codec incompatibility, bad RTMP credentials, ffmpeg SIGSEGV on static binary
+- Phase 3 (diagnostics): added `console.log("[relay-stream] MediaRecorder mimeType selected:", mimeType)` to `useRelayStream.ts`. ffmpeg stderr was already being logged to Railway via `process.stderr.write(chunk)`.
+- Evidence from Railway logs: `signal: SIGSEGV, code: null` — ffmpeg binary crashing after successfully probing the input stream (H264 + Opus detected fine, crash on first frame processing)
+
+Step 2 — Binary resolution chase (multiple iterations)
+- First attempt: `-cpuflags 0` to disable SIMD — SIGSEGV persisted. Hypothesis was wrong: crash wasn't SIMD-related.
+- Discovery: **the relay service had never been connected to the GitHub repo**. All previous deploys were 4 days stale. Every "fix" was never actually tested.
+- Second attempt after reconnecting repo: added `which ffmpeg` before checking static paths in `resolveFfmpeg()` — still resolved `vendor/ffmpeg` (johnvansickle.com static binary) because Nixpacks puts ffmpeg in PATH at build time but not runtime.
+- Root cause: `pnpm build` script downloads the johnvansickle.com static binary to `vendor/ffmpeg` during Nixpacks build. `resolveFfmpeg()` found it before the PATH fallback. The static binary consistently SIGSEGV's on Railway after input detection regardless of CPU flags.
+- Fix: recreated the Railway relay service from scratch, configured it to use Railpack with start command `pnpm --filter @ditch/relay start`. The Nix-installed ffmpeg (`nixPkgs = ["ffmpeg"]` in `nixpacks.toml`) lands at `/usr/bin/ffmpeg` and is found first by `which ffmpeg`. Confirmed via `[ffmpeg] resolved binary: /usr/bin/ffmpeg` in startup logs.
+
+Step 3 — Railway service configuration lessons
+- The relay Dockerfile (`apps/relay/Dockerfile`) was never being used — Railway was auto-detecting Nixpacks from the repo root
+- To use the Dockerfile would require setting Root Directory + Dockerfile Path in Railway settings; the UI made this difficult
+- Railpack approach works: set start command `pnpm --filter @ditch/relay start`, rely on `nixpacks.toml` for ffmpeg, use `SUPABASE_URL` + `SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_ROLE_KEY` + `WEB_URL` as env vars
+- **Required env vars for relay service:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `WEB_URL`
+- `SUPABASE_ANON_KEY` (not `NEXT_PUBLIC_SUPABASE_ANON_KEY`) — `@ditch/db` validates both keys on import even though the relay only uses the admin client
+- New relay domain: `wss://relay-production-8f90.up.railway.app` — updated `NEXT_PUBLIC_RELAY_URL` on Vercel
+
+Step 4 — First successful end-to-end RTMP stream to YouTube ✓
+- Stream appeared on YouTube Live
+- ffmpeg running `/usr/bin/ffmpeg` (Alpine 15.2.0, ffmpeg 8.0.1) — no SIGSEGV
+- Full pipeline confirmed: browser canvas compositor → WebSocket → relay → ffmpeg → YouTube RTMP
+
+Step 5 — Streaming quality analysis from Railway logs
+Three symptoms observed and diagnosed:
+
+**Symptom 1 — 20-second startup delay:**
+- Cause A (unavoidable): YouTube's own ingest buffer (~5-10s minimum before going live)
+- Cause B (fixable): ffmpeg default `-probesize` (5MB) and `-analyzeduration` (5s) cause unnecessary buffering before output starts, even though format is explicitly `-f webm`
+
+**Symptom 2 — 10-second-stale video:**
+- Root cause: WebM timestamps from MediaRecorder are relative to recording start, not wall-clock. With `-c:v copy`, these timestamps pass straight to RTMP. When stdin backpressure causes data to queue (ffmpeg stalls → Node.js buffers chunks → bursts all at once), the timestamps are now 10-20 seconds behind real-time. YouTube plays the stale timestamps. Confirmed in logs: frame count frozen at 295 for 19 real-time seconds, then burst to frame 320 with time jumping from 16.79s to 35.57s.
+
+**Symptom 3 — Stream dropping shortly after:**
+- Root cause: `requestAnimationFrame` in `useCompositor.ts` is throttled by the browser to ~1fps when the tab is not in focus. No new canvas frames → MediaRecorder produces no chunks → ffmpeg stdin stalls → YouTube sees "No data" → stream ends. Confirmed in logs: complete freeze (no audio OR video) for 27 seconds before stream ended.
+
+Step 6 — Fix E + Fix A applied (`apps/relay/src/lib/ffmpeg.ts`)
+- **Fix E (logging):** `spawnFfmpeg` now takes `sessionId` parameter; all ffmpeg log lines prefixed with `[ffmpeg <short-id>]` for legibility in multi-stream Railway logs
+- **Fix A (latency + timestamp flags):**
+  - `-use_wallclock_as_timestamps 1` — replaces WebM container PTS with wall-clock arrival time; directly fixes Symptom 2
+  - `-fflags +nobuffer+genpts` — nobuffer was already present; `+genpts` regenerates PTS when missing
+  - `-thread_queue_size 512` — prevents ffmpeg blocking the input thread during chunk bursts
+  - `-probesize 32 -analyzeduration 0` — start writing output immediately; fixes part of Symptom 1
+  - `-flvflags no_duration_filesize` — eliminates "Failed to update header" shutdown noise
+  - `-flush_packets 1` — flush output after every packet; prevents data sitting in ffmpeg's output buffer
+
+**State at end of day:**
+- Relay live at `wss://relay-production-8f90.up.railway.app`
+- First successful YouTube RTMP stream confirmed
+- Fix A deployed but not yet tested for symptom resolution
+- Symptom 3 (compositor `requestAnimationFrame` throttling) identified but not yet fixed — needs `setInterval` replacement in `useCompositor.ts`
+
+**Next logical step (Day 9):** Test Fix A (latency flags) against all three symptoms. If Symptoms 1 and 2 are resolved, apply compositor fix (replace `requestAnimationFrame` with `setInterval` in `useCompositor.ts` draw loop). Then do sustained stream test with tab in background.
+
+---
+
+### Day 9 — 2026-04-29
+
+**What we did:**
+
+Step 1 — Audio fix: drop `-use_wallclock_as_timestamps 1` (`apps/relay/src/lib/ffmpeg.ts`)
+- Symptom: audio barely audible, laggy, garbled after Fix A
+- Root cause: `-use_wallclock_as_timestamps 1` replaces WebM container PTS with wall-clock arrival time. Audio and video chunks arrive at the relay at different rates through the WebSocket; wallclock-stamping them independently desyncs A/V and confuses the Opus→AAC resampler
+- Fix: removed the flag. All other Fix A flags (`+nobuffer+genpts`, `-thread_queue_size 512`, `-probesize 32`, `-analyzeduration 0`, `-flvflags no_duration_filesize`, `-flush_packets 1`) kept intact
+
+Step 2 — Compositor `requestAnimationFrame` → `setInterval` (`apps/web/src/hooks/useCompositor.ts`)
+- Symptom: stream dies when creator switches tabs; video laggy even with tab focused
+- Root cause: `requestAnimationFrame` is throttled to ~1fps by Chrome when the tab is backgrounded (and can drop below 30fps for offscreen canvases). No canvas frames → MediaRecorder produces nothing → ffmpeg stdin starves → YouTube kills the stream
+- Fix: replaced `requestAnimationFrame` with `setInterval(draw, 1000/30)` — fires at 33ms regardless of tab visibility. Interval cleared on cleanup in both the draw-loop effect and the canvas teardown effect.
+- Added FPS counter: logs `[compositor] fps: XX.X` to browser console every 5 seconds so actual frame rate is observable during test
+
+Step 3 — Dynamic compositor layout (`apps/web/src/hooks/useCompositor.ts`)
+- Symptom: streaming solo showed creator in top-left quadrant with 3 black cells
+- Fix: replaced fixed `GRID` constant with `getLayout(participantCount)` function that branches on live participant count:
+  - 0 participants → creator fills full 1280×720
+  - 1 participant → side-by-side 50/50 (creator left, participant right)
+  - 2 participants → creator full top row (1280×360), two participants split bottom row
+  - 3 participants → 2×2 grid (previous behavior)
+- Added `drawCover()` helper — center-crops video source to fill each cell without letterboxing (equivalent to CSS `object-fit: cover`)
+
+Step 4 — Compositor: `setInterval` → `MediaStreamTrackGenerator` (`apps/web/src/hooks/useCompositor.ts`)
+- Symptom: even with `setInterval`, canvas frames weren't reliably reaching `captureStream(30)` in background tabs because Chrome still throttles `captureStream` frame capture when the tab is hidden
+- Fix: replaced `canvas.captureStream(30)` with `MediaStreamTrackGenerator` (Breakout Box API). Each draw tick constructs a `VideoFrame` from the canvas and writes it to `generator.writable`. The generator exposes a `MediaStreamTrack` that carries frames without depending on the browser's capture schedule.
+- `supportsBreakoutBox()` guard added — checks for `MediaStreamTrackGenerator`, `MediaStreamTrackProcessor`, and `VideoFrame` on `window`; falls back to `captureStream` if not available
+- Commit: `8c681fe`
+
+Step 5 — Compositor: add `MediaStreamTrackProcessor` per video track (`apps/web/src/hooks/useCompositor.ts`)
+- Problem: drawing from hidden `<video>` elements with `ctx.drawImage` fails in background tabs — Chrome produces black frames because the video element decode pipeline pauses when the tab is hidden
+- Fix: for each active video track (local + remote), attach a `MediaStreamTrackProcessor` that reads decoded `VideoFrame` objects directly from the decode pipeline. Frames are cached in `frameCacheRef` keyed by `MediaStreamTrack.id`. The draw tick reads from the cache instead of from `<video>` elements. This path bypasses the visibility throttle entirely.
+- `processorCleanupsRef` tracks per-track cleanup functions (cancel reader + close processor). Effect re-runs on `liveParticipants`/`remoteUsers` changes: torn-down for tracks that disappear, started for new ones.
+- `<video>` element path retained as fallback for browsers without Breakout Box
+- Commit: `c513e45`
+
+Step 6 — Compositor: Worker timer + `captureStream(0)` + `requestFrame()` fallback (`apps/web/src/hooks/useCompositor.ts`)
+- Problem: `setInterval` on the main thread is still subject to Chrome's background-tab CPU budget (intervals coalesced/clamped). Observed: FPS counter dropping well below 30 when tab loses focus.
+- Fix (timer): replaced `setInterval` with an inline Worker. Worker posts `"tick"` at `setInterval(1000/FPS)`. Workers run in a separate OS thread and are not subject to the main thread's background-tab budget — the 30fps timer fires reliably regardless of tab visibility.
+- Fix (fallback capture path): changed `canvas.captureStream(30)` to `canvas.captureStream(0)` and call `captureTrack.requestFrame()` explicitly after each draw. Rate=0 means "only capture when I tell you to", which gives us the same control as the Breakout Box path for browsers that lack `MediaStreamTrackGenerator`.
+- `AudioContext` visibility listener: `document.visibilitychange` handler resumes a suspended `AudioContext` when the tab comes back into focus (Chrome suspends AudioContext on hide)
+- Final architecture:
+  - **Timer:** inline Worker (`WORKER_SRC`) — background-tab safe
+  - **Video frames (modern Chrome):** `MediaStreamTrackProcessor` → frame cache → `VideoFrame` → `MediaStreamTrackGenerator.writable`
+  - **Video frames (fallback):** hidden `<video>` elements → `ctx.drawImage` → `captureStream(0).requestFrame()`
+- Commit: `0577a48`
+
+**State at end of day:**
+- All compositor fixes committed (`ddbc248`, `8c681fe`, `c513e45`, `0577a48`)
+- Full pipeline now background-tab safe: Worker timer fires at 30fps regardless of tab focus; Breakout Box frames bypass video element decode throttling; fallback path uses requestFrame() for explicit capture control
+- Audio context resumes on tab visibility change
+- Dynamic layout adapts to participant count; `drawCover()` fills each cell without letterboxing
+- CLAUDE.md updated and committed
+
+**Next logical step (Day 10):** Sustained end-to-end stream test — verify fps holds at 30 with tab backgrounded, audio is clean, layout adapts correctly as participants join/leave.

@@ -4,19 +4,48 @@ import { useEffect, useRef, useState } from "react";
 import type { IAgoraRTCRemoteUser, ILocalVideoTrack, ILocalAudioTrack } from "agora-rtc-sdk-ng";
 import type { Participant } from "@ditch/types";
 
-// Output canvas dimensions
 const W = 1280;
 const H = 720;
-const CELL_W = W / 2;
-const CELL_H = H / 2;
+const FPS = 30;
 
-// Fixed 2×2 grid: creator top-left, participants fill remaining cells
-const GRID = [
-  { x: 0,      y: 0,      w: CELL_W, h: CELL_H }, // slot 0 — creator cam
-  { x: CELL_W, y: 0,      w: CELL_W, h: CELL_H }, // slot 1 — participant slot_index 0
-  { x: 0,      y: CELL_H, w: CELL_W, h: CELL_H }, // slot 2 — participant slot_index 1
-  { x: CELL_W, y: CELL_H, w: CELL_W, h: CELL_H }, // slot 3 — participant slot_index 2
-];
+function getLayout(participantCount: number): Array<{ x: number; y: number; w: number; h: number }> {
+  if (participantCount === 0) return [{ x: 0, y: 0, w: W, h: H }];
+  if (participantCount === 1) return [
+    { x: 0,     y: 0, w: W / 2, h: H },
+    { x: W / 2, y: 0, w: W / 2, h: H },
+  ];
+  if (participantCount === 2) return [
+    { x: 0,     y: 0,     w: W,     h: H / 2 },
+    { x: 0,     y: H / 2, w: W / 2, h: H / 2 },
+    { x: W / 2, y: H / 2, w: W / 2, h: H / 2 },
+  ];
+  const CW = W / 2, CH = H / 2;
+  return [
+    { x: 0,  y: 0,  w: CW, h: CH },
+    { x: CW, y: 0,  w: CW, h: CH },
+    { x: 0,  y: CH, w: CW, h: CH },
+    { x: CW, y: CH, w: CW, h: CH },
+  ];
+}
+
+function supportsBreakoutBox(): boolean {
+  return (
+    typeof (window as any).MediaStreamTrackGenerator !== "undefined" &&   // eslint-disable-line @typescript-eslint/no-explicit-any
+    typeof (window as any).MediaStreamTrackProcessor !== "undefined" &&   // eslint-disable-line @typescript-eslint/no-explicit-any
+    typeof (window as any).VideoFrame !== "undefined"                      // eslint-disable-line @typescript-eslint/no-explicit-any
+  );
+}
+
+// Inline worker source — drives the 30fps draw tick from a separate thread.
+// Workers are not subject to the main thread's background-tab CPU budget throttling,
+// so the timer fires reliably even when the streaming tab loses focus.
+const WORKER_SRC = `
+  let timer = null;
+  self.onmessage = (e) => {
+    if (e.data === "start") timer = setInterval(() => self.postMessage("tick"), ${1000 / FPS});
+    if (e.data === "stop")  { clearInterval(timer); timer = null; }
+  };
+`;
 
 interface CompositorOptions {
   localVideoTrack: ILocalVideoTrack | null;
@@ -35,16 +64,29 @@ export function useCompositor({
 }: CompositorOptions): { stream: MediaStream | null } {
   const [stream, setStream] = useState<MediaStream | null>(null);
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number>(0);
-  // Pool of hidden <video> elements keyed by MediaStreamTrack id
-  const videoElemsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const audioDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
-  // Track IDs already connected to the audio graph
-  const connectedAudioRef = useRef<Set<string>>(new Set());
+  const canvasRef    = useRef<HTMLCanvasElement | null>(null);
+  const workerRef    = useRef<Worker | null>(null);
+  const fpsRef       = useRef({ frames: 0, lastLog: Date.now() });
 
-  // Stand up canvas, AudioContext, and the composite MediaStream once when enabled
+  // Fallback path: CanvasCaptureMediaStreamTrack with manual requestFrame()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const captureTrackRef = useRef<any>(null);
+
+  // Fallback path: hidden <video> elements keyed by track id
+  const videoElemsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
+
+  // Breakout Box path: latest decoded VideoFrame per track id
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const frameCacheRef = useRef<Map<string, any>>(new Map());
+  const processorCleanupsRef = useRef<Map<string, () => void>>(new Map());
+
+  const audioCtxRef       = useRef<AudioContext | null>(null);
+  const audioDestRef      = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const connectedAudioRef = useRef<Set<string>>(new Set());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const frameWriterRef    = useRef<WritableStreamDefaultWriter<any> | null>(null);
+
+  // ── Setup: canvas, AudioContext, composite stream ────────────────────────────
   useEffect(() => {
     if (!enabled) return;
 
@@ -53,31 +95,115 @@ export function useCompositor({
     canvas.height = H;
     canvasRef.current = canvas;
 
-    const audioCtx = new AudioContext();
+    const audioCtx  = new AudioContext();
     const audioDest = audioCtx.createMediaStreamDestination();
-    audioCtxRef.current = audioCtx;
+    audioCtxRef.current  = audioCtx;
     audioDestRef.current = audioDest;
 
-    const composite = new MediaStream([
-      ...canvas.captureStream(30).getVideoTracks(),
-      ...audioDest.stream.getAudioTracks(),
-    ]);
-    setStream(composite);
+    const useBreakout = supportsBreakoutBox();
+    console.log(`[compositor] breakout box available: ${useBreakout}`);
+
+    let videoTrack: MediaStreamTrack;
+    if (useBreakout) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const generator = new (window as any).MediaStreamTrackGenerator({ kind: "video" });
+      frameWriterRef.current = generator.writable.getWriter();
+      videoTrack = generator as MediaStreamTrack;
+    } else {
+      // captureStream(0) = manual rate: Chrome only captures a frame when we call
+      // requestFrame(), so we control exactly when captures happen regardless of
+      // tab visibility — Chrome can't throttle what it doesn't schedule itself.
+      const captureStream = canvas.captureStream(0);
+      captureTrackRef.current = captureStream.getVideoTracks()[0];
+      videoTrack = captureTrackRef.current;
+    }
+
+    setStream(new MediaStream([videoTrack, ...audioDest.stream.getAudioTracks()]));
+
+    // Resume AudioContext when tab regains focus (Chrome suspends it on hide)
+    function onVisibility() {
+      console.log(`[compositor] visibility: ${document.visibilityState}`);
+      if (document.visibilityState === "visible" && audioCtx.state === "suspended") {
+        audioCtx.resume().catch(() => {});
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
-      cancelAnimationFrame(rafRef.current);
+      document.removeEventListener("visibilitychange", onVisibility);
+      workerRef.current?.postMessage("stop");
+      workerRef.current?.terminate();
+      workerRef.current = null;
+      frameWriterRef.current?.close().catch(() => {});
+      frameWriterRef.current = null;
+      captureTrackRef.current = null;
       audioCtx.close().catch(() => {});
-      audioCtxRef.current = null;
+      audioCtxRef.current  = null;
       audioDestRef.current = null;
       connectedAudioRef.current.clear();
       videoElemsRef.current.forEach((el) => { el.srcObject = null; });
       videoElemsRef.current.clear();
+      processorCleanupsRef.current.forEach((fn) => fn());
+      processorCleanupsRef.current.clear();
+      frameCacheRef.current.forEach((f) => { try { f.close(); } catch {} });
+      frameCacheRef.current.clear();
       canvasRef.current = null;
       setStream(null);
     };
   }, [enabled]);
 
-  // Draw loop — restarts whenever the set of active tracks changes
+  // ── Breakout Box: one MediaStreamTrackProcessor per active video track ────────
+  useEffect(() => {
+    if (!enabled || !supportsBreakoutBox()) return;
+
+    const activeTracks = new Map<string, MediaStreamTrack>();
+    if (localVideoTrack) {
+      try { const t = localVideoTrack.getMediaStreamTrack(); activeTracks.set(t.id, t); } catch {}
+    }
+    for (const p of liveParticipants) {
+      const uid = (p.slot_index ?? 0) + 1;
+      const ru = remoteUsers.find((u) => u.uid === uid);
+      if (ru?.videoTrack) {
+        try { const t = ru.videoTrack.getMediaStreamTrack(); activeTracks.set(t.id, t); } catch {}
+      }
+    }
+
+    for (const [id, cleanup] of processorCleanupsRef.current) {
+      if (!activeTracks.has(id)) {
+        cleanup();
+        processorCleanupsRef.current.delete(id);
+        try { frameCacheRef.current.get(id)?.close(); } catch {}
+        frameCacheRef.current.delete(id);
+      }
+    }
+
+    for (const [id, track] of activeTracks) {
+      if (processorCleanupsRef.current.has(id)) continue;
+      let cancelled = false;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const processor = new (window as any).MediaStreamTrackProcessor({ track });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const reader: ReadableStreamDefaultReader<any> = processor.readable.getReader();
+
+      (async () => {
+        while (!cancelled) {
+          try {
+            const { done, value: frame } = await reader.read();
+            if (done || cancelled) { try { frame?.close(); } catch {} break; }
+            try { frameCacheRef.current.get(id)?.close(); } catch {}
+            frameCacheRef.current.set(id, frame);
+          } catch { break; }
+        }
+      })();
+
+      processorCleanupsRef.current.set(id, () => {
+        cancelled = true;
+        reader.cancel().catch(() => {});
+      });
+    }
+  }, [enabled, localVideoTrack, remoteUsers, liveParticipants]);
+
+  // ── Draw loop — driven by Worker timer ───────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!enabled || !canvas) return;
@@ -85,82 +211,124 @@ export function useCompositor({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    cancelAnimationFrame(rafRef.current);
+    // Terminate any previous worker before starting a new one
+    workerRef.current?.postMessage("stop");
+    workerRef.current?.terminate();
+
+    const useBreakout = supportsBreakoutBox();
 
     function getVideoElem(trackId: string, nativeTrack: MediaStreamTrack): HTMLVideoElement {
       let el = videoElemsRef.current.get(trackId);
       if (!el) {
         el = document.createElement("video");
-        el.autoplay = true;
-        el.muted = true;    // audio goes through AudioContext, not the video element
+        el.autoplay   = true;
+        el.muted      = true;
         el.playsInline = true;
-        el.srcObject = new MediaStream([nativeTrack]);
+        el.srcObject  = new MediaStream([nativeTrack]);
         el.play().catch(() => {});
         videoElemsRef.current.set(trackId, el);
       }
       return el;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function drawCover(source: HTMLVideoElement | any, dx: number, dy: number, dw: number, dh: number) {
+      const vw = (source.displayWidth ?? source.videoWidth) || dw;
+      const vh = (source.displayHeight ?? source.videoHeight) || dh;
+      const scale = Math.max(dw / vw, dh / vh);
+      const sw = dw / scale, sh = dh / scale;
+      const sx = (vw - sw) / 2, sy = (vh - sh) / 2;
+      ctx!.drawImage(source, sx, sy, sw, sh, dx, dy, dw, dh);
+    }
+
     function draw() {
       ctx!.fillStyle = "#000";
       ctx!.fillRect(0, 0, W, H);
 
-      // Slot 0: creator camera
+      const layout = getLayout(liveParticipants.length);
+
       if (localVideoTrack) {
         try {
           const native = localVideoTrack.getMediaStreamTrack();
-          const el = getVideoElem(native.id, native);
-          const { x, y, w, h } = GRID[0];
-          ctx!.drawImage(el, x, y, w, h);
-        } catch (_) {}
+          const source = useBreakout ? frameCacheRef.current.get(native.id) : getVideoElem(native.id, native);
+          if (source) drawCover(source, layout[0].x, layout[0].y, layout[0].w, layout[0].h);
+        } catch {}
       }
 
-      // Slots 1-3: live participants mapped by slot_index (0 → grid[1], 1 → grid[2], 2 → grid[3])
       for (const p of liveParticipants) {
         const gridIdx = (p.slot_index ?? 0) + 1;
-        if (gridIdx > 3) continue; // slot_index 3 is audio-only in the composite
-
-        const uid = (p.slot_index ?? 0) + 1; // mirrors slotToUid()
+        if (gridIdx >= layout.length) continue;
+        const uid = (p.slot_index ?? 0) + 1;
         const remoteUser = remoteUsers.find((u) => u.uid === uid);
         if (!remoteUser?.videoTrack) continue;
-
         try {
           const native = remoteUser.videoTrack.getMediaStreamTrack();
-          const el = getVideoElem(native.id, native);
-          const { x, y, w, h } = GRID[gridIdx];
-          ctx!.drawImage(el, x, y, w, h);
-        } catch (_) {}
+          const source = useBreakout ? frameCacheRef.current.get(native.id) : getVideoElem(native.id, native);
+          if (source) drawCover(source, layout[gridIdx].x, layout[gridIdx].y, layout[gridIdx].w, layout[gridIdx].h);
+        } catch {}
       }
 
-      rafRef.current = requestAnimationFrame(draw);
+      // Deliver the composite frame to the output track
+      if (frameWriterRef.current) {
+        // Breakout Box path: push VideoFrame explicitly
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const frame = new (window as any).VideoFrame(canvas, { timestamp: performance.now() * 1000 });
+          frameWriterRef.current.write(frame).catch(() => {}).finally(() => { try { frame.close(); } catch {} });
+        } catch {}
+      } else {
+        // Fallback path: signal captureStream to grab the current canvas state right now
+        captureTrackRef.current?.requestFrame();
+      }
+
+      // FPS counter
+      const fps = fpsRef.current;
+      fps.frames++;
+      const now = Date.now();
+      if (now - fps.lastLog >= 5000) {
+        const measured = (fps.frames / ((now - fps.lastLog) / 1000)).toFixed(1);
+        console.log(`[compositor] fps: ${measured} | tab: ${document.visibilityState}`);
+        fps.frames = 0;
+        fps.lastLog = now;
+      }
     }
 
-    rafRef.current = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(rafRef.current);
+    // Spawn an inline Worker to drive the tick. Workers run in their own thread
+    // and are not subject to the main thread's background-tab CPU budget, so the
+    // 30fps timer fires reliably even when the tab is not in focus.
+    const blob = new Blob([WORKER_SRC], { type: "application/javascript" });
+    const blobUrl = URL.createObjectURL(blob);
+    const worker = new Worker(blobUrl);
+    URL.revokeObjectURL(blobUrl); // safe to revoke after worker is created
+    worker.onmessage = () => draw();
+    worker.postMessage("start");
+    workerRef.current = worker;
+
+    return () => {
+      worker.postMessage("stop");
+      worker.terminate();
+    };
   }, [enabled, localVideoTrack, remoteUsers, liveParticipants]);
 
-  // Audio graph — connect new tracks to the AudioContext destination
+  // ── Audio graph ───────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!enabled || !audioCtxRef.current || !audioDestRef.current) return;
 
     function connectIfNew(nativeTrack: MediaStreamTrack) {
       if (connectedAudioRef.current.has(nativeTrack.id)) return;
       try {
-        const src = audioCtxRef.current!.createMediaStreamSource(
-          new MediaStream([nativeTrack])
-        );
+        const src = audioCtxRef.current!.createMediaStreamSource(new MediaStream([nativeTrack]));
         src.connect(audioDestRef.current!);
         connectedAudioRef.current.add(nativeTrack.id);
-      } catch (_) {}
+      } catch {}
     }
 
     if (localAudioTrack) {
-      try { connectIfNew(localAudioTrack.getMediaStreamTrack()); } catch (_) {}
+      try { connectIfNew(localAudioTrack.getMediaStreamTrack()); } catch {}
     }
-
     for (const user of remoteUsers) {
       if (!user.audioTrack) continue;
-      try { connectIfNew(user.audioTrack.getMediaStreamTrack()); } catch (_) {}
+      try { connectIfNew(user.audioTrack.getMediaStreamTrack()); } catch {}
     }
   }, [enabled, localAudioTrack, remoteUsers]);
 
