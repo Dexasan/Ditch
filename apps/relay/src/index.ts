@@ -55,26 +55,26 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
       }
       const userId = authData.user.id;
 
-      // 2. Verify the user owns the session
-      const { data: sessionRow } = await supabaseAdmin!
-        .from("live_sessions")
-        .select("id, channels!inner(owner_id)")
-        .eq("id", session_id)
-        .single();
-
+      // 2 + 3. Verify ownership and fetch destinations in parallel
       type SessionWithChannel = { id: string; channels: { owner_id: string } };
+      const [{ data: sessionRow }, { data: destinations }] = await Promise.all([
+        supabaseAdmin!
+          .from("live_sessions")
+          .select("id, channels!inner(owner_id)")
+          .eq("id", session_id)
+          .single(),
+        supabaseAdmin!
+          .from("stream_destinations")
+          .select("rtmp_url, stream_key")
+          .eq("session_id", session_id),
+      ]);
+
       const row = sessionRow as SessionWithChannel | null;
 
       if (!row || row.channels.owner_id !== userId) {
         send(ws, { type: "error", message: "Forbidden" });
         return;
       }
-
-      // 3. Fetch RTMP destinations (service role bypasses RLS — credentials never reach browser)
-      const { data: destinations } = await supabaseAdmin!
-        .from("stream_destinations")
-        .select("rtmp_url, stream_key")
-        .eq("session_id", session_id);
 
       if (!destinations?.length) {
         send(ws, { type: "error", message: "No active destinations configured for this session" });

@@ -81,10 +81,19 @@ function buildArgs(targets: string[]): string[] {
     "-i", "pipe:0",
   ];
 
-  // -c:v copy: pass H264 NAL units directly into FLV without re-encoding.
+  // Re-encode with libx264 ultrafast so we control key frame interval.
+  // -g 30 forces a key frame every 30 frames (1s at 30fps), guaranteeing
+  // YouTube gets its first key frame within 1s of stream start rather than
+  // waiting up to 4s for the browser encoder's random first key frame.
+  // ultrafast+zerolatency adds negligible CPU vs the old -c:v copy path.
   // Audio transcoded Opus → AAC since RTMP does not carry Opus.
   const encodeFlags = [
-    "-c:v", "copy",
+    "-c:v", "libx264",
+    "-preset", "ultrafast",
+    "-tune", "zerolatency",
+    "-g", "30",
+    "-keyint_min", "30",
+    "-b:v", "3000k",
     "-c:a", "aac",
     "-b:a", "128k",
     "-ar", "44100",
