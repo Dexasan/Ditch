@@ -73,10 +73,6 @@ export function spawnFfmpeg(rtmpTargets: string[], sessionId: string): FfmpegSes
 
 function buildArgs(targets: string[]): string[] {
   const inputFlags = [
-    // Replace container timestamps with wall-clock arrival time — critical for
-    // live streams where WebM PTS are relative to recording start, not real-time.
-    // Without this, buffered/bursty input produces stale timestamps in RTMP output.
-    "-use_wallclock_as_timestamps", "1",
     "-fflags", "+nobuffer+genpts",
     "-thread_queue_size", "512",
     "-probesize", "32",
