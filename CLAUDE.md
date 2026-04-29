@@ -555,3 +555,62 @@ Step 6 — Fix E + Fix A applied (`apps/relay/src/lib/ffmpeg.ts`)
 - Symptom 3 (compositor `requestAnimationFrame` throttling) identified but not yet fixed — needs `setInterval` replacement in `useCompositor.ts`
 
 **Next logical step (Day 9):** Test Fix A (latency flags) against all three symptoms. If Symptoms 1 and 2 are resolved, apply compositor fix (replace `requestAnimationFrame` with `setInterval` in `useCompositor.ts` draw loop). Then do sustained stream test with tab in background.
+
+---
+
+### Day 9 — 2026-04-29
+
+**What we did:**
+
+Step 1 — Audio fix: drop `-use_wallclock_as_timestamps 1` (`apps/relay/src/lib/ffmpeg.ts`)
+- Symptom: audio barely audible, laggy, garbled after Fix A
+- Root cause: `-use_wallclock_as_timestamps 1` replaces WebM container PTS with wall-clock arrival time. Audio and video chunks arrive at the relay at different rates through the WebSocket; wallclock-stamping them independently desyncs A/V and confuses the Opus→AAC resampler
+- Fix: removed the flag. All other Fix A flags (`+nobuffer+genpts`, `-thread_queue_size 512`, `-probesize 32`, `-analyzeduration 0`, `-flvflags no_duration_filesize`, `-flush_packets 1`) kept intact
+
+Step 2 — Compositor `requestAnimationFrame` → `setInterval` (`apps/web/src/hooks/useCompositor.ts`)
+- Symptom: stream dies when creator switches tabs; video laggy even with tab focused
+- Root cause: `requestAnimationFrame` is throttled to ~1fps by Chrome when the tab is backgrounded (and can drop below 30fps for offscreen canvases). No canvas frames → MediaRecorder produces nothing → ffmpeg stdin starves → YouTube kills the stream
+- Fix: replaced `requestAnimationFrame` with `setInterval(draw, 1000/30)` — fires at 33ms regardless of tab visibility. Interval cleared on cleanup in both the draw-loop effect and the canvas teardown effect.
+- Added FPS counter: logs `[compositor] fps: XX.X` to browser console every 5 seconds so actual frame rate is observable during test
+
+Step 3 — Dynamic compositor layout (`apps/web/src/hooks/useCompositor.ts`)
+- Symptom: streaming solo showed creator in top-left quadrant with 3 black cells
+- Fix: replaced fixed `GRID` constant with `getLayout(participantCount)` function that branches on live participant count:
+  - 0 participants → creator fills full 1280×720
+  - 1 participant → side-by-side 50/50 (creator left, participant right)
+  - 2 participants → creator full top row (1280×360), two participants split bottom row
+  - 3 participants → 2×2 grid (previous behavior)
+- Added `drawCover()` helper — center-crops video source to fill each cell without letterboxing (equivalent to CSS `object-fit: cover`)
+
+Step 4 — Compositor: `setInterval` → `MediaStreamTrackGenerator` (`apps/web/src/hooks/useCompositor.ts`)
+- Symptom: even with `setInterval`, canvas frames weren't reliably reaching `captureStream(30)` in background tabs because Chrome still throttles `captureStream` frame capture when the tab is hidden
+- Fix: replaced `canvas.captureStream(30)` with `MediaStreamTrackGenerator` (Breakout Box API). Each draw tick constructs a `VideoFrame` from the canvas and writes it to `generator.writable`. The generator exposes a `MediaStreamTrack` that carries frames without depending on the browser's capture schedule.
+- `supportsBreakoutBox()` guard added — checks for `MediaStreamTrackGenerator`, `MediaStreamTrackProcessor`, and `VideoFrame` on `window`; falls back to `captureStream` if not available
+- Commit: `8c681fe`
+
+Step 5 — Compositor: add `MediaStreamTrackProcessor` per video track (`apps/web/src/hooks/useCompositor.ts`)
+- Problem: drawing from hidden `<video>` elements with `ctx.drawImage` fails in background tabs — Chrome produces black frames because the video element decode pipeline pauses when the tab is hidden
+- Fix: for each active video track (local + remote), attach a `MediaStreamTrackProcessor` that reads decoded `VideoFrame` objects directly from the decode pipeline. Frames are cached in `frameCacheRef` keyed by `MediaStreamTrack.id`. The draw tick reads from the cache instead of from `<video>` elements. This path bypasses the visibility throttle entirely.
+- `processorCleanupsRef` tracks per-track cleanup functions (cancel reader + close processor). Effect re-runs on `liveParticipants`/`remoteUsers` changes: torn-down for tracks that disappear, started for new ones.
+- `<video>` element path retained as fallback for browsers without Breakout Box
+- Commit: `c513e45`
+
+Step 6 — Compositor: Worker timer + `captureStream(0)` + `requestFrame()` fallback (`apps/web/src/hooks/useCompositor.ts`)
+- Problem: `setInterval` on the main thread is still subject to Chrome's background-tab CPU budget (intervals coalesced/clamped). Observed: FPS counter dropping well below 30 when tab loses focus.
+- Fix (timer): replaced `setInterval` with an inline Worker. Worker posts `"tick"` at `setInterval(1000/FPS)`. Workers run in a separate OS thread and are not subject to the main thread's background-tab budget — the 30fps timer fires reliably regardless of tab visibility.
+- Fix (fallback capture path): changed `canvas.captureStream(30)` to `canvas.captureStream(0)` and call `captureTrack.requestFrame()` explicitly after each draw. Rate=0 means "only capture when I tell you to", which gives us the same control as the Breakout Box path for browsers that lack `MediaStreamTrackGenerator`.
+- `AudioContext` visibility listener: `document.visibilitychange` handler resumes a suspended `AudioContext` when the tab comes back into focus (Chrome suspends AudioContext on hide)
+- Final architecture:
+  - **Timer:** inline Worker (`WORKER_SRC`) — background-tab safe
+  - **Video frames (modern Chrome):** `MediaStreamTrackProcessor` → frame cache → `VideoFrame` → `MediaStreamTrackGenerator.writable`
+  - **Video frames (fallback):** hidden `<video>` elements → `ctx.drawImage` → `captureStream(0).requestFrame()`
+- Commit: `0577a48`
+
+**State at end of day:**
+- All compositor fixes committed (`ddbc248`, `8c681fe`, `c513e45`, `0577a48`)
+- Full pipeline now background-tab safe: Worker timer fires at 30fps regardless of tab focus; Breakout Box frames bypass video element decode throttling; fallback path uses requestFrame() for explicit capture control
+- Audio context resumes on tab visibility change
+- Dynamic layout adapts to participant count; `drawCover()` fills each cell without letterboxing
+- CLAUDE.md updated and committed
+
+**Next logical step (Day 10):** Sustained end-to-end stream test — verify fps holds at 30 with tab backgrounded, audio is clean, layout adapts correctly as participants join/leave.
