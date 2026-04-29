@@ -62,6 +62,10 @@ export function useCompositor({
   const audioDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
   // Track IDs already connected to the audio graph
   const connectedAudioRef = useRef<Set<string>>(new Set());
+  // MediaStreamTrackGenerator writer — pushes VideoFrames directly, bypassing
+  // captureStream's background-tab throttling. Falls back to captureStream if unsupported.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const frameWriterRef = useRef<WritableStreamDefaultWriter<any> | null>(null);
 
   // Stand up canvas, AudioContext, and the composite MediaStream once when enabled
   useEffect(() => {
@@ -77,14 +81,27 @@ export function useCompositor({
     audioCtxRef.current = audioCtx;
     audioDestRef.current = audioDest;
 
-    const composite = new MediaStream([
-      ...canvas.captureStream(30).getVideoTracks(),
-      ...audioDest.stream.getAudioTracks(),
-    ]);
+    // Prefer MediaStreamTrackGenerator (Chrome 94+): we push VideoFrame objects
+    // explicitly on each draw tick so the track always gets frames at full rate
+    // regardless of tab visibility. captureStream() is throttled in background tabs.
+    let videoTrack: MediaStreamTrack;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (typeof (window as any).MediaStreamTrackGenerator !== "undefined") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const generator = new (window as any).MediaStreamTrackGenerator({ kind: "video" });
+      frameWriterRef.current = generator.writable.getWriter();
+      videoTrack = generator as MediaStreamTrack;
+    } else {
+      videoTrack = canvas.captureStream(30).getVideoTracks()[0];
+    }
+
+    const composite = new MediaStream([videoTrack, ...audioDest.stream.getAudioTracks()]);
     setStream(composite);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      frameWriterRef.current?.close().catch(() => {});
+      frameWriterRef.current = null;
       audioCtx.close().catch(() => {});
       audioCtxRef.current = null;
       audioDestRef.current = null;
@@ -164,6 +181,15 @@ export function useCompositor({
           const { x, y, w, h } = layout[gridIdx];
           drawCover(el, x, y, w, h);
         } catch (_) {}
+      }
+
+      // Push frame explicitly when using MediaStreamTrackGenerator
+      if (frameWriterRef.current) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const frame = new (window as any).VideoFrame(canvas, {
+          timestamp: performance.now() * 1000, // microseconds
+        });
+        frameWriterRef.current.write(frame).catch(() => {}).finally(() => frame.close());
       }
 
       // FPS counter — logs to console every 5 seconds
