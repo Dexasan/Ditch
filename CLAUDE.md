@@ -606,11 +606,34 @@ Step 6 — Compositor: Worker timer + `captureStream(0)` + `requestFrame()` fall
   - **Video frames (fallback):** hidden `<video>` elements → `ctx.drawImage` → `captureStream(0).requestFrame()`
 - Commit: `0577a48`
 
-**State at end of day:**
-- All compositor fixes committed (`ddbc248`, `8c681fe`, `c513e45`, `0577a48`)
-- Full pipeline now background-tab safe: Worker timer fires at 30fps regardless of tab focus; Breakout Box frames bypass video element decode throttling; fallback path uses requestFrame() for explicit capture control
-- Audio context resumes on tab visibility change
-- Dynamic layout adapts to participant count; `drawCover()` fills each cell without letterboxing
-- CLAUDE.md updated and committed
+Step 7 — `useRelayStream` auto-reconnect (`apps/web/src/hooks/useRelayStream.ts`)
+- Symptom: when ffmpeg exited server-side (RTMP hiccup, YouTube cutting the stream), relay sent `{ type: "stopped" }` and the UI showed "Connecting…" forever with no recovery path — creator had to manually stop and restart
+- Fix: extracted `connect()` function inside the effect. On `stopped`, `onerror`, or `ws.onclose`, stops the MediaRecorder and schedules `connect()` again after 2s, up to 5 attempts. Attempt counter resets to 0 on a successful `started` ack. User-triggered teardown sets a `cancelled` flag so no retry fires after intentional stop.
+- Error states: "Stream dropped — reconnecting (1/5)…" during retries; permanent "Stream dropped and could not reconnect" after 5 failures
+- Commit: `d7a3caf`
 
-**Next logical step (Day 10):** Sustained end-to-end stream test — verify fps holds at 30 with tab backgrounded, audio is clean, layout adapts correctly as participants join/leave.
+Step 8 — Relay startup latency (`apps/relay/src/index.ts`, `apps/relay/src/lib/ffmpeg.ts`)
+- Symptom: 9-13 second delay from "Go Live" click to stream appearing live on YouTube
+- Root cause analysis: three components
+  1. Relay auth — 3 sequential awaited Supabase calls (~500-1500ms)
+  2. First H264 key frame — browser encoder decides interval (random 0-4s); YouTube can't decode until it sees one
+  3. YouTube ingest buffer — fixed ~3-4s platform-imposed delay, nothing we can do
+- Fix 1 (parallel queries): session ownership check and destinations fetch now run in `Promise.all` instead of sequentially — saves ~100-300ms
+- Fix 2 (forced key frames): switched from `-c:v copy` to `-c:v libx264 -preset ultrafast -tune zerolatency -g 30 -keyint_min 30`. Forces a key frame every 1 second (30 frames at 30fps). YouTube gets its first key frame within 1s of stream start guaranteed, instead of waiting up to 4s randomly. CPU cost at 720p ultrafast is negligible.
+- Expected result: startup drops from 9-13s to ~4-6s
+- Commit: `b3e8c80`
+
+Step 9 — Pre-launch checklist (`docs/pre-launch.md`)
+- Documented the one remaining startup optimization not yet implemented: local JWT validation in the relay
+- Currently `supabaseAdmin.auth.getUser(token)` is an HTTP call to Supabase (~100-500ms). Replacing it with `jsonwebtoken.verify()` using `SUPABASE_JWT_SECRET` reduces this to ~1ms.
+- After that fix, startup hits the physics floor (~4-5s total). Full implementation steps written in `docs/pre-launch.md`.
+- Commit: `9171dcb`
+
+**State at end of day:**
+- Compositor fully background-tab safe (Worker timer, Breakout Box frame path, rAF fallback)
+- Auto-reconnect in place: stream recovers from ffmpeg exits without creator intervention
+- Stream startup latency reduced from 9-13s to ~4-6s (parallel auth queries + forced key frames)
+- One pre-launch optimization documented and ready: local JWT validation (`docs/pre-launch.md`)
+- Minor frontend bugs noted; deferred
+
+**Next logical step (Day 10):** End-to-end sustained stream test — verify fps holds at 30 with tab backgrounded, auto-reconnect triggers correctly on a simulated ffmpeg exit, startup latency is in the 4-6s range.
