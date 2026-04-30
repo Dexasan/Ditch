@@ -11,8 +11,7 @@
 -- EXTENSIONS
 -- ============================================================
 
--- uuid_generate_v4() for primary keys
-create extension if not exists "uuid-ossp";
+-- gen_random_uuid() for primary keys (built-in since PG 13)
 
 
 -- ============================================================
@@ -71,7 +70,7 @@ create table public.users (
 -- One channel per creator. slug is the public URL identifier.
 -- ------------------------------------------------------------
 create table public.channels (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   owner_id      uuid not null references public.users (id) on delete cascade,
   slug          text not null unique,
   display_name  text not null,
@@ -84,7 +83,7 @@ create table public.channels (
 -- Each broadcast event on a channel.
 -- ------------------------------------------------------------
 create table public.live_sessions (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   channel_id    uuid not null references public.channels (id) on delete cascade,
   status        session_status not null default 'idle',
   started_at    timestamptz,
@@ -98,7 +97,7 @@ create table public.live_sessions (
 -- and must never be returned to the browser.
 -- ------------------------------------------------------------
 create table public.stream_destinations (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   session_id    uuid not null references public.live_sessions (id) on delete cascade,
   platform      stream_platform not null,
   rtmp_url      text not null,
@@ -115,7 +114,7 @@ create table public.stream_destinations (
 -- status moves to 'live'.
 -- ------------------------------------------------------------
 create table public.participants (
-  id               uuid primary key default uuid_generate_v4(),
+  id               uuid primary key default gen_random_uuid(),
   session_id       uuid not null references public.live_sessions (id) on delete cascade,
   user_id          uuid references public.users (id) on delete set null,
   display_name     text not null,
@@ -131,7 +130,7 @@ create table public.participants (
 -- Append-only — no updates or deletes.
 -- ------------------------------------------------------------
 create table public.chat_messages (
-  id                   uuid primary key default uuid_generate_v4(),
+  id                   uuid primary key default gen_random_uuid(),
   session_id           uuid not null references public.live_sessions (id) on delete cascade,
   platform             stream_platform not null,
   author_display_name  text not null,

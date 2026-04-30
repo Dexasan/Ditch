@@ -7,7 +7,15 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
-    "clean": "turbo clean && rm -rf node_modules"
+    "clean": "turbo clean && rm -rf node_modules",
+    "db:link": "npx supabase link",
+    "db:push": "npx supabase db push",
+    "db:setup": "pnpm db:link && pnpm db:push",
+    "db:reset": "npx supabase db reset",
+    "db:migrate:new": "npx supabase migration new",
+    "db:migrate:status": "npx supabase migration list",
+    "db:start": "npx supabase start",
+    "db:stop": "npx supabase stop"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
