@@ -33,6 +33,7 @@ export async function participantRoutes(server: FastifyInstance) {
   }>(
     "/participants",
     {
+      config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
       schema: {
         body: {
           type: "object",
@@ -140,7 +141,8 @@ export async function participantRoutes(server: FastifyInstance) {
         .select("*")
         .eq("session_id", session_id)
         .neq("status", "removed")
-        .order("joined_at", { ascending: true });
+        .order("joined_at", { ascending: true })
+        .limit(200);
 
       if (error) {
         return reply.status(500).send({ error: "Failed to fetch participants" });

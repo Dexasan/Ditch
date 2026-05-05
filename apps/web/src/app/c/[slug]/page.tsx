@@ -20,12 +20,21 @@ export default async function ChannelPage({
 
   const { channel, session } = result;
 
-  // Get viewer identity if logged in (for pre-filling display name)
+  // Get viewer identity if logged in (for pre-filling display name + ownership check)
   const supabase = await createClient();
   const { data: { session: authSession } } = await supabase.auth.getSession();
   const token = authSession?.access_token ?? null;
   const viewerName = authSession?.user.user_metadata?.display_name ?? null;
-  const isOwner = authSession?.user.id === channel.owner_id;
+
+  // Ownership check: compare against the user's own channel — avoids exposing
+  // owner_id in the public channel response.
+  let isOwner = false;
+  if (authSession) {
+    const { channel: myChannel } = await api
+      .get<{ channel: { slug: string } | null }>("/channels/mine", { token: authSession.access_token })
+      .catch(() => ({ channel: null }));
+    isOwner = myChannel?.slug === slug;
+  }
 
   const isLive = session && session.status !== "ended";
 

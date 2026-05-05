@@ -22,17 +22,20 @@ export default async function LivePage({
 
   const token = authSession.access_token;
 
-  // Fetch channel (public route, no auth needed)
-  const result = await api
-    .get<{ channel: Channel; session: LiveSession | null }>(`/channels/${slug}`)
-    .catch(() => null);
+  // Fetch channel and verify ownership in parallel.
+  // owner_id is no longer in the public channel response — use /channels/mine
+  // to confirm this creator owns the channel for this slug.
+  const [result, ownershipResult] = await Promise.all([
+    api.get<{ channel: Channel; session: LiveSession | null }>(`/channels/${slug}`).catch(() => null),
+    api.get<{ channel: { slug: string } | null }>("/channels/mine", { token }).catch(() => ({ channel: null })),
+  ]);
 
   if (!result) notFound();
 
   const { channel, session } = result;
 
   // Only the channel owner can access the live control room
-  if (channel.owner_id !== user.id) redirect(`/c/${slug}`);
+  if (!ownershipResult.channel || ownershipResult.channel.slug !== slug) redirect(`/c/${slug}`);
 
   // No active session → send back to dashboard
   if (!session || session.status === "ended") redirect("/dashboard");

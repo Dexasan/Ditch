@@ -10,7 +10,11 @@ import { participantRoutes } from "./routes/participants";
 
 validateEnv();
 
-const server = Fastify({ logger: true });
+const server = Fastify({
+  logger: {
+    redact: ["req.headers.authorization"],
+  },
+});
 
 // Allowed origins: explicit WEB_URL list + preview deployments scoped to VERCEL_TEAM_SLUG.
 // No-origin requests (curl, server scripts) are denied — CORS is browser-enforced only.

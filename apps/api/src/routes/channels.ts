@@ -109,7 +109,7 @@ export async function channelRoutes(server: FastifyInstance) {
 
       const { data: channel, error: channelError } = await supabaseAdmin!
         .from("channels")
-        .select("*")
+        .select("id, slug, display_name, description, created_at")
         .eq("slug", slug)
         .single();
 
