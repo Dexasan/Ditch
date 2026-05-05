@@ -105,6 +105,9 @@ function buildArgs(targets: string[]): string[] {
   }
 
   // Tee muxer: encode once, push to all destinations simultaneously.
-  const tee = targets.map((t) => `[onfail=ignore:f=flv]${t}`).join("|");
+  // Escape any literal `|` in the target URL so it isn't parsed as a tee
+  // output separator. Defense-in-depth: the API rejects `|` in stream_key,
+  // but we sanitize here too in case data arrives from another path.
+  const tee = targets.map((t) => `[onfail=ignore:f=flv]${t.replace(/\|/g, "\\|")}`).join("|");
   return [...inputFlags, ...encodeFlags, ...outputFlags, "-f", "tee", "-map", "0:v", "-map", "0:a", tee];
 }

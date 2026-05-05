@@ -42,7 +42,7 @@ export async function destinationRoutes(server: FastifyInstance) {
             session_id: { type: "string", format: "uuid" },
             platform: { type: "string", enum: ["twitch", "youtube", "tiktok", "kick", "ditch"] },
             rtmp_url: { type: "string", pattern: "^rtmps?://.+" },
-            stream_key: { type: "string", minLength: 1, maxLength: 512 },
+            stream_key: { type: "string", minLength: 1, maxLength: 512, pattern: "^[^|\\[\\]]+$" },
           },
           additionalProperties: false,
         },
@@ -51,6 +51,14 @@ export async function destinationRoutes(server: FastifyInstance) {
     async (request, reply) => {
       const { session_id, platform, rtmp_url, stream_key } = request.body;
       const userId = request.user.id;
+
+      // Block private/loopback addresses to prevent SSRF via ffmpeg.
+      // Regex matches IPv4 private ranges (10.x, 172.16-31.x, 192.168.x,
+      // 127.x, 169.254.x) and the bare word "localhost".
+      const PRIVATE_HOST = /^rtmps?:\/\/(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.)/i;
+      if (PRIVATE_HOST.test(rtmp_url)) {
+        return reply.status(422).send({ error: "RTMP URL must point to a public host" });
+      }
 
       const session = await assertSessionOwner(userId, session_id, reply);
       if (!session) return;

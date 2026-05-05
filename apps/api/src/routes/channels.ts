@@ -99,7 +99,7 @@ export async function channelRoutes(server: FastifyInstance) {
           type: "object",
           required: ["slug"],
           properties: {
-            slug: { type: "string" },
+            slug: { type: "string", minLength: 2, maxLength: 40, pattern: "^[a-z0-9-]+$" },
           },
         },
       },
