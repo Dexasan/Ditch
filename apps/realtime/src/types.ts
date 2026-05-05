@@ -41,4 +41,5 @@ export interface ServerToClientEvents {
 
 export interface SocketData {
   user_id: string | null;
+  display_name: string | null;
 }

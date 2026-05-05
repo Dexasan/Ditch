@@ -104,10 +104,27 @@ export function registerParticipantHandlers(io: AppServer, socket: AppSocket) {
   /**
    * participant:queue_update
    *
-   * Client requests the current participant queue for a session.
-   * Server fetches from DB and emits the result back to the requesting socket.
+   * Creator-only. Fetches the current participant queue for a session and emits
+   * it back to the requesting socket. Requires the caller to be the session owner.
    */
   socket.on("participant:queue_update", async ({ session_id }) => {
+    const userId = socket.data.user_id;
+
+    if (!userId) {
+      return socket.emit("error", { message: "Authentication required" });
+    }
+
+    const { data: session } = await supabaseAdmin!
+      .from("live_sessions")
+      .select("channels!inner(owner_id)")
+      .eq("id", session_id)
+      .single();
+
+    const channel = session?.channels as { owner_id: string } | null;
+    if (!channel || channel.owner_id !== userId) {
+      return socket.emit("error", { message: "Forbidden" });
+    }
+
     const participants = await fetchActiveParticipants(session_id);
     socket.emit("participant:queue_update", { session_id, participants });
   });

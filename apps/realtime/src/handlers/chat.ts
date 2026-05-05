@@ -16,15 +16,19 @@ export function registerChatHandlers(io: AppServer, socket: AppSocket) {
    *
    * Payload: { session_id, body, display_name, platform_origin }
    */
-  socket.on("chat:message", async ({ session_id, body, display_name, platform_origin }) => {
+  socket.on("chat:message", async ({ session_id, body, display_name }) => {
     if (!body?.trim()) return;
+
+    // Authenticated users: use verified display name stored at connect time.
+    // Anonymous users: use the client-provided name (unverifiable).
+    const authorName = socket.data.display_name ?? display_name ?? "Viewer";
 
     const { data: message, error } = await supabaseAdmin!
       .from("chat_messages")
       .insert({
         session_id,
-        platform: platform_origin,
-        author_display_name: display_name,
+        platform: "ditch",
+        author_display_name: authorName,
         body: body.trim(),
       })
       .select()

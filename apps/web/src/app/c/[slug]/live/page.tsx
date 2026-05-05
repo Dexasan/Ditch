@@ -11,8 +11,12 @@ export default async function LivePage({
 }) {
   const { slug } = await params;
 
-  // Auth required
+  // Auth required — getUser() verifies the token against the auth server,
+  // unlike getSession() which only reads the local cookie without verification.
   const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect("/auth");
+
   const { data: { session: authSession } } = await supabase.auth.getSession();
   if (!authSession) redirect("/auth");
 
@@ -28,14 +32,14 @@ export default async function LivePage({
   const { channel, session } = result;
 
   // Only the channel owner can access the live control room
-  if (channel.owner_id !== authSession.user.id) redirect(`/c/${slug}`);
+  if (channel.owner_id !== user.id) redirect(`/c/${slug}`);
 
   // No active session → send back to dashboard
   if (!session || session.status === "ended") redirect("/dashboard");
 
   const creatorName =
-    authSession.user.user_metadata?.display_name ??
-    authSession.user.email?.split("@")[0] ??
+    user.user_metadata?.display_name ??
+    user.email?.split("@")[0] ??
     "Creator";
 
   return (

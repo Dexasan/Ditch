@@ -9,11 +9,16 @@ validateEnv();
 const PORT = Number(process.env.RELAY_PORT ?? process.env.PORT) || 3003;
 
 function isOriginAllowed(origin: string | undefined): boolean {
-  if (!origin) return true;
+  if (!origin) return false;
   const explicit = (process.env.WEB_URL ?? "http://localhost:3000")
     .split(",")
     .map((s) => s.trim());
-  return explicit.includes(origin) || origin.endsWith(".vercel.app");
+  if (explicit.includes(origin)) return true;
+  const teamSlug = process.env.VERCEL_TEAM_SLUG;
+  if (teamSlug) {
+    return new RegExp(`^https://[\\w-]+-${teamSlug}\\.vercel\\.app$`).test(origin);
+  }
+  return false;
 }
 
 // HTTP server handles Railway health checks; WebSocket server piggybacks on it

@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 import { validateEnv } from "./lib/env";
 import { authRoutes } from "./routes/auth";
 import { channelRoutes } from "./routes/channels";
@@ -11,12 +12,18 @@ validateEnv();
 
 const server = Fastify({ logger: true });
 
-// Allowed origins: comma-separated WEB_URL env var + any *.vercel.app preview URL
+// Allowed origins: explicit WEB_URL list + preview deployments scoped to VERCEL_TEAM_SLUG.
+// No-origin requests (curl, server scripts) are denied — CORS is browser-enforced only.
 function isOriginAllowed(origin: string | undefined): boolean {
-  if (!origin) return true;
+  if (!origin) return false;
   const explicit = (process.env.WEB_URL ?? "http://localhost:3000")
     .split(",").map((s) => s.trim());
-  return explicit.includes(origin) || origin.endsWith(".vercel.app");
+  if (explicit.includes(origin)) return true;
+  const teamSlug = process.env.VERCEL_TEAM_SLUG;
+  if (teamSlug) {
+    return new RegExp(`^https://[\\w-]+-${teamSlug}\\.vercel\\.app$`).test(origin);
+  }
+  return false;
 }
 
 async function start() {
@@ -25,6 +32,13 @@ async function start() {
   await server.register(cors, {
     origin: (origin, cb) => cb(null, isOriginAllowed(origin)),
     credentials: true,
+  });
+
+  await server.register(rateLimit, {
+    global: true,
+    max: 100,
+    timeWindow: "1 minute",
+    keyGenerator: (req) => req.ip,
   });
 
   // ── Routes ───────────────────────────────────────────────────────────────

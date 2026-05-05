@@ -6,6 +6,12 @@ import { authenticate } from "../lib/authenticate";
 import { assertSessionOwner, assertParticipantAccess } from "../lib/guards";
 
 type StreamPlatform = Database["public"]["Enums"]["stream_platform"];
+type ParticipantRow = Database["public"]["Tables"]["participants"]["Row"];
+
+function stripUserId(p: ParticipantRow) {
+  const { user_id: _, ...pub } = p;
+  return pub;
+}
 
 export async function participantRoutes(server: FastifyInstance) {
   /**
@@ -70,6 +76,21 @@ export async function participantRoutes(server: FastifyInstance) {
         return reply.status(422).send({ error: "Session has ended" });
       }
 
+      // Prevent authenticated users from submitting duplicate active requests
+      if (userId) {
+        const { data: existing } = await supabaseAdmin!
+          .from("participants")
+          .select("id")
+          .eq("session_id", session_id)
+          .eq("user_id", userId)
+          .in("status", ["waiting", "approved", "live"])
+          .maybeSingle();
+
+        if (existing) {
+          return reply.status(409).send({ error: "You already have an active participant request for this session" });
+        }
+      }
+
       const { data: participant, error } = await supabaseAdmin!
         .from("participants")
         .insert({
@@ -125,7 +146,7 @@ export async function participantRoutes(server: FastifyInstance) {
         return reply.status(500).send({ error: "Failed to fetch participants" });
       }
 
-      return reply.status(200).send({ participants: participants ?? [] });
+      return reply.status(200).send({ participants: (participants ?? []).map(stripUserId) });
     }
   );
 

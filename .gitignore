@@ -11,6 +11,7 @@ out
 
 # Environment
 .env
+.env.save
 .env.local
 .env.*.local
 

@@ -17,6 +17,7 @@ export async function authMiddleware(
 
   if (!token) {
     socket.data.user_id = null;
+    socket.data.display_name = null;
     return next();
   }
 
@@ -31,5 +32,9 @@ export async function authMiddleware(
   }
 
   socket.data.user_id = data.user.id;
+  socket.data.display_name =
+    (data.user.user_metadata?.display_name as string | undefined) ??
+    data.user.email?.split("@")[0] ??
+    null;
   next();
 }

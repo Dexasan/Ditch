@@ -3,15 +3,22 @@ import { Server } from "socket.io";
 import type { ClientToServerEvents, ServerToClientEvents, SocketData } from "./types.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { registerHandlers } from "./handlers/index.js";
+import { validateEnv } from "./lib/env.js";
+
+validateEnv();
 
 const PORT = Number(process.env.REALTIME_PORT) || 3001;
 
-// Allowed origins: comma-separated WEB_URL env var + any *.vercel.app preview URL
 function isOriginAllowed(origin: string | undefined): boolean {
-  if (!origin) return true;
+  if (!origin) return false;
   const explicit = (process.env.WEB_URL ?? "http://localhost:3000")
     .split(",").map((s) => s.trim());
-  return explicit.includes(origin) || origin.endsWith(".vercel.app");
+  if (explicit.includes(origin)) return true;
+  const teamSlug = process.env.VERCEL_TEAM_SLUG;
+  if (teamSlug) {
+    return new RegExp(`^https://[\\w-]+-${teamSlug}\\.vercel\\.app$`).test(origin);
+  }
+  return false;
 }
 
 const httpServer = createServer();

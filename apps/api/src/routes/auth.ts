@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { supabase } from "@ditch/db";
+import { supabase, supabaseAdmin } from "@ditch/db";
+import { authenticate } from "../lib/authenticate";
 
 interface SignupBody {
   email: string;
@@ -25,6 +26,7 @@ export async function authRoutes(server: FastifyInstance) {
   server.post<{ Body: SignupBody }>(
     "/auth/signup",
     {
+      config: { rateLimit: { max: 5, timeWindow: "1 hour" } },
       schema: {
         body: {
           type: "object",
@@ -81,6 +83,7 @@ export async function authRoutes(server: FastifyInstance) {
   server.post<{ Body: SigninBody }>(
     "/auth/signin",
     {
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
       schema: {
         body: {
           type: "object",
@@ -116,6 +119,23 @@ export async function authRoutes(server: FastifyInstance) {
           display_name: data.user.user_metadata?.display_name ?? null,
         },
       });
+    }
+  );
+
+  /**
+   * POST /auth/signout
+   *
+   * Revokes the caller's Supabase session server-side.
+   * Auth required — the token being signed out must be presented.
+   *
+   * Return: 200 { success: true }
+   */
+  server.post(
+    "/auth/signout",
+    { preHandler: authenticate },
+    async (request, reply) => {
+      await supabaseAdmin!.auth.admin.signOut(request.user.id);
+      return reply.status(200).send({ success: true });
     }
   );
 }
