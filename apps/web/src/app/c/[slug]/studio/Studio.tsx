@@ -5,8 +5,21 @@ import { useAgoraRoom } from "@/hooks/useAgoraRoom";
 import { useCompositor } from "@/hooks/useCompositor";
 import { useRelayStream } from "@/hooks/useRelayStream";
 import { CREATOR_CAM_UID, CREATOR_SCREEN_UID } from "@/lib/agora";
+import { getSocket, type SessionJoinAck } from "@/lib/socket";
 import { useStudioStore } from "@/lib/studio-store";
+import type { ChatMessage, Participant, ParticipantStatus } from "@ditch/types";
 import type { ILocalVideoTrack } from "agora-rtc-sdk-ng";
+
+const MAX_CHAT = 200;
+const TOTAL_SLOTS = 4;
+
+const PLATFORM_COLOR: Record<string, string> = {
+  twitch:  "#9146ff",
+  youtube: "#ff0000",
+  tiktok:  "#ff0050",
+  kick:    "#53fc18",
+  ditch:   "#7c3aed",
+};
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -532,16 +545,215 @@ function RightIconStrip({
   );
 }
 
-// ── Right panel (placeholder content) ────────────────────────────────────────
+// ── Chat panel ────────────────────────────────────────────────────────────────
 
-function RightPanel({ panel }: { panel: RightPanelId | null }) {
+function ChatPanel({
+  messages,
+  chatBody,
+  onChange,
+  onSend,
+}: {
+  messages: ChatMessage[];
+  chatBody: string;
+  onChange: (v: string) => void;
+  onSend: (e: React.FormEvent) => void;
+}) {
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  return (
+    <>
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5 min-h-0">
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-24">
+            <p className="text-[11px] text-[var(--color-text-muted)]">No messages yet</p>
+          </div>
+        )}
+        {messages.map((m) => (
+          <div
+            key={m.id}
+            className="flex gap-2 items-start py-0.5 pl-2 rounded"
+            style={{ borderLeft: `2px solid ${PLATFORM_COLOR[m.platform] ?? "#2a2a2e"}` }}
+          >
+            <div className="min-w-0">
+              <span
+                className="text-[11px] font-semibold"
+                style={{ color: PLATFORM_COLOR[m.platform] ?? "var(--color-text-muted)" }}
+              >
+                {m.author_display_name}
+              </span>
+              <span className="text-[11px] text-[var(--color-text)] ml-1.5 break-words">
+                {m.body}
+              </span>
+            </div>
+          </div>
+        ))}
+        <div ref={chatEndRef} />
+      </div>
+
+      <form
+        onSubmit={onSend}
+        className="flex gap-2 p-3 border-t border-[var(--color-surface-border)] shrink-0"
+      >
+        <input
+          type="text"
+          value={chatBody}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Message…"
+          maxLength={500}
+          className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-surface-border)] text-[11px] focus:outline-none focus:border-[var(--color-brand)] transition-colors"
+        />
+        <button
+          type="submit"
+          disabled={!chatBody.trim()}
+          className="px-3 py-1.5 rounded-lg bg-[var(--color-brand)] hover:bg-[var(--color-brand-light)] text-white text-[11px] font-semibold disabled:opacity-40 transition-colors shrink-0"
+        >
+          Send
+        </button>
+      </form>
+    </>
+  );
+}
+
+// ── Queue panel ───────────────────────────────────────────────────────────────
+
+function QueueItem({
+  participant,
+  canGoLive,
+  nextSlot,
+  onApprove,
+  onSetLive,
+  onRemove,
+}: {
+  participant: Participant;
+  canGoLive: boolean;
+  nextSlot: number;
+  onApprove: () => void;
+  onSetLive: () => void;
+  onRemove: () => void;
+}) {
+  const initial = participant.display_name[0].toUpperCase();
+  const isWaiting = participant.status === "waiting";
+
+  return (
+    <div className="px-3 py-3 space-y-2.5 border-b border-[var(--color-surface-border)]">
+      <div className="flex items-center gap-2.5">
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 text-white"
+          style={{ backgroundColor: "var(--color-brand)" }}
+        >
+          {initial}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold truncate">{participant.display_name}</p>
+        </div>
+        <span
+          className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0 ${
+            isWaiting
+              ? "bg-amber-500/15 text-amber-400"
+              : "bg-blue-500/15 text-blue-400"
+          }`}
+        >
+          {participant.status}
+        </span>
+      </div>
+
+      <div className="flex gap-1.5">
+        {isWaiting && (
+          <button
+            onClick={onApprove}
+            className="flex-1 py-1 rounded text-[10px] font-semibold border border-[var(--color-brand)] text-[var(--color-brand)] hover:bg-[var(--color-brand)] hover:text-white transition-colors"
+          >
+            Approve
+          </button>
+        )}
+        {!isWaiting && canGoLive && (
+          <button
+            onClick={onSetLive}
+            className="flex-1 py-1 rounded text-[10px] font-semibold bg-green-600 hover:bg-green-500 text-white transition-colors"
+          >
+            Set live → {nextSlot + 1}
+          </button>
+        )}
+        <button
+          onClick={onRemove}
+          className="px-2.5 py-1 rounded text-[10px] font-semibold border border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:border-red-500 hover:text-red-400 transition-colors"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function QueuePanel({
+  waiting,
+  approved,
+  nextSlot,
+  onChangeStatus,
+}: {
+  waiting: Participant[];
+  approved: Participant[];
+  nextSlot: number;
+  onChangeStatus: (id: string, status: ParticipantStatus, slot?: number) => void;
+}) {
+  const queue = [...waiting, ...approved];
+
+  return (
+    <div className="flex-1 overflow-y-auto min-h-0">
+      {queue.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-32 gap-2">
+          <span className="text-2xl opacity-20">👥</span>
+          <p className="text-[11px] text-[var(--color-text-muted)]">No one waiting</p>
+        </div>
+      ) : (
+        queue.map((p) => (
+          <QueueItem
+            key={p.id}
+            participant={p}
+            canGoLive={nextSlot !== -1}
+            nextSlot={nextSlot}
+            onApprove={() => onChangeStatus(p.id, "approved")}
+            onSetLive={() => onChangeStatus(p.id, "live", nextSlot)}
+            onRemove={() => onChangeStatus(p.id, "removed")}
+          />
+        ))
+      )}
+    </div>
+  );
+}
+
+// ── Right panel ───────────────────────────────────────────────────────────────
+
+function RightPanel({
+  panel,
+  chatProps,
+  queueProps,
+}: {
+  panel: RightPanelId | null;
+  chatProps: {
+    messages: ChatMessage[];
+    chatBody: string;
+    onChange: (v: string) => void;
+    onSend: (e: React.FormEvent) => void;
+  };
+  queueProps: {
+    waiting: Participant[];
+    approved: Participant[];
+    nextSlot: number;
+    onChangeStatus: (id: string, status: ParticipantStatus, slot?: number) => void;
+  };
+}) {
   if (!panel) return null;
 
   const labels: Record<RightPanelId, string> = {
     "transitions":  "Transitions",
     "source-props": "Source Properties",
     "chat":         "Chat",
-    "stream-info":  "Stream Info",
+    "stream-info":  "Queue",
     "settings":     "Settings",
   };
 
@@ -554,13 +766,24 @@ function RightPanel({ panel }: { panel: RightPanelId | null }) {
         className="flex items-center px-4 border-b border-[var(--color-surface-border)] shrink-0"
         style={{ height: 36 }}
       >
-        <span className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
+        <span className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider flex-1">
           {labels[panel]}
         </span>
+        {panel === "stream-info" && queueProps.waiting.length + queueProps.approved.length > 0 && (
+          <span className="text-[10px] font-bold bg-[var(--color-brand)] text-white rounded-full px-1.5 py-0.5 leading-none">
+            {queueProps.waiting.length + queueProps.approved.length}
+          </span>
+        )}
       </div>
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-[11px] text-[var(--color-text-muted)] select-none">{labels[panel]} panel</p>
-      </div>
+      {panel === "chat" ? (
+        <ChatPanel {...chatProps} />
+      ) : panel === "stream-info" ? (
+        <QueuePanel {...queueProps} />
+      ) : (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-[11px] text-[var(--color-text-muted)] select-none">{labels[panel]} panel</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -676,8 +899,67 @@ export default function Studio({
 }) {
   const [mixerExpanded, setMixerExpanded] = useState(true);
   const [activePanel, setActivePanel] = useState<RightPanelId | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatBody, setChatBody] = useState("");
+  const [participants, setParticipants] = useState<Participant[]>([]);
 
   const { streamingEnabled, setStreaming, setStreamError } = useStudioStore();
+
+  // ── Socket ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const socket = getSocket(token);
+    socket.connect();
+
+    const onJoin: SessionJoinAck = (err, state) => {
+      if (err || !state) return;
+      setMessages(state.recentMessages.slice(-MAX_CHAT));
+      setParticipants(state.participants);
+    };
+    socket.emit("session:join", { session_id: sessionId }, onJoin);
+
+    socket.on("chat:message", ({ message }: { message: ChatMessage }) => {
+      setMessages((prev) => [...prev.slice(-MAX_CHAT + 1), message]);
+    });
+    socket.on("participant:queue_update", ({ participants: updated }: { participants: Participant[] }) => {
+      setParticipants(updated);
+    });
+    socket.on("participant:status_change", ({ participant }: { participant: Participant }) => {
+      setParticipants((prev) => prev.map((p) => (p.id === participant.id ? participant : p)));
+    });
+
+    return () => {
+      socket.emit("session:leave", { session_id: sessionId });
+      socket.off("chat:message");
+      socket.off("participant:queue_update");
+      socket.off("participant:status_change");
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, token]);
+
+  function sendChat(e: React.FormEvent) {
+    e.preventDefault();
+    if (!chatBody.trim()) return;
+    const socket = getSocket(token);
+    socket.emit("chat:message", {
+      session_id: sessionId,
+      body: chatBody.trim(),
+      display_name: creatorName,
+      platform_origin: "ditch",
+    });
+    setChatBody("");
+  }
+
+  function changeParticipantStatus(id: string, status: ParticipantStatus, slot_index?: number) {
+    const socket = getSocket(token);
+    socket.emit("participant:status_change", { session_id: sessionId, participant_id: id, status, slot_index });
+  }
+
+  // ── Derived queue state ──────────────────────────────────────────────────────
+  const liveParticipants = participants.filter((p) => p.status === "live");
+  const waiting          = participants.filter((p) => p.status === "waiting");
+  const approved         = participants.filter((p) => p.status === "approved");
+  const slots            = Array.from({ length: TOTAL_SLOTS }, (_, i) => liveParticipants.find((p) => p.slot_index === i) ?? null);
+  const nextSlot         = slots.findIndex((s) => s === null);
 
   // ── Media hooks ─────────────────────────────────────────────────────────────
   const {
@@ -700,7 +982,7 @@ export default function Studio({
     localVideoTrack,
     localAudioTrack,
     remoteUsers,
-    liveParticipants: [], // wired in Part 6 (socket events)
+    liveParticipants,
     enabled: true,
   });
 
@@ -731,7 +1013,13 @@ export default function Studio({
           toggleScreenShare={toggleScreenShare}
         />
         <PreviewCanvas stream={compositeStream} />
-        {activePanel && <RightPanel panel={activePanel} />}
+        {activePanel && (
+          <RightPanel
+            panel={activePanel}
+            chatProps={{ messages, chatBody, onChange: setChatBody, onSend: sendChat }}
+            queueProps={{ waiting, approved, nextSlot, onChangeStatus: changeParticipantStatus }}
+          />
+        )}
         <RightIconStrip active={activePanel} onSelect={togglePanel} />
       </div>
 
