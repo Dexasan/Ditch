@@ -53,6 +53,7 @@ interface CompositorOptions {
   remoteUsers: IAgoraRTCRemoteUser[];
   liveParticipants: Participant[];
   enabled: boolean;
+  onFps?: (fps: number) => void;
 }
 
 export function useCompositor({
@@ -61,6 +62,7 @@ export function useCompositor({
   remoteUsers,
   liveParticipants,
   enabled,
+  onFps,
 }: CompositorOptions): { stream: MediaStream | null } {
   const [stream, setStream] = useState<MediaStream | null>(null);
 
@@ -286,8 +288,9 @@ export function useCompositor({
       fps.frames++;
       const now = Date.now();
       if (now - fps.lastLog >= 5000) {
-        const measured = (fps.frames / ((now - fps.lastLog) / 1000)).toFixed(1);
-        console.log(`[compositor] fps: ${measured} | tab: ${document.visibilityState}`);
+        const measured = fps.frames / ((now - fps.lastLog) / 1000);
+        console.log(`[compositor] fps: ${measured.toFixed(1)} | tab: ${document.visibilityState}`);
+        onFps?.(Math.round(measured));
         fps.frames = 0;
         fps.lastLog = now;
       }

@@ -101,21 +101,6 @@ function IconPlus() {
   );
 }
 
-function IconChevronUp() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="18 15 12 9 6 15" />
-    </svg>
-  );
-}
-
-function IconChevronDown() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
 
 function IconRadio() {
   return (
@@ -165,7 +150,7 @@ function IconMonitor() {
 // ── Top bar ───────────────────────────────────────────────────────────────────
 
 function TopBar({ slug }: { slug: string }) {
-  const { streamingEnabled, streaming, streamError, setStreamingEnabled } = useStudioStore();
+  const { streamingEnabled, streaming, streamError, fps, setStreamingEnabled } = useStudioStore();
 
   const goLiveLabel = streaming
     ? "End Stream"
@@ -196,20 +181,18 @@ function TopBar({ slug }: { slug: string }) {
 
       {/* Center: status / counters */}
       <div className="flex items-center gap-4 flex-1 justify-center">
-        {streaming ? (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-[10px] font-bold text-red-400 tracking-widest">LIVE</span>
-          </div>
-        ) : streamError ? (
+        {streamError ? (
           <span className="text-[10px] text-red-400 truncate max-w-xs">{streamError}</span>
         ) : (
           <>
+            {streaming && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-[10px] font-bold text-red-400 tracking-widest">LIVE</span>
+              </div>
+            )}
             <span className="text-[10px] font-mono text-[var(--color-text-muted)] tabular-nums">
-              FPS <span className="text-[var(--color-text)]">—</span>
-            </span>
-            <span className="text-[10px] font-mono text-[var(--color-text-muted)] tabular-nums">
-              DISK <span className="text-[var(--color-text)]">—</span>
+              FPS <span className="text-[var(--color-text)]">{fps ?? "—"}</span>
             </span>
           </>
         )}
@@ -788,99 +771,6 @@ function RightPanel({
   );
 }
 
-// ── Audio mixer ───────────────────────────────────────────────────────────────
-
-function AudioMixer({
-  expanded,
-  onToggle,
-}: {
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <div
-      className="shrink-0 border-t border-[var(--color-surface-border)] bg-[var(--color-surface)] flex flex-col overflow-hidden transition-all"
-      style={{ height: expanded ? 180 : 44 }}
-    >
-      {/* Header */}
-      <div
-        className="flex items-center gap-2 px-4 shrink-0 border-b border-[var(--color-surface-border)]"
-        style={{ height: 44 }}
-      >
-        <span className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider flex-1">
-          Audio Mixer
-        </span>
-        <button
-          className="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
-          title="Add audio source"
-        >
-          <IconPlus />
-        </button>
-        <button
-          onClick={onToggle}
-          className="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
-          title={expanded ? "Collapse mixer" : "Expand mixer"}
-        >
-          {expanded ? <IconChevronDown /> : <IconChevronUp />}
-        </button>
-      </div>
-
-      {/* Track cards */}
-      {expanded && (
-        <div className="flex-1 flex items-stretch gap-px px-3 py-2 overflow-x-auto overflow-y-hidden">
-          <PlaceholderTrackCard label="Creator Mic" />
-          <PlaceholderTrackCard label="Creator Camera" />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PlaceholderTrackCard({ label }: { label: string }) {
-  return (
-    <div
-      className="flex flex-col shrink-0 rounded border border-[var(--color-surface-border)] bg-[var(--color-surface-raised)] px-2 py-2 gap-2"
-      style={{ width: 120 }}
-    >
-      {/* Track name */}
-      <div className="text-[10px] font-semibold text-[var(--color-text-muted)] truncate uppercase tracking-wide">
-        {label}
-      </div>
-
-      {/* VU meter + fader row */}
-      <div className="flex items-end gap-2 flex-1">
-        {/* VU meters (static placeholder bars) */}
-        <div className="flex items-end gap-0.5" style={{ height: 64 }}>
-          <div className="w-2 rounded-sm bg-[var(--color-surface-border)]" style={{ height: "30%" }} />
-          <div className="w-2 rounded-sm bg-[var(--color-surface-border)]" style={{ height: "30%" }} />
-        </div>
-
-        {/* Volume fader */}
-        <div className="flex-1 flex flex-col items-center gap-1">
-          <span className="text-[9px] font-mono text-[var(--color-text-muted)]">0 dB</span>
-          <input
-            type="range"
-            min={0}
-            max={200}
-            defaultValue={100}
-            className="w-full accent-[var(--color-brand)]"
-            style={{ writingMode: "horizontal-tb" }}
-          />
-        </div>
-      </div>
-
-      {/* Buttons row */}
-      <div className="flex items-center gap-1">
-        <button className="flex-1 h-5 rounded text-[9px] font-bold border border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:border-red-500 hover:text-red-400 transition-colors uppercase tracking-wide">
-          M
-        </button>
-        <button className="flex-1 h-5 rounded text-[9px] font-bold border border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors uppercase tracking-wide">
-          CUE
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ── Studio root ───────────────────────────────────────────────────────────────
 
@@ -897,13 +787,12 @@ export default function Studio({
   channelName: string;
   slug: string;
 }) {
-  const [mixerExpanded, setMixerExpanded] = useState(true);
   const [activePanel, setActivePanel] = useState<RightPanelId | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatBody, setChatBody] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
 
-  const { streamingEnabled, setStreaming, setStreamError } = useStudioStore();
+  const { streamingEnabled, setStreaming, setStreamError, setFps } = useStudioStore();
 
   // ── Socket ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -984,6 +873,7 @@ export default function Studio({
     remoteUsers,
     liveParticipants,
     enabled: true,
+    onFps: setFps,
   });
 
   // Relay stream — only active when Go Live is clicked.
@@ -1022,11 +912,6 @@ export default function Studio({
         )}
         <RightIconStrip active={activePanel} onSelect={togglePanel} />
       </div>
-
-      <AudioMixer
-        expanded={mixerExpanded}
-        onToggle={() => setMixerExpanded((v) => !v)}
-      />
     </div>
   );
 }

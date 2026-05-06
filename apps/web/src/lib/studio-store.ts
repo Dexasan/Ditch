@@ -10,9 +10,11 @@ interface StudioStore {
   streamingEnabled: boolean;
   streaming: boolean;
   streamError: string | null;
+  fps: number | null;
   setStreamingEnabled: (v: boolean | ((prev: boolean) => boolean)) => void;
   setStreaming: (v: boolean) => void;
   setStreamError: (v: string | null) => void;
+  setFps: (v: number) => void;
 
   // Layer visibility
   camVisible: boolean;
@@ -32,12 +34,14 @@ export const useStudioStore = create<StudioStore>((set) => ({
   streamingEnabled: false,
   streaming: false,
   streamError: null,
+  fps: null,
   setStreamingEnabled: (v) =>
     set((s) => ({
       streamingEnabled: typeof v === "function" ? v(s.streamingEnabled) : v,
     })),
   setStreaming: (v) => set({ streaming: v }),
   setStreamError: (v) => set({ streamError: v }),
+  setFps: (v) => set({ fps: v }),
 
   // Layers
   camVisible: true,
