@@ -269,14 +269,16 @@ function LayersPanel({
   isScreenSharing: boolean;
   toggleScreenShare: () => Promise<void>;
 }) {
-  const { camVisible, setCamVisible } = useStudioStore();
+  const { scenes, activeSceneId, setActiveSceneCamVisible } = useStudioStore();
+  const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
+  const camVisible = activeScene.camVisible;
   const [menuOpen, setMenuOpen] = useState(false);
 
   function toggleCam() {
     if (!localVideoTrack) return;
     const next = !camVisible;
     localVideoTrack.setEnabled(next);
-    setCamVisible(next);
+    setActiveSceneCamVisible(next);
   }
 
   return (
@@ -390,13 +392,16 @@ function ScenesPanel() {
           <button
             key={scene.id}
             onClick={() => switchScene(scene.id)}
-            className={`w-full text-left px-3 py-2.5 text-[11px] transition-colors border-l-2 ${
+            className={`w-full text-left px-3 py-2.5 text-[11px] transition-colors border-l-2 flex items-center gap-2 ${
               scene.id === activeSceneId
                 ? "border-[var(--color-brand)] bg-[var(--color-brand)]/10 text-[var(--color-text)] font-semibold"
                 : "border-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)]"
             }`}
           >
-            {scene.name}
+            <span className="flex-1 truncate">{scene.name}</span>
+            {!scene.camVisible && (
+              <span className="shrink-0 text-[9px] text-[var(--color-text-muted)] opacity-60">no cam</span>
+            )}
           </button>
         ))}
       </div>
@@ -792,7 +797,8 @@ export default function Studio({
   const [chatBody, setChatBody] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
 
-  const { streamingEnabled, setStreaming, setStreamError, setFps } = useStudioStore();
+  const { streamingEnabled, setStreaming, setStreamError, setFps, scenes, activeSceneId } = useStudioStore();
+  const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
 
   // ── Socket ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -866,6 +872,15 @@ export default function Studio({
     screenShareUid: CREATOR_SCREEN_UID,
   });
 
+  // When the active scene changes, apply its cam visibility to the Agora track.
+  useEffect(() => {
+    if (!localVideoTrack) return;
+    const scene = scenes.find((s) => s.id === activeSceneId);
+    if (!scene) return;
+    localVideoTrack.setEnabled(scene.camVisible);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSceneId, scenes, localVideoTrack]);
+
   // Compositor always runs so the preview canvas is live regardless of stream state.
   const { stream: compositeStream } = useCompositor({
     localVideoTrack,
@@ -873,6 +888,7 @@ export default function Studio({
     remoteUsers,
     liveParticipants,
     enabled: true,
+    creatorVisible: activeScene.camVisible,
     onFps: setFps,
   });
 

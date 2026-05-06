@@ -3,6 +3,7 @@ import { create } from "zustand";
 export interface Scene {
   id: string;
   name: string;
+  camVisible: boolean;
 }
 
 interface StudioStore {
@@ -16,15 +17,12 @@ interface StudioStore {
   setStreamError: (v: string | null) => void;
   setFps: (v: number) => void;
 
-  // Layer visibility
-  camVisible: boolean;
-  setCamVisible: (v: boolean) => void;
-
-  // Scenes
+  // Scenes — each scene owns its own layer visibility
   scenes: Scene[];
   activeSceneId: string;
   addScene: () => void;
   switchScene: (id: string) => void;
+  setActiveSceneCamVisible: (visible: boolean) => void;
 }
 
 const INITIAL_SCENE_ID = "scene-1";
@@ -43,20 +41,26 @@ export const useStudioStore = create<StudioStore>((set) => ({
   setStreamError: (v) => set({ streamError: v }),
   setFps: (v) => set({ fps: v }),
 
-  // Layers
-  camVisible: true,
-  setCamVisible: (v) => set({ camVisible: v }),
-
   // Scenes
-  scenes: [{ id: INITIAL_SCENE_ID, name: "Scene 1" }],
+  scenes: [{ id: INITIAL_SCENE_ID, name: "Scene 1", camVisible: true }],
   activeSceneId: INITIAL_SCENE_ID,
   addScene: () =>
     set((s) => {
       const id = `scene-${Date.now()}`;
+      const current = s.scenes.find((sc) => sc.id === s.activeSceneId);
       return {
-        scenes: [...s.scenes, { id, name: `Scene ${s.scenes.length + 1}` }],
+        scenes: [
+          ...s.scenes,
+          { id, name: `Scene ${s.scenes.length + 1}`, camVisible: current?.camVisible ?? true },
+        ],
         activeSceneId: id,
       };
     }),
   switchScene: (id) => set({ activeSceneId: id }),
+  setActiveSceneCamVisible: (visible) =>
+    set((s) => ({
+      scenes: s.scenes.map((sc) =>
+        sc.id === s.activeSceneId ? { ...sc, camVisible: visible } : sc,
+      ),
+    })),
 }));

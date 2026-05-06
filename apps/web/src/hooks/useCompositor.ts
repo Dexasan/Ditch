@@ -8,24 +8,54 @@ const W = 1280;
 const H = 720;
 const FPS = 30;
 
-function getLayout(participantCount: number): Array<{ x: number; y: number; w: number; h: number }> {
-  if (participantCount === 0) return [{ x: 0, y: 0, w: W, h: H }];
-  if (participantCount === 1) return [
-    { x: 0,     y: 0, w: W / 2, h: H },
-    { x: W / 2, y: 0, w: W / 2, h: H },
-  ];
-  if (participantCount === 2) return [
-    { x: 0,     y: 0,     w: W,     h: H / 2 },
-    { x: 0,     y: H / 2, w: W / 2, h: H / 2 },
-    { x: W / 2, y: H / 2, w: W / 2, h: H / 2 },
-  ];
+type Rect = { x: number; y: number; w: number; h: number };
+
+// Returns an array where slot 0 = creator cell (null when hidden),
+// slots 1..n = participant cells. Layout adapts to the total visible sources.
+function getLayout(creatorVisible: boolean, participantCount: number): Array<Rect | null> {
+  const out: Array<Rect | null> = Array(participantCount + 1).fill(null);
+  const total = (creatorVisible ? 1 : 0) + participantCount;
+
+  if (total === 0) return out;
+
+  if (total === 1) {
+    const full = { x: 0, y: 0, w: W, h: H };
+    if (creatorVisible) out[0] = full; else out[1] = full;
+    return out;
+  }
+
+  if (total === 2) {
+    const a = { x: 0,     y: 0, w: W / 2, h: H };
+    const b = { x: W / 2, y: 0, w: W / 2, h: H };
+    if (creatorVisible) { out[0] = a; out[1] = b; }
+    else               { out[1] = a; out[2] = b; }
+    return out;
+  }
+
+  if (total === 3) {
+    const top  = { x: 0,     y: 0,     w: W,     h: H / 2 };
+    const botL = { x: 0,     y: H / 2, w: W / 2, h: H / 2 };
+    const botR = { x: W / 2, y: H / 2, w: W / 2, h: H / 2 };
+    if (creatorVisible) { out[0] = top; out[1] = botL; out[2] = botR; }
+    else               { out[1] = top; out[2] = botL; out[3] = botR; }
+    return out;
+  }
+
+  // total >= 4: 2×2 grid
   const CW = W / 2, CH = H / 2;
-  return [
+  const cells: Rect[] = [
     { x: 0,  y: 0,  w: CW, h: CH },
     { x: CW, y: 0,  w: CW, h: CH },
     { x: 0,  y: CH, w: CW, h: CH },
     { x: CW, y: CH, w: CW, h: CH },
   ];
+  if (creatorVisible) {
+    out[0] = cells[0];
+    for (let i = 0; i < Math.min(participantCount, 3); i++) out[i + 1] = cells[i + 1];
+  } else {
+    for (let i = 0; i < Math.min(participantCount, 4); i++) out[i + 1] = cells[i];
+  }
+  return out;
 }
 
 function supportsBreakoutBox(): boolean {
@@ -53,6 +83,7 @@ interface CompositorOptions {
   remoteUsers: IAgoraRTCRemoteUser[];
   liveParticipants: Participant[];
   enabled: boolean;
+  creatorVisible?: boolean;
   onFps?: (fps: number) => void;
 }
 
@@ -62,6 +93,7 @@ export function useCompositor({
   remoteUsers,
   liveParticipants,
   enabled,
+  creatorVisible = true,
   onFps,
 }: CompositorOptions): { stream: MediaStream | null } {
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -159,7 +191,7 @@ export function useCompositor({
     if (!enabled || !supportsBreakoutBox()) return;
 
     const activeTracks = new Map<string, MediaStreamTrack>();
-    if (localVideoTrack) {
+    if (localVideoTrack && creatorVisible) {
       try { const t = localVideoTrack.getMediaStreamTrack(); activeTracks.set(t.id, t); } catch {}
     }
     for (const p of liveParticipants) {
@@ -203,7 +235,7 @@ export function useCompositor({
         reader.cancel().catch(() => {});
       });
     }
-  }, [enabled, localVideoTrack, remoteUsers, liveParticipants]);
+  }, [enabled, creatorVisible, localVideoTrack, remoteUsers, liveParticipants]);
 
   // ── Draw loop — driven by Worker timer ───────────────────────────────────────
   useEffect(() => {
@@ -247,26 +279,30 @@ export function useCompositor({
       ctx!.fillStyle = "#000";
       ctx!.fillRect(0, 0, W, H);
 
-      const layout = getLayout(liveParticipants.length);
+      const layout = getLayout(creatorVisible, liveParticipants.length);
 
-      if (localVideoTrack) {
+      // Creator — slot 0 (null when scene hides cam)
+      const creatorCell = layout[0];
+      if (creatorCell && localVideoTrack) {
         try {
           const native = localVideoTrack.getMediaStreamTrack();
           const source = useBreakout ? frameCacheRef.current.get(native.id) : getVideoElem(native.id, native);
-          if (source) drawCover(source, layout[0].x, layout[0].y, layout[0].w, layout[0].h);
+          if (source) drawCover(source, creatorCell.x, creatorCell.y, creatorCell.w, creatorCell.h);
         } catch {}
       }
 
+      // Participants — slots 1..n, positions expand when creator is hidden
       for (const p of liveParticipants) {
         const gridIdx = (p.slot_index ?? 0) + 1;
-        if (gridIdx >= layout.length) continue;
+        const cell = layout[gridIdx];
+        if (!cell) continue;
         const uid = (p.slot_index ?? 0) + 1;
         const remoteUser = remoteUsers.find((u) => u.uid === uid);
         if (!remoteUser?.videoTrack) continue;
         try {
           const native = remoteUser.videoTrack.getMediaStreamTrack();
           const source = useBreakout ? frameCacheRef.current.get(native.id) : getVideoElem(native.id, native);
-          if (source) drawCover(source, layout[gridIdx].x, layout[gridIdx].y, layout[gridIdx].w, layout[gridIdx].h);
+          if (source) drawCover(source, cell.x, cell.y, cell.w, cell.h);
         } catch {}
       }
 
@@ -311,7 +347,7 @@ export function useCompositor({
       worker.postMessage("stop");
       worker.terminate();
     };
-  }, [enabled, localVideoTrack, remoteUsers, liveParticipants]);
+  }, [enabled, creatorVisible, localVideoTrack, remoteUsers, liveParticipants]);
 
   // ── Audio graph ───────────────────────────────────────────────────────────────
   useEffect(() => {
