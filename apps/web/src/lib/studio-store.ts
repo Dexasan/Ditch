@@ -12,10 +12,12 @@ interface StudioStore {
   streaming: boolean;
   streamError: string | null;
   fps: number | null;
+  targetFps: 30 | 60;
   setStreamingEnabled: (v: boolean | ((prev: boolean) => boolean)) => void;
   setStreaming: (v: boolean) => void;
   setStreamError: (v: string | null) => void;
   setFps: (v: number) => void;
+  setTargetFps: (v: 30 | 60) => void;
 
   // Scenes — each scene owns its own layer visibility
   scenes: Scene[];
@@ -33,6 +35,7 @@ export const useStudioStore = create<StudioStore>((set) => ({
   streaming: false,
   streamError: null,
   fps: null,
+  targetFps: 30,
   setStreamingEnabled: (v) =>
     set((s) => ({
       streamingEnabled: typeof v === "function" ? v(s.streamingEnabled) : v,
@@ -40,6 +43,7 @@ export const useStudioStore = create<StudioStore>((set) => ({
   setStreaming: (v) => set({ streaming: v }),
   setStreamError: (v) => set({ streamError: v }),
   setFps: (v) => set({ fps: v }),
+  setTargetFps: (v) => set({ targetFps: v }),
 
   // Scenes
   scenes: [{ id: INITIAL_SCENE_ID, name: "Scene 1", camVisible: true }],

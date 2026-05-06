@@ -6,7 +6,7 @@ import type { Participant } from "@ditch/types";
 
 const W = 1280;
 const H = 720;
-const FPS = 30;
+const DEFAULT_FPS = 30;
 
 type Rect = { x: number; y: number; w: number; h: number };
 
@@ -66,14 +66,15 @@ function supportsBreakoutBox(): boolean {
   );
 }
 
-// Inline worker source — drives the 30fps draw tick from a separate thread.
+// Inline worker source — drives the draw tick from a separate thread.
 // Workers are not subject to the main thread's background-tab CPU budget throttling,
 // so the timer fires reliably even when the streaming tab loses focus.
+// Start message: { type: "start", interval: number } — interval in ms between ticks.
 const WORKER_SRC = `
   let timer = null;
   self.onmessage = (e) => {
-    if (e.data === "start") timer = setInterval(() => self.postMessage("tick"), ${1000 / FPS});
-    if (e.data === "stop")  { clearInterval(timer); timer = null; }
+    if (e.data?.type === "start") timer = setInterval(() => self.postMessage("tick"), e.data.interval);
+    if (e.data?.type === "stop")  { clearInterval(timer); timer = null; }
   };
 `;
 
@@ -84,6 +85,7 @@ interface CompositorOptions {
   liveParticipants: Participant[];
   enabled: boolean;
   creatorVisible?: boolean;
+  targetFps?: 30 | 60;
   onFps?: (fps: number) => void;
 }
 
@@ -94,6 +96,7 @@ export function useCompositor({
   liveParticipants,
   enabled,
   creatorVisible = true,
+  targetFps = DEFAULT_FPS,
   onFps,
 }: CompositorOptions): { stream: MediaStream | null } {
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -165,7 +168,7 @@ export function useCompositor({
 
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
-      workerRef.current?.postMessage("stop");
+      workerRef.current?.postMessage({ type: "stop" });
       workerRef.current?.terminate();
       workerRef.current = null;
       frameWriterRef.current?.close().catch(() => {});
@@ -246,7 +249,7 @@ export function useCompositor({
     if (!ctx) return;
 
     // Terminate any previous worker before starting a new one
-    workerRef.current?.postMessage("stop");
+    workerRef.current?.postMessage({ type: "stop" });
     workerRef.current?.terminate();
 
     const useBreakout = supportsBreakoutBox();
@@ -340,14 +343,14 @@ export function useCompositor({
     const worker = new Worker(blobUrl);
     URL.revokeObjectURL(blobUrl); // safe to revoke after worker is created
     worker.onmessage = () => draw();
-    worker.postMessage("start");
+    worker.postMessage({ type: "start", interval: 1000 / targetFps });
     workerRef.current = worker;
 
     return () => {
-      worker.postMessage("stop");
+      worker.postMessage({ type: "stop" });
       worker.terminate();
     };
-  }, [enabled, creatorVisible, localVideoTrack, remoteUsers, liveParticipants]);
+  }, [enabled, creatorVisible, targetFps, localVideoTrack, remoteUsers, liveParticipants]);
 
   // ── Audio graph ───────────────────────────────────────────────────────────────
   useEffect(() => {

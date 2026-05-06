@@ -714,12 +714,51 @@ function QueuePanel({
   );
 }
 
+// ── Settings panel ────────────────────────────────────────────────────────────
+
+function SettingsPanel({
+  targetFps,
+  onSetTargetFps,
+}: {
+  targetFps: 30 | 60;
+  onSetTargetFps: (v: 30 | 60) => void;
+}) {
+  return (
+    <div className="p-4 space-y-5">
+      <div>
+        <p className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
+          Frame Rate
+        </p>
+        <div className="flex gap-1">
+          {([30, 60] as const).map((fps) => (
+            <button
+              key={fps}
+              onClick={() => onSetTargetFps(fps)}
+              className={`flex-1 py-1.5 rounded text-[11px] font-semibold border transition-colors ${
+                targetFps === fps
+                  ? "bg-[var(--color-brand)] border-[var(--color-brand)] text-white"
+                  : "border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-text-muted)]"
+              }`}
+            >
+              {fps} fps
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">
+          60 fps uses more CPU and bandwidth
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Right panel ───────────────────────────────────────────────────────────────
 
 function RightPanel({
   panel,
   chatProps,
   queueProps,
+  settingsProps,
 }: {
   panel: RightPanelId | null;
   chatProps: {
@@ -733,6 +772,10 @@ function RightPanel({
     approved: Participant[];
     nextSlot: number;
     onChangeStatus: (id: string, status: ParticipantStatus, slot?: number) => void;
+  };
+  settingsProps: {
+    targetFps: 30 | 60;
+    onSetTargetFps: (v: 30 | 60) => void;
   };
 }) {
   if (!panel) return null;
@@ -767,6 +810,8 @@ function RightPanel({
         <ChatPanel {...chatProps} />
       ) : panel === "stream-info" ? (
         <QueuePanel {...queueProps} />
+      ) : panel === "settings" ? (
+        <SettingsPanel {...settingsProps} />
       ) : (
         <div className="flex-1 flex items-center justify-center">
           <p className="text-[11px] text-[var(--color-text-muted)] select-none">{labels[panel]} panel</p>
@@ -797,7 +842,7 @@ export default function Studio({
   const [chatBody, setChatBody] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
 
-  const { streamingEnabled, setStreaming, setStreamError, setFps, scenes, activeSceneId } = useStudioStore();
+  const { streamingEnabled, setStreaming, setStreamError, setFps, targetFps, setTargetFps, scenes, activeSceneId } = useStudioStore();
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
 
   // ── Socket ──────────────────────────────────────────────────────────────────
@@ -889,6 +934,7 @@ export default function Studio({
     liveParticipants,
     enabled: true,
     creatorVisible: activeScene.camVisible,
+    targetFps,
     onFps: setFps,
   });
 
@@ -924,6 +970,7 @@ export default function Studio({
             panel={activePanel}
             chatProps={{ messages, chatBody, onChange: setChatBody, onSend: sendChat }}
             queueProps={{ waiting, approved, nextSlot, onChangeStatus: changeParticipantStatus }}
+            settingsProps={{ targetFps, onSetTargetFps: setTargetFps }}
           />
         )}
         <RightIconStrip active={activePanel} onSelect={togglePanel} />
