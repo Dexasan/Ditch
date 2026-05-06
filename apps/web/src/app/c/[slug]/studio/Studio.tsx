@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAgoraRoom } from "@/hooks/useAgoraRoom";
-import { useCompositor } from "@/hooks/useCompositor";
+import { useCompositor, getLayout } from "@/hooks/useCompositor";
 import { useRelayStream } from "@/hooks/useRelayStream";
+import type { CamCell } from "@/lib/studio-store";
 import { CREATOR_CAM_UID, CREATOR_SCREEN_UID } from "@/lib/agora";
 import { getSocket, type SessionJoinAck } from "@/lib/socket";
 import { useStudioStore } from "@/lib/studio-store";
@@ -269,7 +270,7 @@ function LayersPanel({
   isScreenSharing: boolean;
   toggleScreenShare: () => Promise<void>;
 }) {
-  const { scenes, activeSceneId, setActiveSceneCamVisible } = useStudioStore();
+  const { scenes, activeSceneId, setActiveSceneCamVisible, setActiveSceneCamCell, camEnabled, setCamEnabled } = useStudioStore();
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
   const camVisible = activeScene.camVisible;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -337,13 +338,40 @@ function LayersPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <LayerRow
-          icon={<IconCamera />}
-          name="Camera"
-          visible={camVisible}
-          dimmed={!camVisible}
-          onToggle={toggleCam}
-        />
+        {!camEnabled ? (
+          /* Camera not started yet — show a clickable prompt */
+          <button
+            onClick={() => setCamEnabled(true)}
+            className="w-full flex items-center gap-2 px-2 py-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)] transition-colors"
+          >
+            <span className="text-[var(--color-surface-border)] select-none leading-none" style={{ fontSize: 16 }}>⠿</span>
+            <span className="shrink-0"><IconCamera /></span>
+            <span className="flex-1 text-left text-[11px]">Camera</span>
+            <span className="text-[10px] opacity-40">Click to start</span>
+          </button>
+        ) : (
+          /* Camera started — show normal layer row */
+          <div className="group/camrow">
+            <LayerRow
+              icon={<IconCamera />}
+              name="Camera"
+              visible={camVisible}
+              dimmed={!camVisible}
+              onToggle={toggleCam}
+            />
+            {activeScene.camCell && (
+              <div className="px-2 pb-1 flex justify-end">
+                <button
+                  onClick={() => setActiveSceneCamCell(null)}
+                  className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                  title="Reset camera to auto-grid layout"
+                >
+                  ↺ reset to auto
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         {isScreenSharing && (
           <LayerRow
             icon={<IconMonitor />}
@@ -351,11 +379,6 @@ function LayersPanel({
             visible={true}
             onToggle={() => void toggleScreenShare()}
           />
-        )}
-        {!localVideoTrack && !isScreenSharing && (
-          <div className="flex items-center justify-center h-16">
-            <p className="text-[11px] text-[var(--color-text-muted)] select-none">Starting camera…</p>
-          </div>
         )}
       </div>
     </div>
@@ -433,10 +456,160 @@ function LeftSidebar({
   );
 }
 
+// ── Cam overlay (drag-to-position) ────────────────────────────────────────────
+
+function CamOverlay({
+  cell,
+  containerRef,
+  onLiveChange,
+  onCommit,
+}: {
+  cell: CamCell;
+  containerRef: React.RefObject<HTMLDivElement>;
+  onLiveChange: (cell: CamCell) => void;
+  onCommit: (cell: CamCell) => void;
+}) {
+  const [localCell, setLocalCell] = useState<CamCell>(cell);
+  const draggingRef = useRef(false);
+
+  useEffect(() => {
+    if (!draggingRef.current) setLocalCell(cell);
+  }, [cell]);
+
+  const startRef = useRef<{
+    type: "move" | "resize";
+    corner?: "nw" | "ne" | "sw" | "se";
+    cx: number;
+    cy: number;
+    cell: CamCell;
+  } | null>(null);
+
+  useEffect(() => {
+    function computeNext(cx: number, cy: number): CamCell {
+      const s = startRef.current!;
+      const r = containerRef.current?.getBoundingClientRect();
+      if (!r) return s.cell;
+      const fx = (cx - s.cx) / r.width;
+      const fy = (cy - s.cy) / r.height;
+      const sc = s.cell;
+
+      if (s.type === "move") {
+        return {
+          x: Math.max(0, Math.min(1 - sc.w, sc.x + fx)),
+          y: Math.max(0, Math.min(1 - sc.h, sc.y + fy)),
+          w: sc.w,
+          h: sc.h,
+        };
+      }
+
+      let nx = sc.x, ny = sc.y, nw = sc.w, nh = sc.h;
+      if (s.corner === "nw" || s.corner === "sw") { nx = sc.x + fx; nw = sc.w - fx; }
+      if (s.corner === "ne" || s.corner === "se") { nw = sc.w + fx; }
+      if (s.corner === "nw" || s.corner === "ne") { ny = sc.y + fy; nh = sc.h - fy; }
+      if (s.corner === "sw" || s.corner === "se") { nh = sc.h + fy; }
+      nw = Math.max(0.08, nw);
+      nh = Math.max(0.05, nh);
+      nx = Math.max(0, Math.min(1 - nw, nx));
+      ny = Math.max(0, Math.min(1 - nh, ny));
+      return { x: nx, y: ny, w: nw, h: nh };
+    }
+
+    function onMove(e: PointerEvent) {
+      if (!startRef.current) return;
+      const next = computeNext(e.clientX, e.clientY);
+      setLocalCell(next);
+      onLiveChange(next);
+    }
+
+    function onUp(e: PointerEvent) {
+      if (!startRef.current) return;
+      const next = computeNext(e.clientX, e.clientY);
+      startRef.current = null;
+      draggingRef.current = false;
+      setLocalCell(next);
+      onCommit(next);
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [onLiveChange, onCommit, containerRef]);
+
+  function onBodyDown(e: React.PointerEvent) {
+    e.stopPropagation();
+    startRef.current = { type: "move", cx: e.clientX, cy: e.clientY, cell: localCell };
+    draggingRef.current = true;
+  }
+
+  function onCornerDown(e: React.PointerEvent, corner: "nw" | "ne" | "sw" | "se") {
+    e.stopPropagation();
+    startRef.current = { type: "resize", corner, cx: e.clientX, cy: e.clientY, cell: localCell };
+    draggingRef.current = true;
+  }
+
+  const pct = (v: number) => `${(v * 100).toFixed(2)}%`;
+  const H = 8;
+  const cursorMap: Record<string, string> = { nw: "nw-resize", ne: "ne-resize", sw: "sw-resize", se: "se-resize" };
+
+  return (
+    <div className="absolute inset-0 pointer-events-none select-none" style={{ zIndex: 10 }}>
+      <div
+        className="absolute pointer-events-auto"
+        style={{
+          left: pct(localCell.x),
+          top: pct(localCell.y),
+          width: pct(localCell.w),
+          height: pct(localCell.h),
+          border: "1.5px solid rgba(255,255,255,0.65)",
+          cursor: "move",
+          boxSizing: "border-box",
+        }}
+        onPointerDown={onBodyDown}
+      >
+        <span
+          className="absolute top-1 left-1.5 text-[9px] font-bold uppercase tracking-widest pointer-events-none"
+          style={{ color: "rgba(255,255,255,0.5)", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
+        >
+          Camera
+        </span>
+        {(["nw", "ne", "sw", "se"] as const).map((corner) => (
+          <div
+            key={corner}
+            className="absolute pointer-events-auto bg-white rounded-sm"
+            style={{
+              width: H, height: H,
+              cursor: cursorMap[corner],
+              left:   corner.includes("w") ? -(H / 2) : undefined,
+              right:  corner.includes("e") ? -(H / 2) : undefined,
+              top:    corner.includes("n") ? -(H / 2) : undefined,
+              bottom: corner.includes("s") ? -(H / 2) : undefined,
+            }}
+            onPointerDown={(e) => onCornerDown(e, corner)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Preview canvas ────────────────────────────────────────────────────────────
 
-function PreviewCanvas({ stream }: { stream: MediaStream | null }) {
+function PreviewCanvas({
+  stream,
+  overlayCell,
+  onCamLiveChange,
+  onCamCommit,
+}: {
+  stream: MediaStream | null;
+  overlayCell?: CamCell | null;
+  onCamLiveChange?: (cell: CamCell) => void;
+  onCamCommit?: (cell: CamCell) => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -448,6 +621,7 @@ function PreviewCanvas({ stream }: { stream: MediaStream | null }) {
   return (
     <div className="flex-1 flex items-center justify-center bg-black overflow-hidden min-w-0">
       <div
+        ref={containerRef}
         className="relative bg-[#0a0a0a] overflow-hidden"
         style={{ aspectRatio: "16/9", maxWidth: "100%", maxHeight: "100%", width: "100%" }}
       >
@@ -471,6 +645,14 @@ function PreviewCanvas({ stream }: { stream: MediaStream | null }) {
               Starting camera…
             </span>
           </div>
+        )}
+        {overlayCell && onCamLiveChange && onCamCommit && (
+          <CamOverlay
+            cell={overlayCell}
+            containerRef={containerRef as React.RefObject<HTMLDivElement>}
+            onLiveChange={onCamLiveChange}
+            onCommit={onCamCommit}
+          />
         )}
       </div>
     </div>
@@ -842,7 +1024,12 @@ export default function Studio({
   const [chatBody, setChatBody] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
 
-  const { streamingEnabled, setStreaming, setStreamError, setFps, targetFps, setTargetFps, scenes, activeSceneId } = useStudioStore();
+  const {
+    streamingEnabled, setStreaming, setStreamError, setFps,
+    targetFps, setTargetFps,
+    scenes, activeSceneId,
+    camEnabled, setActiveSceneCamCell,
+  } = useStudioStore();
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
 
   // ── Socket ──────────────────────────────────────────────────────────────────
@@ -913,7 +1100,7 @@ export default function Studio({
     uid: CREATOR_CAM_UID,
     role: "host",
     publish: true,
-    enabled: true,
+    enabled: camEnabled,
     screenShareUid: CREATOR_SCREEN_UID,
   });
 
@@ -931,13 +1118,14 @@ export default function Studio({
   }, [activeSceneId, scenes]);
 
   // Compositor always runs so the preview canvas is live regardless of stream state.
-  const { stream: compositeStream } = useCompositor({
+  const { stream: compositeStream, setCamCellLive } = useCompositor({
     localVideoTrack,
     localAudioTrack,
     remoteUsers,
     liveParticipants,
     enabled: true,
     creatorVisible: activeScene.camVisible,
+    camCell: activeScene.camCell,
     targetFps,
     onFps: setFps,
   });
@@ -954,6 +1142,16 @@ export default function Studio({
   useEffect(() => { setStreaming(streaming); }, [streaming, setStreaming]);
   useEffect(() => { setStreamError(streamError); }, [streamError, setStreamError]);
 
+  // Overlay cell: where to show the cam drag handle in the preview.
+  // When camCell is null (auto), compute from getLayout so the handle sits on the real camera position.
+  const autoRect = getLayout(activeScene.camVisible, liveParticipants.length)[0];
+  const autoCell = autoRect
+    ? { x: autoRect.x / 1280, y: autoRect.y / 720, w: autoRect.w / 1280, h: autoRect.h / 720 }
+    : null;
+  const overlayCell = camEnabled && activeScene.camVisible
+    ? (activeScene.camCell ?? autoCell)
+    : null;
+
   function togglePanel(id: RightPanelId) {
     setActivePanel((prev) => (prev === id ? null : id));
   }
@@ -968,7 +1166,12 @@ export default function Studio({
           isScreenSharing={isScreenSharing}
           toggleScreenShare={toggleScreenShare}
         />
-        <PreviewCanvas stream={compositeStream} />
+        <PreviewCanvas
+          stream={compositeStream}
+          overlayCell={overlayCell}
+          onCamLiveChange={setCamCellLive}
+          onCamCommit={setActiveSceneCamCell}
+        />
         {activePanel && (
           <RightPanel
             panel={activePanel}

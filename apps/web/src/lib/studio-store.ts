@@ -1,9 +1,13 @@
 import { create } from "zustand";
 
+export type CamCell = { x: number; y: number; w: number; h: number };
+
 export interface Scene {
   id: string;
   name: string;
   camVisible: boolean;
+  // null = auto-grid; non-null = custom position (fractions 0–1 of canvas)
+  camCell: CamCell | null;
 }
 
 interface StudioStore {
@@ -19,12 +23,17 @@ interface StudioStore {
   setFps: (v: number) => void;
   setTargetFps: (v: 30 | 60) => void;
 
-  // Scenes — each scene owns its own layer visibility
+  // Camera — global "has the camera been started" gate
+  camEnabled: boolean;
+  setCamEnabled: (v: boolean) => void;
+
+  // Scenes — each scene owns its own layer visibility + camera position
   scenes: Scene[];
   activeSceneId: string;
   addScene: () => void;
   switchScene: (id: string) => void;
   setActiveSceneCamVisible: (visible: boolean) => void;
+  setActiveSceneCamCell: (cell: CamCell | null) => void;
 }
 
 const INITIAL_SCENE_ID = "scene-1";
@@ -45,8 +54,12 @@ export const useStudioStore = create<StudioStore>((set) => ({
   setFps: (v) => set({ fps: v }),
   setTargetFps: (v) => set({ targetFps: v }),
 
+  // Camera
+  camEnabled: false,
+  setCamEnabled: (v) => set({ camEnabled: v }),
+
   // Scenes
-  scenes: [{ id: INITIAL_SCENE_ID, name: "Scene 1", camVisible: true }],
+  scenes: [{ id: INITIAL_SCENE_ID, name: "Scene 1", camVisible: true, camCell: null }],
   activeSceneId: INITIAL_SCENE_ID,
   addScene: () =>
     set((s) => {
@@ -55,7 +68,12 @@ export const useStudioStore = create<StudioStore>((set) => ({
       return {
         scenes: [
           ...s.scenes,
-          { id, name: `Scene ${s.scenes.length + 1}`, camVisible: current?.camVisible ?? true },
+          {
+            id,
+            name: `Scene ${s.scenes.length + 1}`,
+            camVisible: current?.camVisible ?? true,
+            camCell: null,
+          },
         ],
         activeSceneId: id,
       };
@@ -65,6 +83,12 @@ export const useStudioStore = create<StudioStore>((set) => ({
     set((s) => ({
       scenes: s.scenes.map((sc) =>
         sc.id === s.activeSceneId ? { ...sc, camVisible: visible } : sc,
+      ),
+    })),
+  setActiveSceneCamCell: (cell) =>
+    set((s) => ({
+      scenes: s.scenes.map((sc) =>
+        sc.id === s.activeSceneId ? { ...sc, camCell: cell } : sc,
       ),
     })),
 }));
