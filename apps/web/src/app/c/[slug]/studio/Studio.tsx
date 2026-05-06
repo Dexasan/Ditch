@@ -918,13 +918,17 @@ export default function Studio({
   });
 
   // When the active scene changes, apply its cam visibility to the Agora track.
+  // localVideoTrack is intentionally omitted from deps — the effect only needs
+  // to fire on scene switches. LayersPanel applies setEnabled directly on toggle.
+  // Including localVideoTrack caused a race: useAgoraRoom cleanup closes the track,
+  // then this effect fires one more time and calls setEnabled on a closed track.
   useEffect(() => {
     if (!localVideoTrack) return;
     const scene = scenes.find((s) => s.id === activeSceneId);
     if (!scene) return;
     localVideoTrack.setEnabled(scene.camVisible);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSceneId, scenes, localVideoTrack]);
+  }, [activeSceneId, scenes]);
 
   // Compositor always runs so the preview canvas is live regardless of stream state.
   const { stream: compositeStream } = useCompositor({
