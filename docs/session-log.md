@@ -540,16 +540,95 @@ Step 6 — Part 4: Scenes + Layers panel
 
 **Commit:** `f65cb1b` — 7 files, 1555 insertions
 
-**State at end of day:**
-- New studio live at `/c/[slug]/studio` (Parts 1–4 complete)
-- Camera feed visible in composite preview canvas from the moment the page loads
-- Go Live button in top bar starts/stops the relay stream end-to-end
-- Layers panel: camera visibility toggle works, screen capture starts/stops via layer row
-- Scenes panel: add and switch scenes (UI only — compositor inputs unchanged across scenes for now)
-- `/c/[slug]/live` completely untouched and still functional
-- TypeScript: 0 errors across all packages
+Step 7 — Part 5: Chat panel in right sidebar (`apps/web/src/app/c/[slug]/studio/Studio.tsx`)
+- Socket connection added to Studio root: `getSocket(token)`, `session:join` ack, `chat:message` listener, cleanup on unmount
+- `PLATFORM_COLOR` map and `MAX_CHAT = 200` constant added
+- `ChatPanel` component: scrollable message list with per-platform left-border colour, auto-scroll to bottom via `chatEndRef`, send form with maxLength 500
+- `RightPanel` updated to accept `chatProps`; renders `ChatPanel` when panel === "chat"
 
-**Parts remaining:**
-- Part 5: Audio Mixer (live VU meters via AnalyserNode, volume fader via GainNode, mute, device selector)
-- Part 6: Right sidebar panels (chat + participant queue wired from socket events, stream info)
-- Part 7: Polish (Record, Clip, FPS counter, disk counter, drag-to-reorder, scene transitions, flip `/live` → studio)
+Step 8 — Part 6: Participant queue panel (`apps/web/src/app/c/[slug]/studio/Studio.tsx`)
+- `participants` state added to Studio root; `onJoin` ack now also sets participants
+- Socket effect extended: `participant:queue_update` and `participant:status_change` listeners added with cleanup
+- `changeParticipantStatus` emits `participant:status_change` to realtime server
+- Derived state computed each render: `liveParticipants`, `waiting`, `approved`, `slots`, `nextSlot`
+- `liveParticipants` now passed to `useCompositor` (replaces hardcoded `[]`) — layout adapts as participants go live
+- `QueueItem`: approve / set-live / remove buttons; status badge (waiting = amber, approved = blue)
+- `QueuePanel`: empty state with 👥 icon; scrollable list of `QueueItem` rows
+- `RightPanel` updated to accept `queueProps`; renders `QueuePanel` for "stream-info" slot; header shows queue count badge
+- Label for "stream-info" slot renamed to "Queue"
+
+Step 9 — Part 7: Flip `/c/[slug]/live` to Studio (`apps/web/src/app/c/[slug]/live/page.tsx`)
+- Old header wrapper (channel name, status badge, nav links) removed — Studio's own top bar handles this
+- `LiveRoom` import replaced with `Studio` imported from `../studio/Studio`
+- Server-side logic (auth, ownership check, session guard) identical to `studio/page.tsx`
+- `LiveRoom.tsx` left untouched
+
+**Commit:** `7627d44` — 2 files, 305 insertions / 48 deletions
+
+**State after session 1:**
+- Full 7-part studio rewire complete
+- `/c/[slug]/live` now serves the full Studio UI (camera preview, Go Live, layers, scenes, chat, queue)
+- TypeScript: 0 errors; clean production build
+
+---
+
+**Session 2 (same day, continuous)**
+
+Step 10 — Studio cleanup: remove fake OBS chrome (`commit 3352865`)
+- Removed DISK counter from top bar entirely — no disk write in browser, metric was meaningless
+- Removed audio mixer panel and its 44px dead zone — 100% cosmetic, no real metering or gain control
+- Removed `mixerExpanded` state and `AudioMixer`, `PlaceholderTrackCard`, `IconChevronUp`, `IconChevronDown` components
+- Wired real FPS counter: `useCompositor` gains `onFps?: (fps: number) => void`; measured every 5 seconds via frame counter in the draw loop; calls `onFps(Math.round(measured))`; Studio root passes `onFps: setFps`; TopBar reads `fps` from the store
+- TopBar center zone: FPS always visible; LIVE badge appears alongside FPS when streaming (not mutually exclusive); error text replaces both on `streamError`
+
+Step 11 — Wire scenes: per-scene cam visibility + compositor layout (`commit ffbc8ec`)
+- Extended `Scene` interface: `camVisible: boolean`, `camCell: CamCell | null`
+- Added `setActiveSceneCamVisible`, `setActiveSceneCamCell` store actions
+- `addScene()` copies `camVisible` from current scene, sets `camCell: null`
+- `getLayout(creatorVisible, participantCount)` rewritten: accepts `creatorVisible` flag; returns `Array<Rect | null>` where slot 0 is the creator cell (null when hidden), slots 1..n are participant cells; layout expands participants to fill available space when creator is off
+- Compositor draw loop: branches on `creatorVisible` — when false, participants fill canvas via `getLayout(false, n)` instead of leaving a black cell where creator would have been
+- Scene switch effect in Studio root: applies active scene's `camVisible` to `localVideoTrack.setEnabled()` on every scene change; `localVideoTrack` intentionally omitted from deps (see Step 12)
+- LayersPanel: reads `camVisible` and `camCell` from active scene; shows eye toggle; shows "↺ reset to auto" button when `camCell !== null`
+- ScenesPanel: shows "no cam" label on scene cards where `camVisible === false`
+
+Step 12 — Fix: closed-track race on scene switch (`commit b3b5543`)
+- Bug: `INVALID_OPERATION: cannot operate a closed track` — Agora error appearing in console on navigate-away
+- Root cause: scene effect had `[activeSceneId, scenes, localVideoTrack]` as deps. On unmount, `useAgoraRoom` cleanup closes the Agora track. React then fires the scene effect one final time because `localVideoTrack` changed to null — but the track is closed (not null) at that moment, so `setEnabled()` throws.
+- Fix: removed `localVideoTrack` from scene effect deps. The effect only needs to fire on scene switches; `LayersPanel.toggleCam` calls `setEnabled()` directly for immediate toggling. ESLint disable comment added explaining the intentional omission.
+
+Step 13 — 30/60 FPS toggle (`commit 3b3d2a0`)
+- Worker FPS was baked at module load time: `${1000 / FPS}` in the WORKER_SRC template literal evaluated to `33.33` once and was never reconfigurable
+- Fix: changed worker protocol from string ("start"/"stop") to typed message objects: `{ type: "start", interval: number }` and `{ type: "stop" }`. The `interval` value is passed at runtime when the worker is spawned.
+- `CompositorOptions` extended with `targetFps?: 30 | 60`; draw-loop effect uses `1000 / targetFps` when posting the start message
+- Store: `targetFps: 30 | 60`, `setTargetFps` added
+- `SettingsPanel` component added: two toggle buttons (30 fps / 60 fps); wired through `RightPanel.settingsProps`; accessible via the gear icon in the right strip
+- Warning note added: "60 fps uses more CPU and bandwidth"
+
+Step 14 — Camera permission gate + Meld-style draggable cam overlay (`commit 09a6aa3`)
+- **Camera permission fix:** `useAgoraRoom` was called with `enabled: true` unconditionally — browser permission dialog fired on every page load before the user had done anything. Fixed: `enabled: camEnabled` where `camEnabled` starts `false` in the store. "Click to start" button in Layers panel calls `setCamEnabled(true)`, which triggers the `useAgoraRoom` effect and shows the permission dialog only then.
+- **Draggable `CamOverlay` component:** added to `PreviewCanvas`. Renders an absolutely-positioned selection box at the camera's current cell position. Drag body to move; drag any of 4 corner handles to resize. Coordinates are fractions (0–1) of the container. Window-level `pointermove`/`pointerup` listeners ensure tracking continues even when the pointer leaves the element.
+- **Live vs committed updates:** drag move calls `setCamCellLive(next)` — updates `camCellRef` inside the compositor directly without touching React state (no Worker restart, no frame gap). Commit on mouseup calls `setActiveSceneCamCell(next)` — persists the position to the Zustand scene store. On scene switch, the stored `camCell` is loaded and the overlay snaps to the correct position.
+- **Auto-grid handle:** when `camCell === null`, `getLayout` is called in the Studio root to compute where the camera would be in auto-grid, and the overlay is placed there. User can grab it and immediately go custom; "↺ reset to auto" in the Layers panel clears `camCell` back to `null`.
+- `getLayout` and `Rect` type exported from `useCompositor.ts` so Studio root can compute the auto position without duplicating the grid logic.
+
+**State at end of Day 10 (full):**
+- Camera permission no longer fires on page load
+- Scenes fully functional: each scene owns `camVisible` + `camCell`; switching scenes adapts compositor layout instantly
+- Cam drag overlay in preview: move and resize with 4 corners, live compositor update, committed to scene store on release
+- FPS counter live and accurate; 30/60 FPS toggle in settings panel
+- Audio mixer and fake counters removed; studio chrome is clean
+- TypeScript: 0 errors; committed and pushed
+
+**Known bugs — carry to Day 11:**
+
+**Bug 1 — Screen Capture not rendering in compositor or stream**
+- Symptom: adding Screen Capture layer shows "Sharing github.com to this tab" browser bar (browser confirms capture is active), but the screen share does not appear in the preview canvas and does not appear on the YouTube livestream. Camera layer renders correctly.
+- Hypothesis: `localScreenTrack` from `useAgoraRoom` is not being passed into `useCompositor`, or the compositor is not drawing it on each frame tick.
+- Investigation needed: trace `localScreenTrack` from `useAgoraRoom` → Studio root → `useCompositor` → draw loop; verify it is being acquired, passed, and drawn.
+
+**Bug 2 — App crash when switching scenes after toggling camera off**
+- Symptom: turn camera off in one scene → switch to a different scene → full client-side crash: "Application error: a client-side exception has occurred."
+- Hypothesis: when camera is toggled off, the track or stream may be in a partially-closed or null state; the scene switch effect (or something the scene switch triggers) then reads it without a null guard and throws.
+- Investigation needed: open browser console, read full error and stack trace; find every code path that touches `localVideoTrack` on scene switch; add null guards before any `setEnabled`, `getMediaStreamTrack`, or draw calls.
+
+**Next logical step (Day 11):** Fix both bugs. Start with Bug 2 (crash) since crashes block all testing. Then fix Bug 1 (screen capture). Then do sustained stream test with screen share active.
