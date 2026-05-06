@@ -485,3 +485,71 @@ Step 9 — Pre-launch checklist (`docs/pre-launch.md`)
 - Minor frontend bugs noted; deferred
 
 **Next logical step (Day 10):** End-to-end sustained stream test — verify fps holds at 30 with tab backgrounded, auto-reconnect triggers correctly on a simulated ffmpeg exit, startup latency is in the 4-6s range.
+
+---
+
+### Day 10 — 2026-05-06
+
+**What we did:**
+
+Full audit of the existing live control room followed by building the new studio layout at a new route, leaving `/c/[slug]/live` completely untouched throughout.
+
+Step 1 — Codebase audit (`STUDIO_AUDIT.md`)
+- Read every file in the live page stack: `page.tsx`, `LiveRoom.tsx`, `useAgoraRoom`, `useCompositor`, `useRelayStream`, `lib/socket.ts`, `lib/agora.ts`, `AgoraVideoTile`, relay server
+- Key finding: `useCompositor` produces a `MediaStream` but the canvas is fully headless — there is no visible preview of the composite anywhere on the live page. The center grid shows raw Agora tiles, not the compositor output
+- Key finding: no global store exists — all state is local `useState` in `LiveRoom.tsx`
+- Wrote full gap table: 10 pieces done (Agora, compositor, relay, chat, queue, Go Live), 14 pieces missing (visible preview, scenes, layers, audio mixer, top bar, right sidebar, FPS counter, disk counter, clip/record, studio store)
+
+Step 2 — Rewire plan (`REWIRE_PLAN.md`)
+- Route strategy: build at `/c/[slug]/studio`, flip to `/live` at the end — old route untouched throughout
+- Store decision: new Zustand store (`lib/studio-store.ts`), introduced in Part 3 when Go Live state needs to be shared between the Studio root and the top bar
+- Full piece-by-piece destination mapping: Go Live → top bar, chat → right sidebar panel, queue → stream-info panel, mic/cam → audio mixer, socket wiring → Studio root
+- Composite preview solution: `<video autoPlay muted srcObject={compositeStream}/>` — compositor already produces the stream, zero extra compute
+- 7-part build order with explicit verify condition per part
+
+Step 3 — Part 1: Layout shell (`/c/[slug]/studio`)
+- New `studio/page.tsx`: identical server-side auth/ownership/session logic to `live/page.tsx`, renders `<Studio>` instead of `<LiveRoom>`
+- New `studio/Studio.tsx`: pure layout shell, no hooks, no logic
+- Grid: 44px top bar | flex middle row (220px left sidebar + flex-1 center + optional right panel + 44px icon strip) | 44–180px audio mixer
+- Left sidebar: Layers panel (flex-1) stacked above Scenes panel (180px fixed), each with header + `+` button
+- Center: black 16:9-locked `div` with placeholder icon
+- Right strip: 4 panel icons (top) + settings gear (bottom); clicking an icon opens a 280px panel, clicking again closes it
+- Audio mixer: collapse/expand chevron, two placeholder track cards
+
+Step 4 — Part 2: Camera preview into center canvas
+- Added `useAgoraRoom` (UID 999, host, publish, enabled always) to Studio root
+- Added `useCompositor` (`enabled: true` always — compositor runs for preview regardless of relay state)
+- Updated `PreviewCanvas` to take `stream: MediaStream | null`; a `useEffect` sets `video.srcObject = stream` and calls `.play()` when the stream reference changes (React can't manage `srcObject` as a prop)
+- "Starting camera…" overlay shown via `absolute inset-0` until stream is non-null, then video fills the frame
+
+Step 5 — Part 3: Go Live button into top bar + studio store
+- Installed Zustand
+- `lib/studio-store.ts`: `streamingEnabled`, `streaming`, `streamError` + their setters; `setStreamingEnabled` accepts value or updater function
+- `TopBar` reads directly from `useStudioStore()` — no prop drilling
+- Three-state button: idle (filled brand), connecting (dim red, `pointer-events-none`), live (outlined red)
+- Center zone of top bar: LIVE pulsing badge when streaming, error text when relay drops, FPS/disk placeholders at rest
+- `useRelayStream` added to Studio root with `enabled: streamingEnabled` from store; two `useEffect` calls sync `streaming` and `streamError` back into the store
+- Compositor remains `enabled: true` — preview always live, relay only active when Go Live is clicked
+
+Step 6 — Part 4: Scenes + Layers panel
+- `lib/studio-store.ts` extended: `camVisible`/`setCamVisible`, `scenes: Scene[]` (starts with "Scene 1"), `activeSceneId`, `addScene()`, `switchScene(id)`
+- `LayerRow`: grip handle `⠿`, source icon, name, eye button (appears on `group-hover`)
+- `LayersPanel`: Camera row always present — eye toggle calls `localVideoTrack.setEnabled()` + `setCamVisible()`; Screen Capture row appears only when `isScreenSharing`, eye toggle calls `toggleScreenShare()` to stop; `+` button opens a dropdown (Screen Capture live, Image/Text disabled with "Soon" labels); backdrop div handles click-outside dismiss
+- `ScenesPanel`: renders `scenes[]` from store; active scene gets left accent border + brand tint; `+` adds "Scene N" and immediately switches to it
+- `LeftSidebar` now accepts `localVideoTrack`, `isScreenSharing`, `toggleScreenShare` props from Studio root
+
+**Commit:** `f65cb1b` — 7 files, 1555 insertions
+
+**State at end of day:**
+- New studio live at `/c/[slug]/studio` (Parts 1–4 complete)
+- Camera feed visible in composite preview canvas from the moment the page loads
+- Go Live button in top bar starts/stops the relay stream end-to-end
+- Layers panel: camera visibility toggle works, screen capture starts/stops via layer row
+- Scenes panel: add and switch scenes (UI only — compositor inputs unchanged across scenes for now)
+- `/c/[slug]/live` completely untouched and still functional
+- TypeScript: 0 errors across all packages
+
+**Parts remaining:**
+- Part 5: Audio Mixer (live VU meters via AnalyserNode, volume fader via GainNode, mute, device selector)
+- Part 6: Right sidebar panels (chat + participant queue wired from socket events, stream info)
+- Part 7: Polish (Record, Clip, FPS counter, disk counter, drag-to-reorder, scene transitions, flip `/live` → studio)
