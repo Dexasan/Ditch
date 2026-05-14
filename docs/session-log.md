@@ -672,3 +672,56 @@ Step 4 — Fix Railway relay deploy time (`commit fe1aaff`)
 - TypeScript: 0 errors across all changes
 
 **Next logical step (Day 12):** Sustained stream test — verify screen share renders correctly on stream, 30fps holds with tab backgrounded, scene switching mid-stream works cleanly.
+
+---
+
+### Day 12 — 2026-05-14
+
+**What we did:**
+
+Phase 3 + Phase 4 were completed before this session (commit `ac0e0c4`): full layer data model (`Layer` interface, `Scene.layers[]`, `addLayer`/`removeLayer`/`updateLayer`/`reorderLayers` store actions), undo stack (20-deep, deep clone via `JSON.parse/stringify`), LayerRow, Inspector panel, and the full streaming/recording surface (TopBar with live/bitrate/duration, recording hook, clip buffer hook).
+
+Step 1 — Phase 5: UX Polish (`commit 664cb92`)
+
+- **Toast system** (`studio/Toast.tsx`): Zustand-backed `ToastManager` fixed bottom-right. `ToastItem` self-manages timers: CSS keyframe `toastOut` at `(duration - 150ms)`, hard remove at `duration`. Type-colored left border (success/warning/error/info). `addToast`/`removeToast` in store.
+- **Keyboard shortcuts** (`hooks/useStudioShortcuts.ts`): `useEffect` on `keydown`. Skips `INPUT`/`TEXTAREA`/`contenteditable` targets. Uses `useStudioStore.getState()` inside the handler to avoid stale closures. `1–9` → switchScene, `Escape` → deselect, `Cmd+M` → mic mute via ref, `Cmd+D` → duplicate layer + pushUndo, `Delete`/`Backspace` → removeLayer + pushUndo, `F` → fill canvas transform + pushUndo, `Cmd+Z` → popUndo, `Cmd+G` → toggleSnapGrid.
+- **Scene transitions** (`studio-store.ts`): `isTransitioning: boolean` in store. `switchScene` reads target scene's `transition.type`/`durationMs`; uses module-level `transitionTimer` (cleared on rapid switches). Canvas wrapper receives CSS keyframe class during transition.
+- **Auto-naming + source availability** (`Studio.tsx`): `useEffect([localVideoTrack])` calls `enumerateDevices()` and updates all camera layers across all scenes with the real device label. `sourceUnavailable?: boolean` on `Layer`; amber `⚠` badge in `LayerRow` and a banner in the Inspector when set.
+
+Step 2 — Phase 6: design token rename (`commit 6a410b9`)
+
+- Renamed `--color-surface` → `--bg-base`, `--color-surface-raised` → `--bg-mid`, `--color-brand` → `--accent-primary`, `--color-text` → `--text-primary`, `--color-text-muted` → `--text-muted` across all studio files.
+- Added 10 missing spec tokens: `--bg-deep`, `--bg-hover`, `--accent-secondary`, `--text-white`, `--status-live`, `--status-connecting`, `--status-ok`, `--vu-low`, `--vu-mid`, `--vu-high`.
+- Non-studio pages (dashboard, auth, landing, LiveRoom, ChannelView) use the old names — kept as `:root` aliases pointing to new tokens so nothing breaks.
+- Fixed 2 hardcoded hex values in Studio that bypassed the token system.
+
+Step 3 — Three targeted fixes after compositor audit (`commit ba2d5fb`)
+
+- **Fix 1 — memoize `liveParticipants`:** `.filter()` returns a new array ref on every render. Both compositor `useEffect` dep arrays had it — Worker stopped and respawned on every Studio root render, causing the visible preview to flicker and the stream to drop. Fixed with `useMemo`.
+- **Fix 2 — remove double `setEnabled()`:** `handleToggleVisible` was calling `setEnabled(next)` directly AND updating `layer.visible`, which triggered a reactive `useEffect([cameraVisible, localVideoTrack])` that also called `setEnabled`. Removed the direct call; reactive effect is the only path.
+- **Fix 3 — compositor wired to `layers[]`:** Removed `creatorVisible` and `camCell` props from `CompositorOptions`; replaced with `cameraLayer?: Layer | null`. Compositor reads `cameraLayer.transform` (absolute pixel coords in 1280×720 space) directly. Removed `camCell: CamCell | null` from `Scene` interface and `makeScene`, removed `setActiveSceneCamCell` from store, removed the "↺ reset to auto" button. `overlayCell` in Studio root computed by dividing layer transform by canvas dimensions.
+
+Step 4 — BUG 1 + BUG 2 fixes after audit (`commit a2744f9`)
+
+**BUG 1 — camera permission fires on mount without user action:**
+- Root cause A: `makeScene()` called `makeCameraLayer()` → every scene initialized with a `visible: true` camera layer in store before any user action.
+- Root cause B: `useAgoraRoom` called with `publish: true` unconditionally → `AgoraRTC.createMicrophoneAndCameraTracks()` fired on mount.
+- Fix: removed `makeCameraLayer()` entirely; `makeScene()` → `layers: []`. Changed `publish: !!cameraLayer` — Agora only requests camera/mic when the user has explicitly added a camera layer. Agora still joins the channel (`enabled: true`) so remote participants are always visible.
+
+**BUG 2 — duplicate camera layers allowed; manually added ones show "Camera" instead of real device name:**
+- Root cause A: "Camera" button in LayersPanel had no guard against adding a second camera layer.
+- Root cause B: auto-naming `useEffect([localVideoTrack])` doesn't re-fire when a new layer is added while the track is already stable — new layers kept the hardcoded name "Camera" forever.
+- Fix: `hasCameraLayer` computed from `activeScene.layers`; Camera button `disabled={hasCameraLayer}` with "Active" badge. Add handler made `async` — calls `enumerateDevices()` at creation time when `localVideoTrack` is already set (permission already granted), so layers added to subsequent scenes get the real device label immediately. First-add case still handled by the existing auto-naming effect (fires when `localVideoTrack` arrives after permission granted).
+
+**Commits:** `664cb92`, `6a410b9`, `ba2d5fb`, `a2744f9`
+
+**State at end of Day 12:**
+- Toast system, keyboard shortcuts, scene transitions, auto-naming all live
+- Design tokens fully spec-aligned; non-studio pages unaffected via aliases
+- Compositor stable: no Worker restart flicker, no double `setEnabled`
+- Camera layer model correct end-to-end: layer transform drives compositor draw coords
+- Camera permission no longer fires on mount
+- No duplicate camera layers possible; layers get real device names at creation time
+- TypeScript: 0 errors across all changes
+
+**Next logical step (Day 13):** Sustained stream test with the new layer model — verify camera renders at correct transform position, screen share PiP still works, 30fps holds with tab backgrounded, scene switching mid-stream is clean.
