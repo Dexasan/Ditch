@@ -1915,17 +1915,6 @@ export default function Studio({
     });
   }, [localVideoTrack]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync Agora track enabled state with the camera layer's visible field.
-  // The cancelled flag prevents stale async rejections from racing.
-  useEffect(() => {
-    if (!localVideoTrack) return;
-    let cancelled = false;
-    localVideoTrack.setEnabled(cameraVisible).catch(() => {
-      if (!cancelled) console.warn("setEnabled skipped — track not ready");
-    });
-    return () => { cancelled = true; };
-  }, [cameraVisible, localVideoTrack]);
-
   // Compositor always runs so the preview canvas is live regardless of stream state.
   const { stream: compositeStream } = useCompositor({
     localVideoTrack,

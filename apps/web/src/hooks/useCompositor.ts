@@ -202,7 +202,7 @@ export function useCompositor({
     if (!enabled || !supportsBreakoutBox()) return;
 
     const activeTracks = new Map<string, MediaStreamTrack>();
-    if (localVideoTrack && (cameraLayerRef.current?.visible ?? false)) {
+    if (localVideoTrack) {
       try { const t = localVideoTrack.getMediaStreamTrack(); activeTracks.set(t.id, t); } catch {}
     }
     if (localScreenTrack) {
@@ -249,7 +249,7 @@ export function useCompositor({
         reader.cancel().catch(() => {});
       });
     }
-  }, [enabled, cameraLayer?.visible, localVideoTrack, localScreenTrack, remoteUsers, liveParticipants]);
+  }, [enabled, localVideoTrack, localScreenTrack, remoteUsers, liveParticipants]);
 
   // ── Draw loop — driven by Worker timer ───────────────────────────────────────
   useEffect(() => {
@@ -375,7 +375,7 @@ export function useCompositor({
       worker.postMessage({ type: "stop" });
       worker.terminate();
     };
-  }, [enabled, cameraLayer?.visible, targetFps, localVideoTrack, localScreenTrack, remoteUsers, liveParticipants]);
+  }, [enabled, targetFps, localVideoTrack, localScreenTrack, remoteUsers, liveParticipants]);
 
   // ── Audio graph ───────────────────────────────────────────────────────────────
   useEffect(() => {
