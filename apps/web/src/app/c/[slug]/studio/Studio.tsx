@@ -269,7 +269,7 @@ function GoLiveModal({
           </h2>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)] transition-colors"
           >
             ✕
           </button>
@@ -277,12 +277,12 @@ function GoLiveModal({
 
         {/* Section 1 — Destinations */}
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
+          <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
             Destinations
           </p>
 
           {settings.destinations.length === 0 && !showAddForm && (
-            <p className="text-[12px] text-[var(--color-text-muted)] py-1">
+            <p className="text-[12px] text-[var(--text-muted)] py-1">
               No destinations yet. Add one below.
             </p>
           )}
@@ -290,19 +290,19 @@ function GoLiveModal({
           {settings.destinations.map((dest) => (
             <div
               key={dest.id}
-              className="flex items-center gap-2 px-3 py-2 rounded bg-[var(--color-surface)] border border-[var(--color-surface-border)]"
+              className="flex items-center gap-2 px-3 py-2 rounded bg-[var(--bg-base)] border border-[var(--border)]"
             >
               <span
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: DEST_PLATFORM_COLOR[dest.platform] }}
               />
-              <span className="text-[12px] text-[var(--color-text)] flex-1 truncate">{dest.label}</span>
-              <span className="text-[10px] text-[var(--color-text-muted)] shrink-0">
+              <span className="text-[12px] text-[var(--text-primary)] flex-1 truncate">{dest.label}</span>
+              <span className="text-[10px] text-[var(--text-muted)] shrink-0">
                 {DEST_PLATFORM_LABEL[dest.platform]}
               </span>
               <button
                 onClick={() => removeDestination(dest.id)}
-                className="w-5 h-5 flex items-center justify-center rounded text-[var(--color-text-muted)] hover:text-red-400 transition-colors shrink-0"
+                className="w-5 h-5 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-red-400 transition-colors shrink-0"
                 title="Remove"
               >
                 ✕
@@ -311,7 +311,7 @@ function GoLiveModal({
           ))}
 
           {showAddForm ? (
-            <div className="space-y-2 p-3 rounded border border-[var(--color-surface-border)] bg-[var(--color-surface)]">
+            <div className="space-y-2 p-3 rounded border border-[var(--border)] bg-[var(--bg-base)]">
               <div className="flex gap-1">
                 {(["twitch", "youtube", "custom"] as const).map((p) => (
                   <button
@@ -319,8 +319,8 @@ function GoLiveModal({
                     onClick={() => setNewPlatform(p)}
                     className={`flex-1 py-1 rounded text-[10px] font-semibold border transition-colors ${
                       newPlatform === p
-                        ? "bg-[var(--color-brand)] border-[var(--color-brand)] text-white"
-                        : "border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                        ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
+                        : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                     }`}
                   >
                     {DEST_PLATFORM_LABEL[p]}
@@ -332,7 +332,7 @@ function GoLiveModal({
                 placeholder="Label (e.g. My Twitch)"
                 value={newLabel}
                 onChange={(e) => setNewLabel(e.target.value)}
-                className="w-full px-3 py-1.5 rounded bg-[var(--color-surface-raised)] border border-[var(--color-surface-border)] text-[12px] focus:outline-none focus:border-[var(--color-brand)] transition-colors"
+                className="w-full px-3 py-1.5 rounded bg-[var(--bg-mid)] border border-[var(--border)] text-[12px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
               />
               <div className="relative">
                 <input
@@ -340,12 +340,12 @@ function GoLiveModal({
                   placeholder="Stream key"
                   value={newStreamKey}
                   onChange={(e) => setNewStreamKey(e.target.value)}
-                  className="w-full px-3 py-1.5 pr-9 rounded bg-[var(--color-surface-raised)] border border-[var(--color-surface-border)] text-[12px] focus:outline-none focus:border-[var(--color-brand)] transition-colors"
+                  className="w-full px-3 py-1.5 pr-9 rounded bg-[var(--bg-mid)] border border-[var(--border)] text-[12px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowKey((v) => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 >
                   {showKey ? <IconEyeOff /> : <IconEye />}
                 </button>
@@ -357,14 +357,14 @@ function GoLiveModal({
                     setNewLabel("");
                     setNewStreamKey("");
                   }}
-                  className="flex-1 py-1.5 rounded text-[11px] border border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                  className="flex-1 py-1.5 rounded text-[11px] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleAdd}
                   disabled={!newLabel.trim() || !newStreamKey.trim()}
-                  className="flex-1 py-1.5 rounded text-[11px] font-semibold bg-[var(--color-brand)] text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 py-1.5 rounded text-[11px] font-semibold bg-[var(--accent-primary)] text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   Add
                 </button>
@@ -373,7 +373,7 @@ function GoLiveModal({
           ) : (
             <button
               onClick={() => setShowAddForm(true)}
-              className="w-full py-1.5 rounded text-[11px] border border-dashed border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-brand)]/50 transition-colors"
+              className="w-full py-1.5 rounded text-[11px] border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent-primary)]/50 transition-colors"
             >
               + Add destination
             </button>
@@ -382,7 +382,7 @@ function GoLiveModal({
 
         {/* Section 2 — Stream info */}
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
+          <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
             Stream Info
           </p>
           <input
@@ -390,7 +390,7 @@ function GoLiveModal({
             placeholder="Stream title"
             value={settings.streamTitle}
             onChange={(e) => updateSettings({ streamTitle: e.target.value })}
-            className="w-full px-3 py-1.5 rounded bg-[var(--color-surface)] border border-[var(--color-surface-border)] text-[12px] focus:outline-none focus:border-[var(--color-brand)] transition-colors"
+            className="w-full px-3 py-1.5 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[12px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
           />
         </div>
 
@@ -398,7 +398,7 @@ function GoLiveModal({
         <button
           onClick={onGoLive}
           disabled={settings.destinations.length === 0}
-          className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--accent-primary)] text-white hover:bg-[var(--color-brand-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Go Live
         </button>
@@ -432,17 +432,17 @@ function EndStreamModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div>
-          <h2 className="font-bold text-[var(--color-text)] mb-1" style={{ fontSize: 16 }}>
+          <h2 className="font-bold text-[var(--text-primary)] mb-1" style={{ fontSize: 16 }}>
             End stream?
           </h2>
-          <p className="text-[var(--color-text-muted)]" style={{ fontSize: 13 }}>
+          <p className="text-[var(--text-muted)]" style={{ fontSize: 13 }}>
             Your stream will end for all viewers.
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={onCancel}
-            className="flex-1 py-2 rounded text-[12px] font-semibold border border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+            className="flex-1 py-2 rounded text-[12px] font-semibold border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             Cancel
           </button>
@@ -489,7 +489,7 @@ function TopBar({ slug, onRecordClick }: { slug: string; onRecordClick: () => vo
     ? "border-2 border-red-500 text-red-400 hover:bg-red-500/10"
     : streamStatus === "connecting"
     ? "bg-red-700/60 text-red-200 cursor-wait pointer-events-none"
-    : "bg-[var(--color-brand)] hover:bg-[var(--color-brand-light)] text-white";
+    : "bg-[var(--accent-primary)] hover:bg-[var(--color-brand-light)] text-white";
 
   return (
     <>
@@ -512,18 +512,18 @@ function TopBar({ slug, onRecordClick }: { slug: string; onRecordClick: () => vo
         />
       )}
       <div
-        className="flex items-center border-b border-[var(--color-surface-border)] bg-[var(--color-surface)] px-3 gap-3"
+        className="flex items-center border-b border-[var(--border)] bg-[var(--bg-base)] px-3 gap-3"
         style={{ gridArea: "topbar", height: 44 }}
       >
         {/* Logo */}
         <a
           href="/dashboard"
-          className="font-bold tracking-tight text-sm text-[var(--color-text)] hover:text-[var(--color-brand)] transition-colors shrink-0"
+          className="font-bold tracking-tight text-sm text-[var(--text-primary)] hover:text-[var(--accent-primary)] transition-colors shrink-0"
         >
           DITCH
         </a>
 
-        <span className="text-[var(--color-surface-border)]">|</span>
+        <span className="text-[var(--border)]">|</span>
 
         {/* Center: status / counters */}
         <div className="flex items-center gap-4 flex-1 justify-center">
@@ -537,8 +537,8 @@ function TopBar({ slug, onRecordClick }: { slug: string; onRecordClick: () => vo
                   <span className="text-[10px] font-bold text-red-400 tracking-widest">LIVE</span>
                 </div>
               )}
-              <span className="text-[10px] font-mono text-[var(--color-text-muted)] tabular-nums">
-                FPS <span className="text-[var(--color-text)]">{fps ?? "—"}</span>
+              <span className="text-[10px] font-mono text-[var(--text-muted)] tabular-nums">
+                FPS <span className="text-[var(--text-primary)]">{fps ?? "—"}</span>
               </span>
             </>
           )}
@@ -551,7 +551,7 @@ function TopBar({ slug, onRecordClick }: { slug: string; onRecordClick: () => vo
             className={`h-7 px-3 rounded text-[11px] font-semibold border transition-colors ${
               isRecording
                 ? "border-red-500/50 bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                : "border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:border-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                : "border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)]"
             }`}
             title={isRecording ? "Stop recording" : "Start recording"}
           >
@@ -617,24 +617,24 @@ function LayerRow({
       className={`flex items-center gap-2 px-2 group cursor-pointer transition-colors border-l-2 ${
         isActive
           ? "border-[var(--accent-secondary,#00D4AA)] bg-[var(--bg-mid,#1A1A3E)]"
-          : "border-transparent hover:bg-[var(--color-surface-raised)]"
+          : "border-transparent hover:bg-[var(--bg-mid)]"
       } ${!layer.visible ? "opacity-40" : ""}`}
       style={{ height: 36 }}
     >
       <span
-        className="text-[var(--color-surface-border)] select-none leading-none opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+        className="text-[var(--border)] select-none leading-none opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
         style={{ fontSize: 14 }}
       >
         ⠿
       </span>
-      <span className="text-[var(--color-text-muted)] shrink-0">{layerTypeIcon(layer.type)}</span>
-      <span className="flex-1 text-[13px] text-[var(--color-text)] truncate">{layer.name}</span>
+      <span className="text-[var(--text-muted)] shrink-0">{layerTypeIcon(layer.type)}</span>
+      <span className="flex-1 text-[13px] text-[var(--text-primary)] truncate">{layer.name}</span>
       {layer.sourceUnavailable && (
         <span title="Source unavailable" style={{ color: "#FFAA00", fontSize: 13, lineHeight: 1 }} className="shrink-0">⚠</span>
       )}
       <button
         onClick={(e) => { e.stopPropagation(); onToggleVisible(); }}
-        className="w-6 h-6 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-text-muted)] hover:text-[var(--color-text)] shrink-0"
+        className="w-6 h-6 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-muted)] hover:text-[var(--text-primary)] shrink-0"
         title={layer.visible ? "Hide" : "Show"}
       >
         {layer.visible ? <IconEye /> : <IconEyeOff />}
@@ -698,19 +698,19 @@ function LayersPanel({
   }
 
   return (
-    <div className="flex flex-col overflow-hidden border-r border-[var(--color-surface-border)]" style={{ gridArea: "layers" }}>
+    <div className="flex flex-col overflow-hidden border-r border-[var(--border)]" style={{ gridArea: "layers" }}>
       <div
-        className="flex items-center gap-2 px-3 border-b border-[var(--color-surface-border)] shrink-0"
+        className="flex items-center gap-2 px-3 border-b border-[var(--border)] shrink-0"
         style={{ height: 36 }}
       >
         <IconLayers />
-        <span className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider flex-1">
+        <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex-1">
           Layers
         </span>
         <div className="relative">
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+            className="w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--bg-mid)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             title="Add source"
           >
             <IconPlus />
@@ -718,7 +718,7 @@ function LayersPanel({
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute top-full right-0 mt-1 w-44 bg-[var(--color-surface-raised)] border border-[var(--color-surface-border)] rounded shadow-xl z-20 py-1 overflow-hidden">
+              <div className="absolute top-full right-0 mt-1 w-44 bg-[var(--bg-mid)] border border-[var(--border)] rounded shadow-xl z-20 py-1 overflow-hidden">
                 <button
                   onClick={() => {
                     addLayer(activeSceneId, {
@@ -734,7 +734,7 @@ function LayersPanel({
                     });
                     setMenuOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 hover:bg-[var(--color-surface)] transition-colors"
+                  className="w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 hover:bg-[var(--bg-base)] transition-colors"
                 >
                   <IconCamera />
                   Camera
@@ -742,12 +742,12 @@ function LayersPanel({
                 <button
                   onClick={() => { void toggleScreenShare(); setMenuOpen(false); }}
                   disabled={isScreenSharing}
-                  className="w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 hover:bg-[var(--color-surface)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 hover:bg-[var(--bg-base)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <IconMonitor />
                   Screen Capture
                   {isScreenSharing && (
-                    <span className="ml-auto text-[10px] text-[var(--color-brand)]">Active</span>
+                    <span className="ml-auto text-[10px] text-[var(--accent-primary)]">Active</span>
                   )}
                 </button>
                 <button
@@ -786,7 +786,7 @@ function LayersPanel({
               <div className="px-2 pb-1 flex justify-end">
                 <button
                   onClick={() => setActiveSceneCamCell(null)}
-                  className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                  className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                   title="Reset camera to auto-grid layout"
                 >
                   ↺ reset to auto
@@ -805,20 +805,20 @@ function ScenesPanel() {
 
   return (
     <div
-      className="flex flex-col overflow-hidden border-b border-r border-[var(--color-surface-border)]"
+      className="flex flex-col overflow-hidden border-b border-r border-[var(--border)]"
       style={{ gridArea: "scenes" }}
     >
       <div
-        className="flex items-center gap-2 px-3 border-b border-[var(--color-surface-border)] shrink-0"
+        className="flex items-center gap-2 px-3 border-b border-[var(--border)] shrink-0"
         style={{ height: 36 }}
       >
         <IconScenes />
-        <span className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider flex-1">
+        <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex-1">
           Scenes
         </span>
         <button
           onClick={addScene}
-          className="w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+          className="w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--bg-mid)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           title="Add scene"
         >
           <IconPlus />
@@ -832,8 +832,8 @@ function ScenesPanel() {
             onClick={() => switchScene(scene.id)}
             className={`w-full text-left px-3 py-2.5 text-[11px] transition-colors border-l-2 flex items-center gap-2 ${
               scene.id === activeSceneId
-                ? "border-[var(--color-brand)] bg-[var(--color-brand)]/10 text-[var(--color-text)] font-semibold"
-                : "border-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)]"
+                ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--text-primary)] font-semibold"
+                : "border-transparent text-[var(--text-muted)] hover:bg-[var(--bg-mid)] hover:text-[var(--text-primary)]"
             }`}
           >
             <span className="flex-1 truncate">{scene.name}</span>
@@ -1010,8 +1010,8 @@ function PreviewCanvas({
     <div className="flex-1 flex items-center justify-center bg-black overflow-hidden min-w-0">
       <div
         ref={containerRef}
-        className="relative bg-[#0a0a0a] overflow-hidden"
-        style={{ aspectRatio: "16/9", maxWidth: "100%", maxHeight: "100%", width: "100%" }}
+        className="relative overflow-hidden"
+        style={{ background: "var(--bg-deep)", aspectRatio: "16/9", maxWidth: "100%", maxHeight: "100%", width: "100%" }}
       >
         <video
           ref={videoRef}
@@ -1029,7 +1029,7 @@ function PreviewCanvas({
                 <line x1="12" y1="17" x2="12" y2="21" />
               </svg>
             </div>
-            <span className="text-[11px] uppercase tracking-widest text-[var(--color-text-muted)]">
+            <span className="text-[11px] uppercase tracking-widest text-[var(--text-muted)]">
               Starting camera…
             </span>
           </div>
@@ -1067,7 +1067,7 @@ function RightIconStrip({
 
   return (
     <div
-      className="flex flex-col shrink-0 border-l border-[var(--color-surface-border)] bg-[var(--color-surface)]"
+      className="flex flex-col shrink-0 border-l border-[var(--border)] bg-[var(--bg-base)]"
       style={{ width: 44 }}
     >
       <div className="flex flex-col flex-1 items-center pt-1 gap-0.5">
@@ -1078,8 +1078,8 @@ function RightIconStrip({
             title={label}
             className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
               active === id
-                ? "bg-[var(--color-brand)]/20 text-[var(--color-brand)]"
-                : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
+                ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
             }`}
           >
             {icon}
@@ -1092,8 +1092,8 @@ function RightIconStrip({
           title="Settings"
           className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
             active === "settings"
-              ? "bg-[var(--color-brand)]/20 text-[var(--color-brand)]"
-              : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
+              ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]"
+              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
           }`}
         >
           <IconSettings />
@@ -1127,23 +1127,23 @@ function ChatPanel({
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5 min-h-0">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-24">
-            <p className="text-[11px] text-[var(--color-text-muted)]">No messages yet</p>
+            <p className="text-[11px] text-[var(--text-muted)]">No messages yet</p>
           </div>
         )}
         {messages.map((m) => (
           <div
             key={m.id}
             className="flex gap-2 items-start py-0.5 pl-2 rounded"
-            style={{ borderLeft: `2px solid ${PLATFORM_COLOR[m.platform] ?? "#2a2a2e"}` }}
+            style={{ borderLeft: `2px solid ${PLATFORM_COLOR[m.platform] ?? "var(--border)"}` }}
           >
             <div className="min-w-0">
               <span
                 className="text-[11px] font-semibold"
-                style={{ color: PLATFORM_COLOR[m.platform] ?? "var(--color-text-muted)" }}
+                style={{ color: PLATFORM_COLOR[m.platform] ?? "var(--text-muted)" }}
               >
                 {m.author_display_name}
               </span>
-              <span className="text-[11px] text-[var(--color-text)] ml-1.5 break-words">
+              <span className="text-[11px] text-[var(--text-primary)] ml-1.5 break-words">
                 {m.body}
               </span>
             </div>
@@ -1154,7 +1154,7 @@ function ChatPanel({
 
       <form
         onSubmit={onSend}
-        className="flex gap-2 p-3 border-t border-[var(--color-surface-border)] shrink-0"
+        className="flex gap-2 p-3 border-t border-[var(--border)] shrink-0"
       >
         <input
           type="text"
@@ -1162,12 +1162,12 @@ function ChatPanel({
           onChange={(e) => onChange(e.target.value)}
           placeholder="Message…"
           maxLength={500}
-          className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-surface-border)] text-[11px] focus:outline-none focus:border-[var(--color-brand)] transition-colors"
+          className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-[var(--bg-base)] border border-[var(--border)] text-[11px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
         />
         <button
           type="submit"
           disabled={!chatBody.trim()}
-          className="px-3 py-1.5 rounded-lg bg-[var(--color-brand)] hover:bg-[var(--color-brand-light)] text-white text-[11px] font-semibold disabled:opacity-40 transition-colors shrink-0"
+          className="px-3 py-1.5 rounded-lg bg-[var(--accent-primary)] hover:bg-[var(--color-brand-light)] text-white text-[11px] font-semibold disabled:opacity-40 transition-colors shrink-0"
         >
           Send
         </button>
@@ -1197,11 +1197,11 @@ function QueueItem({
   const isWaiting = participant.status === "waiting";
 
   return (
-    <div className="px-3 py-3 space-y-2.5 border-b border-[var(--color-surface-border)]">
+    <div className="px-3 py-3 space-y-2.5 border-b border-[var(--border)]">
       <div className="flex items-center gap-2.5">
         <div
           className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 text-white"
-          style={{ backgroundColor: "var(--color-brand)" }}
+          style={{ backgroundColor: "var(--accent-primary)" }}
         >
           {initial}
         </div>
@@ -1223,7 +1223,7 @@ function QueueItem({
         {isWaiting && (
           <button
             onClick={onApprove}
-            className="flex-1 py-1 rounded text-[10px] font-semibold border border-[var(--color-brand)] text-[var(--color-brand)] hover:bg-[var(--color-brand)] hover:text-white transition-colors"
+            className="flex-1 py-1 rounded text-[10px] font-semibold border border-[var(--accent-primary)] text-[var(--accent-primary)] hover:bg-[var(--accent-primary)] hover:text-white transition-colors"
           >
             Approve
           </button>
@@ -1238,7 +1238,7 @@ function QueueItem({
         )}
         <button
           onClick={onRemove}
-          className="px-2.5 py-1 rounded text-[10px] font-semibold border border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:border-red-500 hover:text-red-400 transition-colors"
+          className="px-2.5 py-1 rounded text-[10px] font-semibold border border-[var(--border)] text-[var(--text-muted)] hover:border-red-500 hover:text-red-400 transition-colors"
         >
           ✕
         </button>
@@ -1265,7 +1265,7 @@ function QueuePanel({
       {queue.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-32 gap-2">
           <span className="text-2xl opacity-20">👥</span>
-          <p className="text-[11px] text-[var(--color-text-muted)]">No one waiting</p>
+          <p className="text-[11px] text-[var(--text-muted)]">No one waiting</p>
         </div>
       ) : (
         queue.map((p) => (
@@ -1296,7 +1296,7 @@ function SettingsPanel({
   return (
     <div className="p-4 space-y-5">
       <div>
-        <p className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
+        <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
           Frame Rate
         </p>
         <div className="flex gap-1">
@@ -1306,15 +1306,15 @@ function SettingsPanel({
               onClick={() => onSetTargetFps(fps)}
               className={`flex-1 py-1.5 rounded text-[11px] font-semibold border transition-colors ${
                 targetFps === fps
-                  ? "bg-[var(--color-brand)] border-[var(--color-brand)] text-white"
-                  : "border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-text-muted)]"
+                  ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
+                  : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]"
               }`}
             >
               {fps} fps
             </button>
           ))}
         </div>
-        <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">
+        <p className="text-[10px] text-[var(--text-muted)] mt-1.5">
           60 fps uses more CPU and bandwidth
         </p>
       </div>
@@ -1360,18 +1360,18 @@ function RightPanel({
 
   return (
     <div
-      className="flex flex-col shrink-0 border-l border-[var(--color-surface-border)] bg-[var(--color-surface-raised)] overflow-hidden"
+      className="flex flex-col shrink-0 border-l border-[var(--border)] bg-[var(--bg-mid)] overflow-hidden"
       style={{ width: 280 }}
     >
       <div
-        className="flex items-center px-4 border-b border-[var(--color-surface-border)] shrink-0"
+        className="flex items-center px-4 border-b border-[var(--border)] shrink-0"
         style={{ height: 36 }}
       >
-        <span className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider flex-1">
+        <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex-1">
           {labels[panel]}
         </span>
         {panel === "stream-info" && queueProps.waiting.length + queueProps.approved.length > 0 && (
-          <span className="text-[10px] font-bold bg-[var(--color-brand)] text-white rounded-full px-1.5 py-0.5 leading-none">
+          <span className="text-[10px] font-bold bg-[var(--accent-primary)] text-white rounded-full px-1.5 py-0.5 leading-none">
             {queueProps.waiting.length + queueProps.approved.length}
           </span>
         )}
@@ -1384,7 +1384,7 @@ function RightPanel({
         <SettingsPanel {...settingsProps} />
       ) : (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-[11px] text-[var(--color-text-muted)] select-none">{labels[panel]} panel</p>
+          <p className="text-[11px] text-[var(--text-muted)] select-none">{labels[panel]} panel</p>
         </div>
       )}
     </div>
@@ -1412,18 +1412,18 @@ function TransformSection({
   }
 
   return (
-    <div className="px-3 py-3 space-y-3 border-t border-[var(--color-surface-border)]">
-      <p className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">Transform</p>
+    <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
+      <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Transform</p>
 
       <div className="space-y-1">
         <div className="flex justify-between">
-          <label className="text-[10px] text-[var(--color-text-muted)]">Opacity</label>
-          <span className="text-[10px] font-mono text-[var(--color-text)]">{layer.opacity}%</span>
+          <label className="text-[10px] text-[var(--text-muted)]">Opacity</label>
+          <span className="text-[10px] font-mono text-[var(--text-primary)]">{layer.opacity}%</span>
         </div>
         <input
           type="range" min={0} max={100} value={layer.opacity}
           onChange={(e) => onUpdateLayer({ opacity: Number(e.target.value) })}
-          className="w-full h-1 cursor-pointer accent-[var(--color-brand)]"
+          className="w-full h-1 cursor-pointer accent-[var(--accent-primary)]"
           data-scene-id={sceneId}
         />
       </div>
@@ -1431,11 +1431,11 @@ function TransformSection({
       <div className="grid grid-cols-2 gap-2">
         {(["x", "y"] as const).map((field) => (
           <div key={field}>
-            <label className="text-[10px] text-[var(--color-text-muted)] block mb-0.5 uppercase">{field}</label>
+            <label className="text-[10px] text-[var(--text-muted)] block mb-0.5 uppercase">{field}</label>
             <input
               type="number" value={t[field]}
               onChange={(e) => patchTransform(field, e.target.value)}
-              className="w-full px-2 py-1 rounded bg-[var(--color-surface)] border border-[var(--color-surface-border)] text-[11px] font-mono focus:outline-none focus:border-[var(--color-brand)] transition-colors"
+              className="w-full px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[11px] font-mono focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
             />
           </div>
         ))}
@@ -1444,24 +1444,24 @@ function TransformSection({
       <div className="grid grid-cols-2 gap-2">
         {(["width", "height"] as const).map((field) => (
           <div key={field}>
-            <label className="text-[10px] text-[var(--color-text-muted)] block mb-0.5">
+            <label className="text-[10px] text-[var(--text-muted)] block mb-0.5">
               {field === "width" ? "W" : "H"}
             </label>
             <input
               type="number" value={t[field]}
               onChange={(e) => patchTransform(field, e.target.value)}
-              className="w-full px-2 py-1 rounded bg-[var(--color-surface)] border border-[var(--color-surface-border)] text-[11px] font-mono focus:outline-none focus:border-[var(--color-brand)] transition-colors"
+              className="w-full px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[11px] font-mono focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
             />
           </div>
         ))}
       </div>
 
       <div>
-        <label className="text-[10px] text-[var(--color-text-muted)] block mb-0.5">Rotation °</label>
+        <label className="text-[10px] text-[var(--text-muted)] block mb-0.5">Rotation °</label>
         <input
           type="number" value={t.rotation} step={1}
           onChange={(e) => patchTransform("rotation", e.target.value)}
-          className="w-full px-2 py-1 rounded bg-[var(--color-surface)] border border-[var(--color-surface-border)] text-[11px] font-mono focus:outline-none focus:border-[var(--color-brand)] transition-colors"
+          className="w-full px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[11px] font-mono focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
         />
       </div>
     </div>
@@ -1498,22 +1498,22 @@ function Inspector({
 
   return (
     <div
-      className="flex flex-col overflow-hidden border-l border-[var(--color-surface-border)]"
+      className="flex flex-col overflow-hidden border-l border-[var(--border)]"
       style={{ gridArea: "inspector", background: "var(--bg-base, #111122)" }}
     >
       {/* Header */}
       <div
-        className="flex items-center gap-2 px-3 border-b border-[var(--color-surface-border)] shrink-0"
+        className="flex items-center gap-2 px-3 border-b border-[var(--border)] shrink-0"
         style={{ height: 36 }}
       >
         <IconProperties />
-        <span className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider flex-1">
+        <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex-1">
           Inspector
         </span>
         {tab === "properties" && selectedLayer && (
           <button
             onClick={() => setSelectedLayerId(null)}
-            className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+            className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             title="Deselect"
           >
             ✕
@@ -1522,20 +1522,20 @@ function Inspector({
       </div>
 
       {/* Tab strip */}
-      <div className="flex shrink-0 border-b border-[var(--color-surface-border)]">
+      <div className="flex shrink-0 border-b border-[var(--border)]">
         {(["properties", "chat", "queue"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`relative flex-1 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors border-b-2 -mb-px ${
               tab === t
-                ? "border-[var(--color-brand)] text-[var(--color-text)]"
-                : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                ? "border-[var(--accent-primary)] text-[var(--text-primary)]"
+                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             }`}
           >
             {t}
             {t === "queue" && queueProps.waiting.length > 0 && (
-              <span className="absolute top-1 right-2 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-[var(--color-brand)] text-white text-[8px] font-bold leading-none">
+              <span className="absolute top-1 right-2 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-[var(--accent-primary)] text-white text-[8px] font-bold leading-none">
                 {queueProps.waiting.length}
               </span>
             )}
@@ -1550,30 +1550,30 @@ function Inspector({
             {!selectedLayer ? (
               /* No selection — scene properties */
               <div className="px-3 py-3 space-y-4">
-                <p className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">Scene</p>
+                <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Scene</p>
 
                 <div>
-                  <label className="text-[10px] text-[var(--color-text-muted)] block mb-1">Name</label>
-                  <p className="px-2 py-1 rounded bg-[var(--color-surface)] border border-[var(--color-surface-border)] text-[11px] text-[var(--color-text)]">
+                  <label className="text-[10px] text-[var(--text-muted)] block mb-1">Name</label>
+                  <p className="px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[11px] text-[var(--text-primary)]">
                     {activeScene.name}
                   </p>
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-[var(--color-text-muted)] block mb-1">Background</label>
+                  <label className="text-[10px] text-[var(--text-muted)] block mb-1">Background</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={activeScene.bgColor}
                       onChange={(e) => updateScene(activeScene.id, { bgColor: e.target.value })}
-                      className="w-8 h-8 rounded border border-[var(--color-surface-border)] bg-transparent cursor-pointer p-0.5"
+                      className="w-8 h-8 rounded border border-[var(--border)] bg-transparent cursor-pointer p-0.5"
                     />
-                    <span className="text-[11px] font-mono text-[var(--color-text-muted)]">{activeScene.bgColor}</span>
+                    <span className="text-[11px] font-mono text-[var(--text-muted)]">{activeScene.bgColor}</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-[var(--color-text-muted)] block mb-1.5">Transition</label>
+                  <label className="text-[10px] text-[var(--text-muted)] block mb-1.5">Transition</label>
                   <div className="flex gap-1">
                     {(["cut", "fade", "slide"] as const).map((type) => (
                       <button
@@ -1585,8 +1585,8 @@ function Inspector({
                         }
                         className={`flex-1 py-1 rounded text-[10px] font-semibold border transition-colors capitalize ${
                           activeScene.transition.type === type
-                            ? "bg-[var(--color-brand)] border-[var(--color-brand)] text-white"
-                            : "border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-text-muted)]"
+                            ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
+                            : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]"
                         }`}
                       >
                         {type}
@@ -1599,18 +1599,18 @@ function Inspector({
               /* Layer selected — source header + transform */
               <>
                 <div className="px-3 py-3">
-                  <p className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
+                  <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
                     {selectedLayer.type === "camera"
                       ? "Camera"
                       : selectedLayer.type === "screenshare"
                       ? "Screen Capture"
                       : "Layer"}
                   </p>
-                  <div className="flex items-center gap-2 px-2 py-2 rounded bg-[var(--color-surface)] border border-[var(--color-surface-border)]">
-                    <span className="text-[var(--color-text-muted)] shrink-0">
+                  <div className="flex items-center gap-2 px-2 py-2 rounded bg-[var(--bg-base)] border border-[var(--border)]">
+                    <span className="text-[var(--text-muted)] shrink-0">
                       {layerTypeIcon(selectedLayer.type)}
                     </span>
-                    <span className="text-[11px] text-[var(--color-text)] truncate">{selectedLayer.name}</span>
+                    <span className="text-[11px] text-[var(--text-primary)] truncate">{selectedLayer.name}</span>
                   </div>
                 </div>
                 {selectedLayer.sourceUnavailable && (
@@ -1698,7 +1698,7 @@ function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocal
 
   return (
     <div
-      className="flex items-center gap-4 px-4 border-t border-[var(--color-surface-border)]"
+      className="flex items-center gap-4 px-4 border-t border-[var(--border)]"
       style={{ gridArea: "mixer", background: "var(--bg-deep, #0A0A18)" }}
     >
       {/* Scene filmstrip */}
@@ -1709,8 +1709,8 @@ function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocal
             onClick={() => switchScene(scene.id)}
             className={`shrink-0 flex items-center justify-center rounded text-[9px] font-bold tracking-wide transition-all ${
               scene.id === activeSceneId
-                ? "ring-1 ring-[var(--color-brand)] bg-[var(--color-brand)]/15 text-[var(--color-text)]"
-                : "bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
+                ? "ring-1 ring-[var(--accent-primary)] bg-[var(--accent-primary)]/15 text-[var(--text-primary)]"
+                : "bg-[var(--bg-base)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
             }`}
             style={{ width: 48, height: 28 }}
             title={scene.name}
@@ -1720,7 +1720,7 @@ function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocal
         ))}
       </div>
 
-      <div className="w-px h-8 bg-[var(--color-surface-border)] shrink-0" />
+      <div className="w-px h-8 bg-[var(--border)] shrink-0" />
 
       {/* Stream health */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -1733,11 +1733,11 @@ function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocal
             {statusLabel}
           </span>
         </div>
-        <span className="text-[10px] font-mono text-[var(--color-text-muted)] tabular-nums shrink-0">
-          FPS <span className="text-[var(--color-text)]">{fps ?? "—"}</span>
+        <span className="text-[10px] font-mono text-[var(--text-muted)] tabular-nums shrink-0">
+          FPS <span className="text-[var(--text-primary)]">{fps ?? "—"}</span>
         </span>
         <BitrateSparkline data={bitrateHistory} />
-        <span className="text-[10px] font-mono text-[var(--color-text-muted)] tabular-nums shrink-0">
+        <span className="text-[10px] font-mono text-[var(--text-muted)] tabular-nums shrink-0">
           {streamStatus === "live" && bitrateKbps > 0
             ? `${bitrateKbps.toLocaleString()} kbps`
             : "— kbps"}
@@ -1751,7 +1751,7 @@ function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocal
           className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
             micMuted
               ? "bg-red-500/15 text-red-400 hover:bg-red-500/25"
-              : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
+              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
           }`}
           title={micMuted ? "Unmute mic" : "Mute mic"}
         >
@@ -1762,7 +1762,7 @@ function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocal
           className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
             cameraLayer && !cameraLayer.visible
               ? "bg-red-500/15 text-red-400 hover:bg-red-500/25"
-              : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
+              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
           }`}
           title={cameraLayer?.visible ? "Hide camera" : "Show camera"}
         >
@@ -1770,12 +1770,12 @@ function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocal
         </button>
         <button
           onClick={onClipClick}
-          className="w-8 h-8 flex items-center justify-center rounded transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
+          className="w-8 h-8 flex items-center justify-center rounded transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
           title="Save clip (last ~60s)"
         >
           <IconScissors />
         </button>
-        <div className="flex items-center gap-1 px-2 py-1 rounded bg-[var(--color-surface)] text-[var(--color-text-muted)]">
+        <div className="flex items-center gap-1 px-2 py-1 rounded bg-[var(--bg-base)] text-[var(--text-muted)]">
           <IconUsers />
           <span className="text-[10px] font-mono tabular-nums">0</span>
         </div>
@@ -2034,7 +2034,7 @@ export default function Studio({
   return (
     <>
       <div
-        className="text-[var(--color-text)]"
+        className="text-[var(--text-primary)]"
         style={{
           display: "grid",
           gridTemplateAreas: `"topbar topbar topbar" "scenes canvas inspector" "layers canvas inspector" "mixer mixer mixer"`,

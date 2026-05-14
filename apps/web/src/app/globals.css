@@ -1,18 +1,42 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #7c3aed;
-  --color-brand-light: #a78bfa;
-  --color-surface: #0f0f10;
-  --color-surface-raised: #1a1a1d;
-  --color-surface-border: #2a2a2e;
-  --color-text: #f4f4f5;
-  --color-text-muted: #71717a;
+  /* ── Spec-aligned design tokens ─────────────────────────────────── */
+  --bg-base:           #111122;
+  --bg-mid:            #1A1A3E;
+  --bg-deep:           #0D0D1A;
+  --bg-hover:          #1A1A2E;
+  --accent-primary:    #6C63FF;
+  --accent-secondary:  #00D4AA;
+  --text-primary:      #E0E0FF;
+  --text-muted:        #888899;
+  --text-white:        #FFFFFF;
+  --status-live:       #FF4444;
+  --status-connecting: #FFAA00;
+  --status-ok:         #00D4AA;
+  --vu-low:            #00D4AA;
+  --vu-mid:            #FFAA00;
+  --vu-high:           #FF4444;
+
+  /* ── Kept in @theme so Tailwind generates hover variants ────────── */
+  --color-brand-light: #8B84FF;
+}
+
+/* ── Legacy aliases — non-studio files still use old names ──────────
+   Remove once page.tsx / dashboard / auth / live are migrated.       */
+:root {
+  --border:               #1A1A3E;
+  --color-surface:        var(--bg-base);
+  --color-surface-raised: var(--bg-mid);
+  --color-surface-border: var(--border);
+  --color-brand:          var(--accent-primary);
+  --color-text:           var(--text-primary);
+  --color-text-muted:     var(--text-muted);
 }
 
 html,
 body {
-  background-color: var(--color-surface);
-  color: var(--color-text);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
   font-family: system-ui, sans-serif;
 }
