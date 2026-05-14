@@ -658,6 +658,7 @@ function LayersPanel({
     selectedLayerId, setSelectedLayerId,
   } = useStudioStore();
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
+  const hasCameraLayer = activeScene.layers.some((l) => l.type === "camera");
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Track the screenshare layer id so we can remove it when sharing stops.
@@ -715,11 +716,19 @@ function LayersPanel({
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
               <div className="absolute top-full right-0 mt-1 w-44 bg-[var(--bg-mid)] border border-[var(--border)] rounded shadow-xl z-20 py-1 overflow-hidden">
                 <button
-                  onClick={() => {
+                  disabled={hasCameraLayer}
+                  onClick={async () => {
+                    if (hasCameraLayer) return;
+                    let name = "Camera";
+                    if (localVideoTrack && navigator.mediaDevices?.enumerateDevices) {
+                      const devices = await navigator.mediaDevices.enumerateDevices();
+                      const cam = devices.find((d) => d.kind === "videoinput");
+                      if (cam?.label) name = cam.label;
+                    }
                     addLayer(activeSceneId, {
                       id: crypto.randomUUID(),
                       type: "camera",
-                      name: "Camera",
+                      name,
                       visible: true,
                       locked: false,
                       opacity: 100,
@@ -729,10 +738,13 @@ function LayersPanel({
                     });
                     setMenuOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 hover:bg-[var(--bg-base)] transition-colors"
+                  className="w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 hover:bg-[var(--bg-base)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <IconCamera />
                   Camera
+                  {hasCameraLayer && (
+                    <span className="ml-auto text-[10px] text-[var(--text-muted)]">Active</span>
+                  )}
                 </button>
                 <button
                   onClick={() => { void toggleScreenShare(); setMenuOpen(false); }}
@@ -1875,7 +1887,7 @@ export default function Studio({
     channelName: sessionId,
     uid: CREATOR_CAM_UID,
     role: "host",
-    publish: true,
+    publish: !!cameraLayer,
     enabled: true,
     screenShareUid: CREATOR_SCREEN_UID,
   });

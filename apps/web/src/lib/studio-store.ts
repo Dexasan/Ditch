@@ -70,25 +70,11 @@ export interface Scene {
   bgColor: string;
 }
 
-function makeCameraLayer(): Layer {
-  return {
-    id: crypto.randomUUID(),
-    type: "camera",
-    name: "Camera",
-    visible: true,
-    locked: false,
-    opacity: 100,
-    transform: { x: 0, y: 0, width: 1280, height: 720, rotation: 0 },
-    sourceConfig: {},
-    effects: [],
-  };
-}
-
 function makeScene(id: string, name: string): Scene {
   return {
     id,
     name,
-    layers: [makeCameraLayer()],
+    layers: [],
     audioConfig: {},
     transition: { type: "cut", durationMs: 0 },
     thumbnail: null,
