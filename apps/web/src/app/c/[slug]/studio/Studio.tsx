@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAgoraRoom } from "@/hooks/useAgoraRoom";
 import { useClipBuffer } from "@/hooks/useClipBuffer";
-import { useCompositor, getLayout } from "@/hooks/useCompositor";
+import { useCompositor } from "@/hooks/useCompositor";
 import { useRecorder } from "@/hooks/useRecorder";
 import { useRelayStream } from "@/hooks/useRelayStream";
 import type { CamCell, Destination, Layer, Scene } from "@/lib/studio-store";
@@ -654,7 +654,6 @@ function LayersPanel({
 }) {
   const {
     scenes, activeSceneId,
-    setActiveSceneCamCell,
     updateLayer, addLayer, removeLayer,
     selectedLayerId, setSelectedLayerId,
   } = useStudioStore();
@@ -690,11 +689,7 @@ function LayersPanel({
   }, [isScreenSharing]);
 
   function handleToggleVisible(layer: Layer) {
-    const next = !layer.visible;
-    updateLayer(activeScene.id, layer.id, { visible: next });
-    if (layer.type === "camera" && localVideoTrack) {
-      localVideoTrack.setEnabled(next).catch(() => {});
-    }
+    updateLayer(activeScene.id, layer.id, { visible: !layer.visible });
   }
 
   return (
@@ -782,17 +777,6 @@ function LayersPanel({
               onToggleVisible={() => handleToggleVisible(layer)}
               onSelect={() => setSelectedLayerId(layer.id)}
             />
-            {layer.type === "camera" && activeScene.camCell && (
-              <div className="px-2 pb-1 flex justify-end">
-                <button
-                  onClick={() => setActiveSceneCamCell(null)}
-                  className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                  title="Reset camera to auto-grid layout"
-                >
-                  ↺ reset to auto
-                </button>
-              </div>
-            )}
           </div>
         ))}
       </div>
@@ -1812,7 +1796,7 @@ export default function Studio({
     setStreamDuration,
     scenes, activeSceneId,
     isTransitioning,
-    setActiveSceneCamCell,
+    updateLayer: updateLayerRoot,
     addToast,
   } = useStudioStore();
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
@@ -1873,7 +1857,7 @@ export default function Studio({
   }
 
   // ── Derived queue state ──────────────────────────────────────────────────────
-  const liveParticipants = participants.filter((p) => p.status === "live");
+  const liveParticipants = useMemo(() => participants.filter((p) => p.status === "live"), [participants]);
   const waiting          = participants.filter((p) => p.status === "waiting");
   const approved         = participants.filter((p) => p.status === "approved");
   const slots            = Array.from({ length: TOTAL_SLOTS }, (_, i) => liveParticipants.find((p) => p.slot_index === i) ?? null);
@@ -1931,15 +1915,14 @@ export default function Studio({
   }, [cameraVisible, localVideoTrack]);
 
   // Compositor always runs so the preview canvas is live regardless of stream state.
-  const { stream: compositeStream, setCamCellLive } = useCompositor({
+  const { stream: compositeStream } = useCompositor({
     localVideoTrack,
     localScreenTrack,
     localAudioTrack,
     remoteUsers,
     liveParticipants,
     enabled: true,
-    creatorVisible: cameraVisible,
-    camCell: activeScene.camCell,
+    cameraLayer,
     targetFps,
     onFps: setFps,
   });
@@ -2017,15 +2000,13 @@ export default function Studio({
     addToast("Clip saved", "success");
   }
 
-  // Overlay cell: where to show the cam drag handle in the preview.
-  // When camCell is null (auto), compute from getLayout so the handle sits on the real camera position.
-  const autoRect = getLayout(cameraVisible, liveParticipants.length)[0];
-  const autoCell = autoRect
-    ? { x: autoRect.x / 1280, y: autoRect.y / 720, w: autoRect.w / 1280, h: autoRect.h / 720 }
-    : null;
-  const overlayCell = cameraVisible
-    ? (activeScene.camCell ?? autoCell)
-    : null;
+  // Overlay cell for the drag handle — derived from the camera layer's transform.
+  const overlayCell = (cameraVisible && cameraLayer) ? {
+    x: cameraLayer.transform.x / 1280,
+    y: cameraLayer.transform.y / 720,
+    w: cameraLayer.transform.width / 1280,
+    h: cameraLayer.transform.height / 720,
+  } : null;
 
   function togglePanel(id: RightPanelId) {
     setActivePanel((prev) => (prev === id ? null : id));
@@ -2068,8 +2049,13 @@ export default function Studio({
           <PreviewCanvas
             stream={compositeStream}
             overlayCell={overlayCell}
-            onCamLiveChange={setCamCellLive}
-            onCamCommit={setActiveSceneCamCell}
+            onCamCommit={(cell) => {
+              if (cameraLayer) {
+                updateLayerRoot(activeScene.id, cameraLayer.id, {
+                  transform: { ...cameraLayer.transform, x: cell.x * 1280, y: cell.y * 720, width: cell.w * 1280, height: cell.h * 720 },
+                });
+              }
+            }}
           />
         </div>
         <Inspector

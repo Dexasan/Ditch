@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { IAgoraRTCRemoteUser, ILocalVideoTrack, ILocalAudioTrack } from "agora-rtc-sdk-ng";
 import type { Participant } from "@ditch/types";
-import type { CamCell } from "@/lib/studio-store";
+import type { Layer } from "@/lib/studio-store";
 
 const W = 1280;
 const H = 720;
@@ -86,9 +86,8 @@ interface CompositorOptions {
   remoteUsers: IAgoraRTCRemoteUser[];
   liveParticipants: Participant[];
   enabled: boolean;
-  creatorVisible?: boolean;
-  /** Persisted camera cell from the scene store (fractions 0–1). null = auto-grid. */
-  camCell?: CamCell | null;
+  /** Active camera layer — position, visibility, and transform come from here. */
+  cameraLayer?: Layer | null;
   targetFps?: 30 | 60;
   onFps?: (fps: number) => void;
 }
@@ -100,23 +99,19 @@ export function useCompositor({
   remoteUsers,
   liveParticipants,
   enabled,
-  creatorVisible = true,
-  camCell,
+  cameraLayer = null,
   targetFps = DEFAULT_FPS,
   onFps,
-}: CompositorOptions): { stream: MediaStream | null; setCamCellLive: (cell: CamCell | null) => void } {
+}: CompositorOptions): { stream: MediaStream | null } {
   const [stream, setStream] = useState<MediaStream | null>(null);
 
   const canvasRef    = useRef<HTMLCanvasElement | null>(null);
   const workerRef    = useRef<Worker | null>(null);
   const fpsRef       = useRef({ frames: 0, lastLog: Date.now() });
-  // camCell lives in a ref so drag-move updates don't restart the worker.
-  // Synced from the prop on each render; also writable via setCamCellLive.
-  const camCellRef   = useRef<CamCell | null>(camCell ?? null);
-  useEffect(() => { camCellRef.current = camCell ?? null; }, [camCell]);
-  const setCamCellLive = useCallback((cell: CamCell | null) => {
-    camCellRef.current = cell;
-  }, []);
+  // cameraLayer lives in a ref so Inspector transform updates don't restart the worker.
+  // Synced from the prop on each render via effect.
+  const cameraLayerRef = useRef<Layer | null>(cameraLayer ?? null);
+  useEffect(() => { cameraLayerRef.current = cameraLayer ?? null; }, [cameraLayer]);
 
   // Fallback path: CanvasCaptureMediaStreamTrack with manual requestFrame()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -207,7 +202,7 @@ export function useCompositor({
     if (!enabled || !supportsBreakoutBox()) return;
 
     const activeTracks = new Map<string, MediaStreamTrack>();
-    if (localVideoTrack && creatorVisible) {
+    if (localVideoTrack && (cameraLayerRef.current?.visible ?? false)) {
       try { const t = localVideoTrack.getMediaStreamTrack(); activeTracks.set(t.id, t); } catch {}
     }
     if (localScreenTrack) {
@@ -254,7 +249,7 @@ export function useCompositor({
         reader.cancel().catch(() => {});
       });
     }
-  }, [enabled, creatorVisible, localVideoTrack, localScreenTrack, remoteUsers, liveParticipants]);
+  }, [enabled, cameraLayer?.visible, localVideoTrack, localScreenTrack, remoteUsers, liveParticipants]);
 
   // ── Draw loop — driven by Worker timer ───────────────────────────────────────
   useEffect(() => {
@@ -323,33 +318,20 @@ export function useCompositor({
         } catch {}
       }
 
-      const cc = camCellRef.current;
+      const camL = cameraLayerRef.current;
+      const camVisible = camL?.visible ?? false;
+      const camTransform = camL?.transform ?? null;
 
-      if (cc) {
-        // Custom position: participants fill the canvas, camera overlaid at cc.
-        drawParticipants(getLayout(false, liveParticipants.length));
+      // Participants use auto-grid (camera position comes from its layer transform)
+      drawParticipants(getLayout(false, liveParticipants.length));
 
-        if (creatorVisible && localVideoTrack) {
-          try {
-            const native = localVideoTrack.getMediaStreamTrack();
-            const source = useBreakout ? frameCacheRef.current.get(native.id) : getVideoElem(native.id, native);
-            if (source) drawCover(source, cc.x * W, cc.y * H, cc.w * W, cc.h * H);
-          } catch {}
-        }
-      } else {
-        // Auto-grid: creator + participants share the canvas via getLayout.
-        const layout = getLayout(creatorVisible, liveParticipants.length);
-
-        const creatorCell = layout[0];
-        if (creatorCell && localVideoTrack) {
-          try {
-            const native = localVideoTrack.getMediaStreamTrack();
-            const source = useBreakout ? frameCacheRef.current.get(native.id) : getVideoElem(native.id, native);
-            if (source) drawCover(source, creatorCell.x, creatorCell.y, creatorCell.w, creatorCell.h);
-          } catch {}
-        }
-
-        drawParticipants(layout);
+      // Camera drawn at its layer transform position
+      if (camVisible && camTransform && localVideoTrack) {
+        try {
+          const native = localVideoTrack.getMediaStreamTrack();
+          const source = useBreakout ? frameCacheRef.current.get(native.id) : getVideoElem(native.id, native);
+          if (source) drawCover(source, camTransform.x, camTransform.y, camTransform.width, camTransform.height);
+        } catch {}
       }
 
       // Deliver the composite frame to the output track
@@ -393,7 +375,7 @@ export function useCompositor({
       worker.postMessage({ type: "stop" });
       worker.terminate();
     };
-  }, [enabled, creatorVisible, targetFps, localVideoTrack, localScreenTrack, remoteUsers, liveParticipants]);
+  }, [enabled, cameraLayer?.visible, targetFps, localVideoTrack, localScreenTrack, remoteUsers, liveParticipants]);
 
   // ── Audio graph ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -417,5 +399,5 @@ export function useCompositor({
     }
   }, [enabled, localAudioTrack, remoteUsers]);
 
-  return { stream, setCamCellLive };
+  return { stream };
 }

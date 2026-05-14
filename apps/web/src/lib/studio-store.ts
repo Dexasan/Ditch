@@ -67,7 +67,6 @@ export interface Scene {
   audioConfig: AudioConfig;
   transition: SceneTransition;
   thumbnail: string | null;
-  camCell: CamCell | null; // keep for now, remove in Phase 2
   bgColor: string;
 }
 
@@ -93,7 +92,6 @@ function makeScene(id: string, name: string): Scene {
     audioConfig: {},
     transition: { type: "cut", durationMs: 0 },
     thumbnail: null,
-    camCell: null,
     bgColor: "#0a0a0a",
   };
 }
@@ -136,7 +134,6 @@ interface StudioStore {
   isTransitioning: boolean;
   addScene: () => void;
   switchScene: (id: string) => void;
-  setActiveSceneCamCell: (cell: CamCell | null) => void;
   setSelectedLayerId: (id: string | null) => void;
 
   // Settings
@@ -239,12 +236,6 @@ export const useStudioStore = create<StudioStore>((set) => ({
 
       return { activeSceneId: id, isTransitioning: true };
     }),
-  setActiveSceneCamCell: (cell) =>
-    set((s) => ({
-      scenes: s.scenes.map((sc) =>
-        sc.id === s.activeSceneId ? { ...sc, camCell: cell } : sc,
-      ),
-    })),
   setSelectedLayerId: (id) => set({ selectedLayerId: id }),
 
   // Settings
