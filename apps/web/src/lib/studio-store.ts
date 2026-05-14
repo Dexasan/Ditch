@@ -2,6 +2,20 @@ import { create } from "zustand";
 
 export type CamCell = { x: number; y: number; w: number; h: number };
 
+export type ToastType = "success" | "warning" | "error" | "info";
+
+export interface Toast {
+  id: string;
+  message: string;
+  type: ToastType;
+  duration: number;
+}
+
+export interface LayerSnapshot {
+  sceneId: string;
+  layers: Layer[];
+}
+
 type LayerType = "camera" | "screenshare" | "media" | "browser" | "image" | "text" | "shape";
 
 interface Transform {
@@ -22,6 +36,7 @@ export interface Layer {
   transform: Transform;
   sourceConfig: Record<string, unknown>;
   effects: Record<string, unknown>[];
+  sourceUnavailable?: boolean;
 }
 
 interface AudioConfig {
@@ -84,6 +99,20 @@ function makeScene(id: string, name: string): Scene {
 }
 
 interface StudioStore {
+  // Toasts
+  toasts: Toast[];
+  addToast: (message: string, type?: ToastType, duration?: number) => void;
+  removeToast: (id: string) => void;
+
+  // Undo
+  undoStack: LayerSnapshot[];
+  pushUndo: (sceneId: string, layers: Layer[]) => void;
+  popUndo: () => void;
+
+  // Grid snap
+  snapToGrid: boolean;
+  setSnapToGrid: (v: boolean) => void;
+
   // Stream state
   streamStatus: "offline" | "connecting" | "live";
   streamDuration: number;
@@ -104,6 +133,7 @@ interface StudioStore {
   scenes: Scene[];
   activeSceneId: string;
   selectedLayerId: string | null;
+  isTransitioning: boolean;
   addScene: () => void;
   switchScene: (id: string) => void;
   setActiveSceneCamCell: (cell: CamCell | null) => void;
@@ -126,8 +156,43 @@ interface StudioStore {
 }
 
 const INITIAL_SCENE_ID = "scene-1";
+let transitionTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const useStudioStore = create<StudioStore>((set) => ({
+  // Toasts
+  toasts: [],
+  addToast: (message, type = "info", duration = 3000) =>
+    set((s) => ({
+      toasts: [{ id: crypto.randomUUID(), message, type, duration }, ...s.toasts],
+    })),
+  removeToast: (id) =>
+    set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+
+  // Undo
+  undoStack: [],
+  pushUndo: (sceneId, layers) =>
+    set((s) => {
+      const snapshot: LayerSnapshot = { sceneId, layers: JSON.parse(JSON.stringify(layers)) };
+      const stack = [...s.undoStack, snapshot];
+      if (stack.length > 20) stack.shift();
+      return { undoStack: stack };
+    }),
+  popUndo: () =>
+    set((s) => {
+      if (s.undoStack.length === 0) return s;
+      const snapshot = s.undoStack[s.undoStack.length - 1];
+      return {
+        undoStack: s.undoStack.slice(0, -1),
+        scenes: s.scenes.map((sc) =>
+          sc.id === snapshot.sceneId ? { ...sc, layers: snapshot.layers } : sc,
+        ),
+      };
+    }),
+
+  // Grid snap
+  snapToGrid: false,
+  setSnapToGrid: (v) => set({ snapToGrid: v }),
+
   // Stream state
   streamStatus: "offline",
   streamDuration: 0,
@@ -148,6 +213,7 @@ export const useStudioStore = create<StudioStore>((set) => ({
   scenes: [makeScene(INITIAL_SCENE_ID, "Scene 1")],
   activeSceneId: INITIAL_SCENE_ID,
   selectedLayerId: null,
+  isTransitioning: false,
   addScene: () =>
     set((s) => {
       const id = `scene-${Date.now()}`;
@@ -156,7 +222,23 @@ export const useStudioStore = create<StudioStore>((set) => ({
         activeSceneId: id,
       };
     }),
-  switchScene: (id) => set({ activeSceneId: id }),
+  switchScene: (id) =>
+    set((s) => {
+      const target = s.scenes.find((sc) => sc.id === id);
+      const transition = target?.transition ?? { type: "cut", durationMs: 0 };
+
+      if (transition.type === "cut" || transition.durationMs === 0) {
+        return { activeSceneId: id, isTransitioning: false };
+      }
+
+      if (transitionTimer) clearTimeout(transitionTimer);
+      transitionTimer = setTimeout(() => {
+        useStudioStore.setState({ isTransitioning: false });
+        transitionTimer = null;
+      }, transition.durationMs);
+
+      return { activeSceneId: id, isTransitioning: true };
+    }),
   setActiveSceneCamCell: (cell) =>
     set((s) => ({
       scenes: s.scenes.map((sc) =>

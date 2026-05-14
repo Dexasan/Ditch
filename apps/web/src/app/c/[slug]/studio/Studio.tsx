@@ -12,6 +12,8 @@ import { getSocket, type SessionJoinAck } from "@/lib/socket";
 import { useStudioStore } from "@/lib/studio-store";
 import type { ChatMessage, Participant, ParticipantStatus } from "@ditch/types";
 import type { ILocalAudioTrack, ILocalVideoTrack } from "agora-rtc-sdk-ng";
+import { ToastManager } from "./Toast";
+import { useStudioShortcuts } from "@/hooks/useStudioShortcuts";
 
 const MAX_CHAT = 200;
 const TOTAL_SLOTS = 4;
@@ -627,6 +629,9 @@ function LayerRow({
       </span>
       <span className="text-[var(--color-text-muted)] shrink-0">{layerTypeIcon(layer.type)}</span>
       <span className="flex-1 text-[13px] text-[var(--color-text)] truncate">{layer.name}</span>
+      {layer.sourceUnavailable && (
+        <span title="Source unavailable" style={{ color: "#FFAA00", fontSize: 13, lineHeight: 1 }} className="shrink-0">⚠</span>
+      )}
       <button
         onClick={(e) => { e.stopPropagation(); onToggleVisible(); }}
         className="w-6 h-6 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-text-muted)] hover:text-[var(--color-text)] shrink-0"
@@ -1608,6 +1613,19 @@ function Inspector({
                     <span className="text-[11px] text-[var(--color-text)] truncate">{selectedLayer.name}</span>
                   </div>
                 </div>
+                {selectedLayer.sourceUnavailable && (
+                  <div
+                    className="mx-3 mb-3 flex items-center gap-2 px-3 py-2 rounded border text-[11px]"
+                    style={{
+                      background: "rgba(255,170,0,0.08)",
+                      borderColor: "#FFAA00",
+                      color: "#FFAA00",
+                    }}
+                  >
+                    <span style={{ fontSize: 13 }}>⚠</span>
+                    Source unavailable — check device connection
+                  </div>
+                )}
                 <TransformSection
                   sceneId={activeScene.id}
                   layer={selectedLayer}
@@ -1793,7 +1811,9 @@ export default function Studio({
     setIsRecording: storeSetIsRecording,
     setStreamDuration,
     scenes, activeSceneId,
+    isTransitioning,
     setActiveSceneCamCell,
+    addToast,
   } = useStudioStore();
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
   const cameraLayer = activeScene?.layers.find((l) => l.type === "camera");
@@ -1876,6 +1896,29 @@ export default function Studio({
     screenShareUid: CREATOR_SCREEN_UID,
   });
 
+  useStudioShortcuts({ localAudioTrack });
+
+  // Auto-name camera layers using real device label + mark unavailable if no camera found.
+  // Re-runs when localVideoTrack changes (permissions may have just been granted).
+  useEffect(() => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    navigator.mediaDevices.enumerateDevices().then((devices) => {
+      const cameras = devices.filter((d) => d.kind === "videoinput");
+      const unavailable = cameras.length === 0;
+      const label = cameras[0]?.label || "";
+      const s = useStudioStore.getState();
+      s.scenes.forEach((sc) => {
+        sc.layers.forEach((l) => {
+          if (l.type !== "camera") return;
+          const name = label || l.name;
+          if (name !== l.name || unavailable !== !!l.sourceUnavailable) {
+            s.updateLayer(sc.id, l.id, { name, sourceUnavailable: unavailable });
+          }
+        });
+      });
+    });
+  }, [localVideoTrack]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Sync Agora track enabled state with the camera layer's visible field.
   // The cancelled flag prevents stale async rejections from racing.
   useEffect(() => {
@@ -1931,22 +1974,47 @@ export default function Studio({
   useEffect(() => { storeSetIsRecording(localIsRecording); }, [localIsRecording, storeSetIsRecording]);
   useEffect(() => { setStreamDuration(elapsed); }, [elapsed, setStreamDuration]);
 
-  // Toast
-  const [toast, setToast] = useState<string | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  function showToast(msg: string) {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToast(msg);
-    toastTimerRef.current = setTimeout(() => setToast(null), 3000);
-  }
+  // Stream event toasts
+  const prevRelayStreaming = useRef(false);
+  useEffect(() => {
+    if (relayStreaming && !prevRelayStreaming.current) {
+      addToast("Stream started", "success");
+    } else if (!relayStreaming && prevRelayStreaming.current) {
+      addToast("Stream ended", "info");
+    }
+    prevRelayStreaming.current = relayStreaming;
+  }, [relayStreaming]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (relayError) addToast(relayError, "error");
+  }, [relayError]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Camera unavailable toast (once, if no track after 4 s)
+  const cameraWarnedRef = useRef(false);
+  useEffect(() => {
+    if (localVideoTrack || cameraWarnedRef.current) return;
+    const t = setTimeout(() => {
+      if (!localVideoTrack && !cameraWarnedRef.current) {
+        cameraWarnedRef.current = true;
+        addToast("Camera not found", "warning");
+      }
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [localVideoTrack]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleRecordClick() {
-    if (localIsRecording) stopRecording(); else startRecording();
+    if (localIsRecording) {
+      stopRecording();
+      addToast("Recording saved to downloads", "success");
+    } else {
+      startRecording();
+      addToast("Recording started", "success");
+    }
   }
 
   function handleClipClick() {
     saveClip();
-    showToast("Clip saved");
+    addToast("Clip saved", "success");
   }
 
   // Overlay cell: where to show the cam drag handle in the preview.
@@ -1984,7 +2052,19 @@ export default function Studio({
           isScreenSharing={isScreenSharing}
           toggleScreenShare={toggleScreenShare}
         />
-        <div style={{ gridArea: "canvas", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div
+          style={{
+            gridArea: "canvas",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            ...(isTransitioning && activeScene.transition.type !== "cut"
+              ? {
+                  animation: `${activeScene.transition.type === "fade" ? "sceneFadeIn" : "sceneSlideIn"} ${activeScene.transition.durationMs}ms ease both`,
+                }
+              : {}),
+          }}
+        >
           <PreviewCanvas
             stream={compositeStream}
             overlayCell={overlayCell}
@@ -1998,11 +2078,17 @@ export default function Studio({
         />
         <StreamPulse localAudioTrack={localAudioTrack} onClipClick={handleClipClick} />
       </div>
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-surface-border)] text-[12px] text-[var(--color-text)] shadow-xl pointer-events-none" style={{ zIndex: 60 }}>
-          {toast}
-        </div>
-      )}
+      <style>{`
+        @keyframes sceneFadeIn {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes sceneSlideIn {
+          from { transform: translateX(-24px); opacity: 0; }
+          to   { transform: translateX(0);     opacity: 1; }
+        }
+      `}</style>
+      <ToastManager />
     </>
   );
 }
