@@ -278,7 +278,7 @@ function LayersPanel({
   function toggleCam() {
     if (!localVideoTrack) return;
     const next = !camVisible;
-    localVideoTrack.setEnabled(next);
+    localVideoTrack.setEnabled(next).catch(() => {});
     setActiveSceneCamVisible(next);
   }
 
@@ -1091,6 +1091,7 @@ export default function Studio({
   // ── Media hooks ─────────────────────────────────────────────────────────────
   const {
     localVideoTrack,
+    localScreenTrack,
     localAudioTrack,
     remoteUsers,
     isScreenSharing,
@@ -1113,13 +1114,14 @@ export default function Studio({
     if (!localVideoTrack) return;
     const scene = scenes.find((s) => s.id === activeSceneId);
     if (!scene) return;
-    localVideoTrack.setEnabled(scene.camVisible);
+    localVideoTrack.setEnabled(scene.camVisible).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSceneId, scenes]);
 
   // Compositor always runs so the preview canvas is live regardless of stream state.
   const { stream: compositeStream, setCamCellLive } = useCompositor({
     localVideoTrack,
+    localScreenTrack,
     localAudioTrack,
     remoteUsers,
     liveParticipants,

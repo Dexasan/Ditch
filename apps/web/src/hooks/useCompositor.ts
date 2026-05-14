@@ -81,6 +81,7 @@ const WORKER_SRC = `
 
 interface CompositorOptions {
   localVideoTrack: ILocalVideoTrack | null;
+  localScreenTrack?: ILocalVideoTrack | null;
   localAudioTrack: ILocalAudioTrack | null;
   remoteUsers: IAgoraRTCRemoteUser[];
   liveParticipants: Participant[];
@@ -94,6 +95,7 @@ interface CompositorOptions {
 
 export function useCompositor({
   localVideoTrack,
+  localScreenTrack = null,
   localAudioTrack,
   remoteUsers,
   liveParticipants,
@@ -208,6 +210,9 @@ export function useCompositor({
     if (localVideoTrack && creatorVisible) {
       try { const t = localVideoTrack.getMediaStreamTrack(); activeTracks.set(t.id, t); } catch {}
     }
+    if (localScreenTrack) {
+      try { const t = localScreenTrack.getMediaStreamTrack(); activeTracks.set(t.id, t); } catch {}
+    }
     for (const p of liveParticipants) {
       const uid = (p.slot_index ?? 0) + 1;
       const ru = remoteUsers.find((u) => u.uid === uid);
@@ -249,7 +254,7 @@ export function useCompositor({
         reader.cancel().catch(() => {});
       });
     }
-  }, [enabled, creatorVisible, localVideoTrack, remoteUsers, liveParticipants]);
+  }, [enabled, creatorVisible, localVideoTrack, localScreenTrack, remoteUsers, liveParticipants]);
 
   // ── Draw loop — driven by Worker timer ───────────────────────────────────────
   useEffect(() => {
@@ -308,6 +313,15 @@ export function useCompositor({
     function draw() {
       ctx!.fillStyle = "#000";
       ctx!.fillRect(0, 0, W, H);
+
+      // Screen share fills the canvas as a background layer when active
+      if (localScreenTrack) {
+        try {
+          const native = localScreenTrack.getMediaStreamTrack();
+          const source = useBreakout ? frameCacheRef.current.get(native.id) : getVideoElem(native.id, native);
+          if (source) drawCover(source, 0, 0, W, H);
+        } catch {}
+      }
 
       const cc = camCellRef.current;
 
@@ -379,7 +393,7 @@ export function useCompositor({
       worker.postMessage({ type: "stop" });
       worker.terminate();
     };
-  }, [enabled, creatorVisible, targetFps, localVideoTrack, remoteUsers, liveParticipants]);
+  }, [enabled, creatorVisible, targetFps, localVideoTrack, localScreenTrack, remoteUsers, liveParticipants]);
 
   // ── Audio graph ───────────────────────────────────────────────────────────────
   useEffect(() => {
