@@ -632,3 +632,43 @@ Step 14 — Camera permission gate + Meld-style draggable cam overlay (`commit 0
 - Investigation needed: open browser console, read full error and stack trace; find every code path that touches `localVideoTrack` on scene switch; add null guards before any `setEnabled`, `getMediaStreamTrack`, or draw calls.
 
 **Next logical step (Day 11):** Fix both bugs. Start with Bug 2 (crash) since crashes block all testing. Then fix Bug 1 (screen capture). Then do sustained stream test with screen share active.
+
+---
+
+### Day 11 — 2026-05-14
+
+**What we did:**
+
+Step 1 — Fix Bug 2: scene-switch crash (`commit 3833c75`)
+- Root cause: `localVideoTrack.setEnabled()` returns `Promise<void>` (Agora SDK). Both `LayersPanel.toggleCam()` and the scene-switch effect called it without `.catch()`. When a scene switch fired immediately after toggling cam off, Agora rejected the re-enable call on a mid-transition track — unhandled promise rejection — Next.js showed "Application error: a client-side exception has occurred."
+- Fix: added `.catch(() => {})` to both `setEnabled()` call sites
+
+Step 2 — Fix Bug 1: screen capture not rendering (`commit 3833c75`, same)
+- Root cause: `localScreenTrack` is returned by `useAgoraRoom` but was never destructured in Studio root and never passed to `useCompositor`. The compositor had no parameter for it and never drew it.
+- Fix: destructured `localScreenTrack` from `useAgoraRoom` in Studio root; added `localScreenTrack?: ILocalVideoTrack | null` to `CompositorOptions`; added screen track to the Breakout Box processor effect (so frames are decoded and cached); in the draw loop, screen share now draws full-canvas as a background layer before camera and participants render on top. Both effects updated with `localScreenTrack` in deps.
+- Behavior: when screen sharing, camera still uses its custom drag position or auto-grid layout overlaid on top — standard PiP-over-screenshare arrangement
+
+Step 3 — Architecture refactor: scene-scoped layers (`commit acaf29a`)
+- Audit confirmed: Layers panel had no data model — it rendered from a mix of global state (`camEnabled`, `isScreenSharing`) and per-scene state (`camVisible`). Switching scenes called `setEnabled()` imperatively on every switch regardless of whether visibility actually changed, which is what enabled the crash in the first place.
+- `Scene` interface extended: `screenshareVisible: boolean` added (default `false`), setting up per-scene layer ownership model
+- Deleted the imperative scene-switch `useEffect([activeSceneId, scenes])` — the fragile call that ran `setEnabled()` on every scene change
+- Replaced with a single derived effect with deps `[activeScene?.camVisible, localVideoTrack]`: fires only when visibility actually changes, not on every scene switch; `cancelled` flag prevents stale async rejections from racing
+- `LayersPanel` scoped to active scene: render gate changed from `!camEnabled` (global) to `!activeScene.camVisible` (per-scene); prompt label changed from "Click to start" to "Click to add"; prompt `onClick` now calls `setCamEnabled(true)` + `setActiveSceneCamVisible(true)` atomically — hardware start and scene membership in one action; `camEnabled` removed from `LayersPanel`'s store destructure
+
+Step 4 — Fix Railway relay deploy time (`commit fe1aaff`)
+- Observed: Railway deploys taking 8+ minutes
+- Root cause: `apps/relay/Dockerfile` copied source (`packages/`, `apps/relay/`) before running `pnpm install`, busting the Docker layer cache on every deploy and forcing a full reinstall from scratch each time
+- `apps/api` and `apps/realtime` Dockerfiles were already correct (copy `package.json` files first, install, then copy source)
+- Fix: restructured relay Dockerfile to match the correct pattern — copy workspace `package.json` files first, `pnpm install`, then copy source; also replaced `npm install -g pnpm@9.0.0` with `corepack enable`
+- First deploy post-fix still cold; subsequent source-only deploys should drop from ~8 min to under 2 min
+
+**Commits:** `3833c75`, `acaf29a`, `fe1aaff`
+
+**State at end of Day 11:**
+- Both Day 10 bugs resolved: no more scene-switch crash, screen capture renders in compositor and stream
+- Layers panel is now scene-scoped: each scene owns its camera layer; switching scenes shows what that scene owns
+- `setEnabled()` is declarative and safe: only fires when `camVisible` actually changes, with proper async error handling
+- Railway relay deploy cache restored: source changes no longer bust the pnpm install layer
+- TypeScript: 0 errors across all changes
+
+**Next logical step (Day 12):** Sustained stream test — verify screen share renders correctly on stream, 30fps holds with tab backgrounded, scene switching mid-stream works cleanly.
