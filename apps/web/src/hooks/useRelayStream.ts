@@ -11,6 +11,7 @@ interface RelayStreamOptions {
   sessionId: string;
   token: string;
   enabled: boolean;
+  onBitrate?: (kbps: number) => void;
 }
 
 export interface RelayStreamState {
@@ -23,12 +24,18 @@ export function useRelayStream({
   sessionId,
   token,
   enabled,
+  onBitrate,
 }: RelayStreamOptions): RelayStreamState {
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
+  const bytesSentRef = useRef(0);
+  const bitrateTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Stable ref so the interval closure never captures a stale callback
+  const onBitrateRef = useRef(onBitrate);
+  onBitrateRef.current = onBitrate;
 
   useEffect(() => {
     if (!enabled || !stream) return;
@@ -39,6 +46,10 @@ export function useRelayStream({
     let cancelled = false;
 
     function stopRecorder() {
+      if (bitrateTimerRef.current) {
+        clearInterval(bitrateTimerRef.current);
+        bitrateTimerRef.current = null;
+      }
       recorderRef.current?.stop();
       recorderRef.current = null;
     }
@@ -98,6 +109,7 @@ export function useRelayStream({
           recorderRef.current = recorder;
 
           recorder.ondataavailable = (e: BlobEvent) => {
+            bytesSentRef.current += e.data.size;
             if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) ws.send(e.data);
           };
 
@@ -109,6 +121,12 @@ export function useRelayStream({
           };
 
           recorder.start(CHUNK_INTERVAL_MS);
+          bytesSentRef.current = 0;
+          bitrateTimerRef.current = setInterval(() => {
+            const kbps = Math.round((bytesSentRef.current * 8) / 2 / 1000);
+            bytesSentRef.current = 0;
+            onBitrateRef.current?.(kbps);
+          }, 2000);
           setStreaming(true);
           setError(null);
         }
@@ -145,6 +163,8 @@ export function useRelayStream({
       if (retryTimer) clearTimeout(retryTimer);
       stopRecorder();
       closeSocket();
+      bytesSentRef.current = 0;
+      onBitrateRef.current?.(0);
       setStreaming(false);
     };
   }, [enabled, stream, sessionId, token]);
