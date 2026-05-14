@@ -270,7 +270,7 @@ function LayersPanel({
   isScreenSharing: boolean;
   toggleScreenShare: () => Promise<void>;
 }) {
-  const { scenes, activeSceneId, setActiveSceneCamVisible, setActiveSceneCamCell, camEnabled, setCamEnabled } = useStudioStore();
+  const { scenes, activeSceneId, setActiveSceneCamVisible, setActiveSceneCamCell, setCamEnabled } = useStudioStore();
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
   const camVisible = activeScene.camVisible;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -338,19 +338,19 @@ function LayersPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {!camEnabled ? (
-          /* Camera not started yet — show a clickable prompt */
+        {!activeScene.camVisible ? (
+          /* Camera not in this scene — show a clickable prompt to add it */
           <button
-            onClick={() => setCamEnabled(true)}
+            onClick={() => { setCamEnabled(true); setActiveSceneCamVisible(true); }}
             className="w-full flex items-center gap-2 px-2 py-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)] transition-colors"
           >
             <span className="text-[var(--color-surface-border)] select-none leading-none" style={{ fontSize: 16 }}>⠿</span>
             <span className="shrink-0"><IconCamera /></span>
             <span className="flex-1 text-left text-[11px]">Camera</span>
-            <span className="text-[10px] opacity-40">Click to start</span>
+            <span className="text-[10px] opacity-40">Click to add</span>
           </button>
         ) : (
-          /* Camera started — show normal layer row */
+          /* Camera is in this scene — show the layer row */
           <div className="group/camrow">
             <LayerRow
               icon={<IconCamera />}
@@ -1105,18 +1105,17 @@ export default function Studio({
     screenShareUid: CREATOR_SCREEN_UID,
   });
 
-  // When the active scene changes, apply its cam visibility to the Agora track.
-  // localVideoTrack is intentionally omitted from deps — the effect only needs
-  // to fire on scene switches. LayersPanel applies setEnabled directly on toggle.
-  // Including localVideoTrack caused a race: useAgoraRoom cleanup closes the track,
-  // then this effect fires one more time and calls setEnabled on a closed track.
+  // Derived effect: sync Agora track enabled state with the active scene's camVisible.
+  // Fires only when camVisible actually changes (or the track is replaced), not on every
+  // scene switch. The cancelled flag prevents stale async rejections from racing.
   useEffect(() => {
-    if (!localVideoTrack) return;
-    const scene = scenes.find((s) => s.id === activeSceneId);
-    if (!scene) return;
-    localVideoTrack.setEnabled(scene.camVisible).catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSceneId, scenes]);
+    if (!localVideoTrack || !activeScene) return;
+    let cancelled = false;
+    localVideoTrack.setEnabled(activeScene.camVisible).catch(() => {
+      if (!cancelled) console.warn("setEnabled skipped — track not ready");
+    });
+    return () => { cancelled = true; };
+  }, [activeScene?.camVisible, localVideoTrack]);
 
   // Compositor always runs so the preview canvas is live regardless of stream state.
   const { stream: compositeStream, setCamCellLive } = useCompositor({

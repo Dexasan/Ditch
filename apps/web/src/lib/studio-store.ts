@@ -6,6 +6,7 @@ export interface Scene {
   id: string;
   name: string;
   camVisible: boolean;
+  screenshareVisible: boolean;
   // null = auto-grid; non-null = custom position (fractions 0–1 of canvas)
   camCell: CamCell | null;
 }
@@ -59,7 +60,7 @@ export const useStudioStore = create<StudioStore>((set) => ({
   setCamEnabled: (v) => set({ camEnabled: v }),
 
   // Scenes
-  scenes: [{ id: INITIAL_SCENE_ID, name: "Scene 1", camVisible: true, camCell: null }],
+  scenes: [{ id: INITIAL_SCENE_ID, name: "Scene 1", camVisible: true, screenshareVisible: false, camCell: null }],
   activeSceneId: INITIAL_SCENE_ID,
   addScene: () =>
     set((s) => {
@@ -72,6 +73,7 @@ export const useStudioStore = create<StudioStore>((set) => ({
             id,
             name: `Scene ${s.scenes.length + 1}`,
             camVisible: current?.camVisible ?? true,
+            screenshareVisible: false,
             camCell: null,
           },
         ],
