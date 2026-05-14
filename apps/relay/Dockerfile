@@ -1,17 +1,23 @@
 FROM node:20-alpine
-
 RUN apk add --no-cache ffmpeg
+RUN corepack enable
 
-RUN npm install -g pnpm@9.0.0
+WORKDIR /repo
 
-WORKDIR /app
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages/ packages/
-COPY apps/relay/ apps/relay/
+# Copy workspace manifests first for layer caching
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/types/package.json ./packages/types/
+COPY packages/db/package.json ./packages/db/
+COPY apps/relay/package.json ./apps/relay/
 
 RUN pnpm install --frozen-lockfile
 
-WORKDIR /app/apps/relay
+# Copy source
+COPY tsconfig.base.json ./
+COPY packages/ ./packages/
+COPY apps/relay/ ./apps/relay/
 
+WORKDIR /repo/apps/relay
+
+EXPOSE 3003
 CMD ["pnpm", "start"]
