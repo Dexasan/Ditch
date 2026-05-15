@@ -725,3 +725,65 @@ Step 4 — BUG 1 + BUG 2 fixes after audit (`commit a2744f9`)
 - TypeScript: 0 errors across all changes
 
 **Next logical step (Day 13):** Sustained stream test with the new layer model — verify camera renders at correct transform position, screen share PiP still works, 30fps holds with tab backgrounded, scene switching mid-stream is clean.
+
+---
+
+### Day 12 — Final fix (2026-05-14)
+
+**Bug:** App crashed when two scenes both had camera layers and the user toggled camera off in Scene 1 then switched to Scene 2.
+
+**Root cause (three-layer):**
+1. The `setEnabled` effect in `Studio.tsx` called `localVideoTrack.setEnabled(false)` whenever `cameraLayer.visible` became false
+2. Agora's `CameraVideoTrack.setEnabled(false)` does not merely mute — it calls `_originMediaStreamTrack.stop()`, terminating the native `MediaStreamTrack` and releasing camera hardware. Confirmed from minified SDK source.
+3. When Scene 2 was switched to (`cameraLayer.visible` → true), the Breakout Box processor effect fired before `setEnabled(true)`'s `getUserMedia` completed. `localVideoTrack.getMediaStreamTrack()` returned the now-ended native track. `new MediaStreamTrackProcessor({ track: endedTrack })` (outside any try/catch) threw `DOMException: InvalidStateError` — React error boundary — "Application error."
+
+**Three surgical fixes (`commit c9aaf1f`):**
+- **Studio.tsx** — deleted the `setEnabled` effect entirely. The camera track stays alive for the full studio session. Visibility is a compositor concern only.
+- **useCompositor.ts (Breakout Box effect)** — removed the `cameraLayerRef.current?.visible` gate from camera track selection. The processor now runs continuously whenever `localVideoTrack` exists; the draw function's existing `if (camVisible && ...)` gate is the sole control point.
+- **useCompositor.ts (both effect dep arrays)** — removed `cameraLayer?.visible` from Breakout Box and draw-loop deps. Neither the processor nor the Worker restart on scene switches; `cameraLayerRef.current` carries the live visibility value into every tick.
+
+**State after fix:**
+- Camera track never stopped or muted; camera hardware stays active for the session
+- Scene switches with mismatched camera visibility no longer crash
+- Compositor processor and worker stable across scene switches
+- TypeScript: 0 errors
+
+---
+
+### Day 13 — 2026-05-15
+
+**What we did:**
+
+Step 1 — Destinations wired to DB (`commit 59b9e8c`)
+- **Root cause audit:** Dashboard wrote destinations to Supabase via API; studio read from Zustand only — two completely separate data sources that never communicated. Relay reads from DB (correct); studio modal never wrote to DB and had no `rtmp_url` field.
+- **FIX 1:** Studio root fetches `GET /destinations?channel_id=` on mount and populates Zustand store — dashboard-configured destinations are now visible in the studio and Go Live skips the modal
+- **FIX 2:** Go Live modal gets a "Go Live without destinations" escape hatch so the relay decides validity instead of the client gate blocking
+- **FIX 3:** Go Live modal add/remove now calls `POST /DELETE /destinations` API — destinations are persisted to DB where the relay reads them; platform enum expanded to full `StreamPlatform` (tiktok, kick, ditch added); RTMP URL field added with per-platform auto-fill; `Destination.platform` type corrected in Zustand store
+- `channelId` prop added to Studio and both page.tsx entry points
+
+Step 2 — Socket reconnect re-join + session recovery + relay dedup guard (`commit 53e88ae`)
+- **Socket reconnect bug:** On WebSocket drop + reconnect, Socket.io auto-reconnected but the server never re-added the socket to the `session_id` room — queue updates after the drop were silently lost. Fix: moved `session:join` emit inside `socket.on("connect", handleConnect)` so it fires on every (re)connect.
+- **Session recovery:** `recoveryChecked` ref + `useEffect` on mount queries `live_sessions` by `channel_id` for `status = live`; if found, sets `streamStatus("live")` so `useRelayStream` evaluates `enabled = true` and reconnects (handles tab-closed-mid-stream scenario).
+- **Relay dedup guard:** Module-level `activeSessions Map<session_id, FfmpegSession>` — on every `{ type: "start" }` message, any stale ffmpeg process for that session_id is killed before spawning fresh. Prevents duplicate ffmpeg processes on tab reload or recovery reconnect.
+
+Step 3 — Invite modal (`commit 0a1ba98`)
+- "Invite" button in top bar, only shown when `streamStatus === "live"`
+- Opens modal with viewer join URL (`/c/:slug`), copy-to-clipboard button ("Copied!" for 2s)
+- Follows existing GoLiveModal/EndStreamModal pattern — no new primitives
+
+**State at end of Day 13:**
+- Destinations flow end-to-end correct: dashboard → DB → relay ✓, studio modal → DB → relay ✓
+- Socket queue updates survive reconnect
+- Relay guaranteed single ffmpeg process per session
+- Invite link available when live
+- TypeScript: 0 errors across all changes
+
+**Carry to Day 14 — two issues:**
+
+**Issue 1 — Mouse-driven layer resize (Meld-style)**
+- Camera and screen share layers can be moved via the drag overlay but corners only resize via the existing 4-handle system. The resize handles need to feel like Meld: smooth, accurate, constrained to canvas bounds, aspect-ratio lock optional. Currently the corner hit targets are small and the drag feels imprecise at small sizes.
+- Investigation needed: `CamOverlay` component in Studio.tsx, `camCellRef` / `setCamCellLive` / `setActiveSceneCamCell` — verify whether the resize path updates the compositor in real time (live ref) vs only on mouseup (store commit), and whether screen share layers have a separate overlay or share the same component.
+
+**Issue 2 — Scene transitions not functional**
+- The transition type selector (cut / fade / slide) and duration are stored in `Scene.transition` and `switchScene` in the store sets `isTransitioning: true` with a timer. The canvas wrapper receives a CSS animation class during transition. However: (a) fade/slide animations are defined as `@keyframes` in the inline `<style>` block in the Studio root but may not be triggering correctly, (b) the "Transitions" panel icon in the right strip likely opens a panel that isn't fully wired to per-scene transition config, (c) there is no UI to set transition type/duration per scene.
+- Investigation needed: verify the `isTransitioning` flag actually applies the CSS class to the canvas wrapper, check whether the Transitions panel exists and what it renders, confirm `switchScene` reads `target.transition` correctly from the store.
