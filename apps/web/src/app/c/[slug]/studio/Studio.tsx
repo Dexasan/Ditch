@@ -11,6 +11,7 @@ import { CREATOR_CAM_UID, CREATOR_SCREEN_UID } from "@/lib/agora";
 import { getSocket, type SessionJoinAck } from "@/lib/socket";
 import { useStudioStore } from "@/lib/studio-store";
 import { api, ApiError } from "@/lib/api";
+import { createClient } from "@/lib/supabase/browser";
 import type { ChatMessage, Participant, ParticipantStatus, StreamDestination, StreamPlatform } from "@ditch/types";
 import type { ILocalAudioTrack, ILocalVideoTrack } from "agora-rtc-sdk-ng";
 import { ToastManager } from "./Toast";
@@ -1902,17 +1903,44 @@ export default function Studio({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Session recovery — if the DB shows this session is live (e.g. the creator
+  // closed the tab mid-stream and re-opened it), set streamStatus to "live" so
+  // useRelayStream evaluates enabled=true and attempts to reconnect.
+  const recoveryChecked = useRef(false);
+  useEffect(() => {
+    if (recoveryChecked.current) return;
+    recoveryChecked.current = true;
+
+    createClient()
+      .from("live_sessions")
+      .select("status")
+      .eq("channel_id", channelId)
+      .eq("status", "live")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setStreamStatus("live");
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Socket ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     const socket = getSocket(token);
-    socket.connect();
 
-    const onJoin: SessionJoinAck = (err, state) => {
-      if (err || !state) return;
-      setMessages(state.recentMessages.slice(-MAX_CHAT));
-      setParticipants(state.participants);
-    };
-    socket.emit("session:join", { session_id: sessionId }, onJoin);
+    // Emit session:join on every (re)connect so the server re-adds this socket
+    // to the session_id room after any drop. The connect event fires on both
+    // the initial connection and every reconnect.
+    function handleConnect() {
+      const onJoin: SessionJoinAck = (err, state) => {
+        if (err || !state) return;
+        setMessages(state.recentMessages.slice(-MAX_CHAT));
+        setParticipants(state.participants);
+      };
+      socket.emit("session:join", { session_id: sessionId }, onJoin);
+    }
+
+    socket.on("connect", handleConnect);
+    socket.connect();
 
     socket.on("chat:message", ({ message }: { message: ChatMessage }) => {
       setMessages((prev) => [...prev.slice(-MAX_CHAT + 1), message]);
@@ -1926,6 +1954,7 @@ export default function Studio({
 
     return () => {
       socket.emit("session:leave", { session_id: sessionId });
+      socket.off("connect", handleConnect);
       socket.off("chat:message");
       socket.off("participant:queue_update");
       socket.off("participant:status_change");

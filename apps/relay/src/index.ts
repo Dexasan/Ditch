@@ -32,8 +32,13 @@ const wss = new WebSocketServer({
   verifyClient: ({ origin }: { origin: string }) => isOriginAllowed(origin),
 });
 
+// Keyed by session_id. Ensures at most one ffmpeg process per session across
+// all WebSocket connections — kills any stale process before spawning a new one.
+const activeSessions = new Map<string, FfmpegSession>();
+
 wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
   let session: FfmpegSession | null = null;
+  let currentSessionId: string | null = null;
 
   ws.on("message", async (data, isBinary) => {
     // Binary frame: raw video chunk — pipe straight to ffmpeg stdin
@@ -88,9 +93,21 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
 
       const rtmpTargets = destinations.map((d) => `${d.rtmp_url}/${d.stream_key}`);
 
-      // 4. Spawn ffmpeg
+      // 4. Kill any stale ffmpeg process for this session before spawning a new one.
+      //    Guards against a second connection arriving before the first WS close
+      //    propagates (e.g. tab reload, session recovery reconnect).
+      const stale = activeSessions.get(session_id);
+      if (stale) {
+        console.log(`[relay] session ${session_id} — killing stale process before respawn`);
+        stale.stop();
+        activeSessions.delete(session_id);
+      }
+
+      // 5. Spawn ffmpeg
       try {
         session = spawnFfmpeg(rtmpTargets, session_id);
+        currentSessionId = session_id;
+        activeSessions.set(session_id, session);
       } catch (err) {
         send(ws, { type: "error", message: `Failed to spawn ffmpeg: ${String(err)}` });
         return;
@@ -99,12 +116,14 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
       session.onError((err) => {
         console.error("[relay] ffmpeg spawn error:", err.message);
         send(ws, { type: "error", message: `ffmpeg spawn error: ${err.message}` });
+        if (currentSessionId) activeSessions.delete(currentSessionId);
         session = null;
       });
 
       session.onExit((code, signal) => {
         console.log(`[relay] ffmpeg exited — code: ${code}, signal: ${signal}`);
         send(ws, { type: "stopped", code, signal });
+        if (currentSessionId) activeSessions.delete(currentSessionId);
         session = null;
       });
 
@@ -114,19 +133,25 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
 
     if (msg.type === "stop") {
       session?.stop();
+      if (currentSessionId) activeSessions.delete(currentSessionId);
       session = null;
+      currentSessionId = null;
     }
   });
 
   ws.on("close", () => {
     session?.stop();
+    if (currentSessionId) activeSessions.delete(currentSessionId);
     session = null;
+    currentSessionId = null;
   });
 
   ws.on("error", (err) => {
     console.error("[relay] ws error:", err.message);
     session?.stop();
+    if (currentSessionId) activeSessions.delete(currentSessionId);
     session = null;
+    currentSessionId = null;
   });
 });
 
