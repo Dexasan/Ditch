@@ -200,6 +200,15 @@ function IconScissors() {
   );
 }
 
+function IconLink() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  );
+}
+
 function fmtElapsed(s: number): string {
   return `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 }
@@ -463,6 +472,72 @@ function GoLiveModal({
   );
 }
 
+function InviteModal({ slug, onClose }: { slug: string; onClose: () => void }) {
+  const url = `${window.location.origin}/c/${slug}`;
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center"
+      style={{ background: "#00000088", zIndex: 50 }}
+      onClick={onClose}
+    >
+      <div
+        className="flex flex-col gap-4"
+        style={{
+          width: 420,
+          background: "var(--bg-base, #111122)",
+          border: "1px solid var(--border, #1A1A3E)",
+          borderRadius: 8,
+          padding: 24,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-[var(--text-primary)]" style={{ fontSize: 16 }}>
+            Invite to stream
+          </h2>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)] transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+        <p className="text-[12px] text-[var(--text-muted)]">
+          Share this link so viewers can join your stream as participants.
+        </p>
+        <div className="flex items-center gap-2">
+          <span
+            className="flex-1 px-3 py-2 rounded text-[12px] font-mono truncate"
+            style={{ background: "var(--bg-mid, #1A1A2E)", border: "1px solid var(--border, #1A1A3E)", color: "var(--text-primary)" }}
+          >
+            {url}
+          </span>
+          <button
+            onClick={handleCopy}
+            className="shrink-0 h-8 px-3 rounded text-[11px] font-semibold border transition-colors"
+            style={{
+              borderColor: copied ? "var(--status-ok, #22c55e)" : "var(--border, #1A1A3E)",
+              color: copied ? "var(--status-ok, #22c55e)" : "var(--text-muted)",
+              background: "transparent",
+            }}
+          >
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EndStreamModal({
   onCancel,
   onConfirm,
@@ -521,6 +596,7 @@ function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessi
   const { streamStatus, streamError, fps, setStreamStatus, settings, isRecording, streamDuration } = useStudioStore();
   const [showGoLiveModal, setShowGoLiveModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   function handleGoLiveClick() {
     if (streamStatus === "live") {
@@ -572,6 +648,9 @@ function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessi
           }}
         />
       )}
+      {showInviteModal && (
+        <InviteModal slug={slug} onClose={() => setShowInviteModal(false)} />
+      )}
       <div
         className="flex items-center border-b border-[var(--border)] bg-[var(--bg-base)] px-3 gap-3"
         style={{ gridArea: "topbar", height: 44 }}
@@ -607,6 +686,16 @@ function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessi
 
         {/* Actions */}
         <div className="flex items-center gap-2 shrink-0">
+          {streamStatus === "live" && (
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className="h-7 px-3 rounded text-[11px] font-semibold border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-1.5"
+              title="Invite viewers"
+            >
+              <IconLink />
+              Invite
+            </button>
+          )}
           <button
             onClick={onRecordClick}
             className={`h-7 px-3 rounded text-[11px] font-semibold border transition-colors ${
