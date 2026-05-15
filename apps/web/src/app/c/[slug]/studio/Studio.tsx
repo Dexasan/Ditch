@@ -10,7 +10,8 @@ import type { CamCell, Destination, Layer, Scene } from "@/lib/studio-store";
 import { CREATOR_CAM_UID, CREATOR_SCREEN_UID } from "@/lib/agora";
 import { getSocket, type SessionJoinAck } from "@/lib/socket";
 import { useStudioStore } from "@/lib/studio-store";
-import type { ChatMessage, Participant, ParticipantStatus } from "@ditch/types";
+import { api, ApiError } from "@/lib/api";
+import type { ChatMessage, Participant, ParticipantStatus, StreamDestination, StreamPlatform } from "@ditch/types";
 import type { ILocalAudioTrack, ILocalVideoTrack } from "agora-rtc-sdk-ng";
 import { ToastManager } from "./Toast";
 import { useStudioShortcuts } from "@/hooks/useStudioShortcuts";
@@ -204,44 +205,93 @@ function fmtElapsed(s: number): string {
 
 // ── Stream setup modal ────────────────────────────────────────────────────────
 
-const DEST_PLATFORM_LABEL: Record<Destination["platform"], string> = {
-  twitch: "Twitch",
+const DEST_PLATFORM_LABEL: Record<StreamPlatform, string> = {
+  twitch:  "Twitch",
   youtube: "YouTube",
-  custom: "Custom RTMP",
+  tiktok:  "TikTok",
+  kick:    "Kick",
+  ditch:   "DITCH",
 };
 
-const DEST_PLATFORM_COLOR: Record<Destination["platform"], string> = {
-  twitch: "#9146ff",
+const DEST_PLATFORM_COLOR: Record<StreamPlatform, string> = {
+  twitch:  "#9146ff",
   youtube: "#ff0000",
-  custom: "#71717a",
+  tiktok:  "#ff0050",
+  kick:    "#53fc18",
+  ditch:   "#7c3aed",
 };
+
+const PLATFORM_RTMP_URL: Partial<Record<StreamPlatform, string>> = {
+  twitch:  "rtmp://live.twitch.tv/live",
+  youtube: "rtmp://a.rtmp.youtube.com/live2",
+  kick:    "rtmp://ingest.global-contribute.live-video.net/app",
+};
+
+const ALL_DEST_PLATFORMS: StreamPlatform[] = ["twitch", "youtube", "tiktok", "kick", "ditch"];
 
 function GoLiveModal({
   onClose,
   onGoLive,
+  onGoLiveAnyway,
+  sessionId,
+  token,
 }: {
   onClose: () => void;
   onGoLive: () => void;
+  onGoLiveAnyway: () => void;
+  sessionId: string;
+  token: string;
 }) {
-  const { settings, addDestination, removeDestination, updateSettings } = useStudioStore();
+  const { settings, addDestination, removeDestination, updateSettings, addToast } = useStudioStore();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newPlatform, setNewPlatform] = useState<Destination["platform"]>("twitch");
-  const [newLabel, setNewLabel] = useState("");
+  const [newPlatform, setNewPlatform] = useState<StreamPlatform>("twitch");
+  const [newRtmpUrl, setNewRtmpUrl] = useState(PLATFORM_RTMP_URL["twitch"] ?? "");
   const [newStreamKey, setNewStreamKey] = useState("");
   const [showKey, setShowKey] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
 
-  function handleAdd() {
-    if (!newLabel.trim() || !newStreamKey.trim()) return;
-    addDestination({
-      id: crypto.randomUUID(),
-      platform: newPlatform,
-      label: newLabel.trim(),
-      streamKey: newStreamKey.trim(),
-    });
-    setNewLabel("");
-    setNewStreamKey("");
-    setNewPlatform("twitch");
-    setShowAddForm(false);
+  // Auto-fill RTMP URL when platform changes
+  useEffect(() => {
+    setNewRtmpUrl(PLATFORM_RTMP_URL[newPlatform] ?? "");
+  }, [newPlatform]);
+
+  async function handleAdd() {
+    if (!newRtmpUrl.trim() || !newStreamKey.trim()) return;
+    setAddLoading(true);
+    try {
+      const { destination } = await api.post<{ destination: StreamDestination }>("/destinations", {
+        token,
+        body: {
+          session_id: sessionId,
+          platform: newPlatform,
+          rtmp_url: newRtmpUrl.trim(),
+          stream_key: newStreamKey.trim(),
+        },
+      });
+      addDestination({
+        id: destination.id,
+        platform: destination.platform,
+        label: DEST_PLATFORM_LABEL[destination.platform],
+        streamKey: "••••••••",
+      });
+      setNewRtmpUrl(PLATFORM_RTMP_URL[newPlatform] ?? "");
+      setNewStreamKey("");
+      setNewPlatform("twitch");
+      setShowAddForm(false);
+    } catch (err) {
+      addToast(err instanceof ApiError ? err.message : "Failed to save destination", "error");
+    } finally {
+      setAddLoading(false);
+    }
+  }
+
+  async function handleRemove(destId: string) {
+    try {
+      await api.delete(`/destinations/${destId}`, { token });
+      removeDestination(destId);
+    } catch {
+      addToast("Failed to remove destination", "error");
+    }
   }
 
   return (
@@ -296,12 +346,11 @@ function GoLiveModal({
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: DEST_PLATFORM_COLOR[dest.platform] }}
               />
-              <span className="text-[12px] text-[var(--text-primary)] flex-1 truncate">{dest.label}</span>
-              <span className="text-[10px] text-[var(--text-muted)] shrink-0">
+              <span className="text-[12px] text-[var(--text-primary)] flex-1 truncate">
                 {DEST_PLATFORM_LABEL[dest.platform]}
               </span>
               <button
-                onClick={() => removeDestination(dest.id)}
+                onClick={() => handleRemove(dest.id)}
                 className="w-5 h-5 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-red-400 transition-colors shrink-0"
                 title="Remove"
               >
@@ -312,12 +361,12 @@ function GoLiveModal({
 
           {showAddForm ? (
             <div className="space-y-2 p-3 rounded border border-[var(--border)] bg-[var(--bg-base)]">
-              <div className="flex gap-1">
-                {(["twitch", "youtube", "custom"] as const).map((p) => (
+              <div className="flex gap-1 flex-wrap">
+                {ALL_DEST_PLATFORMS.map((p) => (
                   <button
                     key={p}
                     onClick={() => setNewPlatform(p)}
-                    className={`flex-1 py-1 rounded text-[10px] font-semibold border transition-colors ${
+                    className={`px-2 py-1 rounded text-[10px] font-semibold border transition-colors ${
                       newPlatform === p
                         ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
                         : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -329,9 +378,9 @@ function GoLiveModal({
               </div>
               <input
                 type="text"
-                placeholder="Label (e.g. My Twitch)"
-                value={newLabel}
-                onChange={(e) => setNewLabel(e.target.value)}
+                placeholder="RTMP URL (e.g. rtmp://live.twitch.tv/live)"
+                value={newRtmpUrl}
+                onChange={(e) => setNewRtmpUrl(e.target.value)}
                 className="w-full px-3 py-1.5 rounded bg-[var(--bg-mid)] border border-[var(--border)] text-[12px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
               />
               <div className="relative">
@@ -354,8 +403,8 @@ function GoLiveModal({
                 <button
                   onClick={() => {
                     setShowAddForm(false);
-                    setNewLabel("");
                     setNewStreamKey("");
+                    setNewRtmpUrl(PLATFORM_RTMP_URL[newPlatform] ?? "");
                   }}
                   className="flex-1 py-1.5 rounded text-[11px] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 >
@@ -363,10 +412,10 @@ function GoLiveModal({
                 </button>
                 <button
                   onClick={handleAdd}
-                  disabled={!newLabel.trim() || !newStreamKey.trim()}
+                  disabled={addLoading || !newRtmpUrl.trim() || !newStreamKey.trim()}
                   className="flex-1 py-1.5 rounded text-[11px] font-semibold bg-[var(--accent-primary)] text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
-                  Add
+                  {addLoading ? "Saving…" : "Add"}
                 </button>
               </div>
             </div>
@@ -401,6 +450,12 @@ function GoLiveModal({
           className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--accent-primary)] text-white hover:bg-[var(--color-brand-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Go Live
+        </button>
+        <button
+          onClick={onGoLiveAnyway}
+          className="w-full py-1 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+        >
+          Go Live without destinations
         </button>
       </div>
     </div>
@@ -461,7 +516,7 @@ function EndStreamModal({
 
 // ── Top bar ───────────────────────────────────────────────────────────────────
 
-function TopBar({ slug, onRecordClick }: { slug: string; onRecordClick: () => void }) {
+function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessionId: string; token: string; onRecordClick: () => void }) {
   const { streamStatus, streamError, fps, setStreamStatus, settings, isRecording, streamDuration } = useStudioStore();
   const [showGoLiveModal, setShowGoLiveModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
@@ -477,6 +532,11 @@ function TopBar({ slug, onRecordClick }: { slug: string; onRecordClick: () => vo
       }
     }
     // "connecting" — button is pointer-events-none, never fires
+  }
+
+  function beginGoLive() {
+    setShowGoLiveModal(false);
+    setStreamStatus("connecting");
   }
 
   const goLiveLabel = streamStatus === "live"
@@ -496,10 +556,10 @@ function TopBar({ slug, onRecordClick }: { slug: string; onRecordClick: () => vo
       {showGoLiveModal && (
         <GoLiveModal
           onClose={() => setShowGoLiveModal(false)}
-          onGoLive={() => {
-            setShowGoLiveModal(false);
-            setStreamStatus("connecting");
-          }}
+          onGoLive={beginGoLive}
+          onGoLiveAnyway={beginGoLive}
+          sessionId={sessionId}
+          token={token}
         />
       )}
       {showEndModal && (
@@ -1784,12 +1844,14 @@ function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocal
 
 export default function Studio({
   sessionId,
+  channelId,
   token,
   creatorName,
   channelName,
   slug,
 }: {
   sessionId: string;
+  channelId: string;
   token: string;
   creatorName: string;
   channelName: string;
@@ -1818,6 +1880,27 @@ export default function Studio({
   // Stable ref so the relay sync effect can read current streamStatus without a stale closure
   const streamStatusRef = useRef(streamStatus);
   streamStatusRef.current = streamStatus;
+
+  // FIX 1 — Populate destinations from DB on mount so the studio reflects what
+  // the dashboard already configured. Non-fatal: studio still works if this fails.
+  const { updateSettings } = useStudioStore();
+  useEffect(() => {
+    api.get<{ destinations: StreamDestination[] }>(`/destinations?channel_id=${channelId}`, { token })
+      .then(({ destinations }) => {
+        if (destinations.length) {
+          updateSettings({
+            destinations: destinations.map((d) => ({
+              id: d.id,
+              platform: d.platform,
+              label: DEST_PLATFORM_LABEL[d.platform],
+              streamKey: "••••••••",
+            })),
+          });
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Socket ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -2027,7 +2110,7 @@ export default function Studio({
           background: "var(--bg-deep, #0A0A18)",
         }}
       >
-        <TopBar slug={slug} onRecordClick={handleRecordClick} />
+        <TopBar slug={slug} sessionId={sessionId} token={token} onRecordClick={handleRecordClick} />
         <ScenesPanel />
         <LayersPanel
           localVideoTrack={localVideoTrack}

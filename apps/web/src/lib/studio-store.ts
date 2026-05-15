@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { StreamPlatform } from "@ditch/types";
 
 export type CamCell = { x: number; y: number; w: number; h: number };
 
@@ -50,7 +51,7 @@ interface SceneTransition {
 
 export interface Destination {
   id: string;
-  platform: "twitch" | "youtube" | "custom";
+  platform: StreamPlatform;
   label: string;
   streamKey: string;
 }

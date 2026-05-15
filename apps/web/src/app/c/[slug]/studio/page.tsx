@@ -40,6 +40,7 @@ export default async function StudioPage({
   return (
     <Studio
       sessionId={session.id}
+      channelId={channel.id}
       token={token}
       creatorName={creatorName}
       channelName={channel.display_name}
