@@ -119,6 +119,7 @@ interface StudioStore {
   activeSceneId: string;
   selectedLayerId: string | null;
   isTransitioning: boolean;
+  transitionKey: number;
   addScene: () => void;
   switchScene: (id: string) => void;
   setSelectedLayerId: (id: string | null) => void;
@@ -198,6 +199,7 @@ export const useStudioStore = create<StudioStore>((set) => ({
   activeSceneId: INITIAL_SCENE_ID,
   selectedLayerId: null,
   isTransitioning: false,
+  transitionKey: 0,
   addScene: () =>
     set((s) => {
       const id = `scene-${Date.now()}`;
@@ -221,7 +223,7 @@ export const useStudioStore = create<StudioStore>((set) => ({
         transitionTimer = null;
       }, transition.durationMs);
 
-      return { activeSceneId: id, isTransitioning: true };
+      return { activeSceneId: id, isTransitioning: true, transitionKey: s.transitionKey + 1 };
     }),
   setSelectedLayerId: (id) => set({ selectedLayerId: id }),
 

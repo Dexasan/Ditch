@@ -1782,11 +1782,12 @@ function Inspector({
                     {(["cut", "fade", "slide"] as const).map((type) => (
                       <button
                         key={type}
-                        onClick={() =>
+                        onClick={() => {
+                          const defaultDuration = type === "cut" ? 0 : (activeScene.transition.durationMs || (type === "fade" ? 400 : 300));
                           updateScene(activeScene.id, {
-                            transition: { ...activeScene.transition, type },
-                          })
-                        }
+                            transition: { type, durationMs: defaultDuration },
+                          });
+                        }}
                         className={`flex-1 py-1 rounded text-[10px] font-semibold border transition-colors capitalize ${
                           activeScene.transition.type === type
                             ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
@@ -1797,6 +1798,26 @@ function Inspector({
                       </button>
                     ))}
                   </div>
+                  {activeScene.transition.type !== "cut" && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        type="range"
+                        min={100}
+                        max={1500}
+                        step={50}
+                        value={activeScene.transition.durationMs}
+                        onChange={(e) =>
+                          updateScene(activeScene.id, {
+                            transition: { ...activeScene.transition, durationMs: Number(e.target.value) },
+                          })
+                        }
+                        className="flex-1 accent-[var(--accent-primary)]"
+                      />
+                      <span className="text-[10px] text-[var(--text-muted)] w-10 text-right shrink-0">
+                        {activeScene.transition.durationMs}ms
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -2017,7 +2038,7 @@ export default function Studio({
     setIsRecording: storeSetIsRecording,
     setStreamDuration,
     scenes, activeSceneId,
-    isTransitioning,
+    isTransitioning, transitionKey,
     updateLayer: updateLayerRoot,
     addToast,
   } = useStudioStore();
@@ -2300,9 +2321,7 @@ export default function Studio({
             flexDirection: "column",
             overflow: "hidden",
             ...(isTransitioning && activeScene.transition.type !== "cut"
-              ? {
-                  animation: `${activeScene.transition.type === "fade" ? "sceneFadeIn" : "sceneSlideIn"} ${activeScene.transition.durationMs}ms ease both`,
-                }
+              ? { animation: `sceneIn-${transitionKey} ${activeScene.transition.durationMs}ms ease both` }
               : {}),
           }}
         >
@@ -2328,13 +2347,13 @@ export default function Studio({
         <StreamPulse localAudioTrack={localAudioTrack} onClipClick={handleClipClick} />
       </div>
       <style>{`
-        @keyframes sceneFadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-        @keyframes sceneSlideIn {
-          from { transform: translateX(-24px); opacity: 0; }
-          to   { transform: translateX(0);     opacity: 1; }
+        @keyframes sceneIn-${transitionKey} {
+          from {
+            ${activeScene.transition.type === "slide" ? "transform: translateX(-24px); " : ""}opacity: 0;
+          }
+          to {
+            ${activeScene.transition.type === "slide" ? "transform: translateX(0); " : ""}opacity: 1;
+          }
         }
       `}</style>
       <ToastManager />
