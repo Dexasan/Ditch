@@ -992,27 +992,89 @@ function ScenesPanel() {
 
 // ── Cam overlay (drag-to-position) ────────────────────────────────────────────
 
+type HandleId = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
+
+const HANDLE_CURSORS: Record<HandleId, string> = {
+  nw: "nw-resize", n: "n-resize",  ne: "ne-resize",
+  e:  "e-resize",  se: "se-resize", s:  "s-resize",
+  sw: "sw-resize", w:  "w-resize",
+};
+
+// Position of each handle on the overlay border as [horizontal, vertical] CSS values.
+// These are applied as absolute positioning on the overlay div.
+const HANDLE_STYLE: Record<HandleId, React.CSSProperties> = {
+  nw: { left: 0,     top: 0,     transform: "translate(-50%, -50%)" },
+  n:  { left: "50%", top: 0,     transform: "translate(-50%, -50%)" },
+  ne: { right: 0,    top: 0,     transform: "translate(50%, -50%)"  },
+  e:  { right: 0,    top: "50%", transform: "translate(50%, -50%)"  },
+  se: { right: 0,    bottom: 0,  transform: "translate(50%, 50%)"   },
+  s:  { left: "50%", bottom: 0,  transform: "translate(-50%, 50%)"  },
+  sw: { left: 0,     bottom: 0,  transform: "translate(-50%, 50%)"  },
+  w:  { left: 0,     top: "50%", transform: "translate(-50%, -50%)" },
+};
+
+const CORNER_HANDLES = new Set<HandleId>(["nw", "ne", "sw", "se"]);
+const ALL_HANDLES: HandleId[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
+const HIT_PX = 24;
+const VIS_PX = 10;
+const MIN_W = 0.06;
+const MIN_H = 0.04;
+
+function applyHandle(sc: CamCell, h: HandleId, fx: number, fy: number, lockAR: boolean): CamCell {
+  let nx = sc.x, ny = sc.y, nw = sc.w, nh = sc.h;
+
+  if (h === "nw" || h === "w" || h === "sw") { nx = sc.x + fx; nw = sc.w - fx; }
+  if (h === "ne" || h === "e" || h === "se") { nw = sc.w + fx; }
+  if (h === "nw" || h === "n" || h === "ne") { ny = sc.y + fy; nh = sc.h - fy; }
+  if (h === "sw" || h === "s" || h === "se") { nh = sc.h + fy; }
+
+  if (lockAR && CORNER_HANDLES.has(h)) {
+    const ar = sc.w / sc.h;
+    nh = nw / ar;
+    if (h === "nw" || h === "ne") ny = sc.y + sc.h - nh;
+  }
+
+  nw = Math.max(MIN_W, nw);
+  nh = Math.max(MIN_H, nh);
+  nx = Math.max(0, Math.min(1 - nw, nx));
+  ny = Math.max(0, Math.min(1 - nh, ny));
+  return { x: nx, y: ny, w: nw, h: nh };
+}
+
 function CamOverlay({
   cell,
   containerRef,
   onLiveChange,
   onCommit,
+  label = "Camera",
 }: {
   cell: CamCell;
   containerRef: React.RefObject<HTMLDivElement>;
   onLiveChange: (cell: CamCell) => void;
   onCommit: (cell: CamCell) => void;
+  label?: string;
 }) {
   const [localCell, setLocalCell] = useState<CamCell>(cell);
   const draggingRef = useRef(false);
+  const shiftRef = useRef(false);
 
   useEffect(() => {
     if (!draggingRef.current) setLocalCell(cell);
   }, [cell]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { shiftRef.current = e.shiftKey; };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKey);
+    };
+  }, []);
+
   const startRef = useRef<{
     type: "move" | "resize";
-    corner?: "nw" | "ne" | "sw" | "se";
+    handle?: HandleId;
     cx: number;
     cy: number;
     cell: CamCell;
@@ -1036,16 +1098,7 @@ function CamOverlay({
         };
       }
 
-      let nx = sc.x, ny = sc.y, nw = sc.w, nh = sc.h;
-      if (s.corner === "nw" || s.corner === "sw") { nx = sc.x + fx; nw = sc.w - fx; }
-      if (s.corner === "ne" || s.corner === "se") { nw = sc.w + fx; }
-      if (s.corner === "nw" || s.corner === "ne") { ny = sc.y + fy; nh = sc.h - fy; }
-      if (s.corner === "sw" || s.corner === "se") { nh = sc.h + fy; }
-      nw = Math.max(0.08, nw);
-      nh = Math.max(0.05, nh);
-      nx = Math.max(0, Math.min(1 - nw, nx));
-      ny = Math.max(0, Math.min(1 - nh, ny));
-      return { x: nx, y: ny, w: nw, h: nh };
+      return applyHandle(sc, s.handle!, fx, fy, shiftRef.current);
     }
 
     function onMove(e: PointerEvent) {
@@ -1078,15 +1131,13 @@ function CamOverlay({
     draggingRef.current = true;
   }
 
-  function onCornerDown(e: React.PointerEvent, corner: "nw" | "ne" | "sw" | "se") {
+  function onHandleDown(e: React.PointerEvent, handle: HandleId) {
     e.stopPropagation();
-    startRef.current = { type: "resize", corner, cx: e.clientX, cy: e.clientY, cell: localCell };
+    startRef.current = { type: "resize", handle, cx: e.clientX, cy: e.clientY, cell: localCell };
     draggingRef.current = true;
   }
 
   const pct = (v: number) => `${(v * 100).toFixed(2)}%`;
-  const H = 8;
-  const cursorMap: Record<string, string> = { nw: "nw-resize", ne: "ne-resize", sw: "sw-resize", se: "se-resize" };
 
   return (
     <div className="absolute inset-0 pointer-events-none select-none" style={{ zIndex: 10 }}>
@@ -1107,22 +1158,29 @@ function CamOverlay({
           className="absolute top-1 left-1.5 text-[9px] font-bold uppercase tracking-widest pointer-events-none"
           style={{ color: "rgba(255,255,255,0.5)", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
         >
-          Camera
+          {label}
         </span>
-        {(["nw", "ne", "sw", "se"] as const).map((corner) => (
+        {ALL_HANDLES.map((h) => (
           <div
-            key={corner}
-            className="absolute pointer-events-auto bg-white rounded-sm"
+            key={h}
+            className="absolute pointer-events-auto flex items-center justify-center"
             style={{
-              width: H, height: H,
-              cursor: cursorMap[corner],
-              left:   corner.includes("w") ? -(H / 2) : undefined,
-              right:  corner.includes("e") ? -(H / 2) : undefined,
-              top:    corner.includes("n") ? -(H / 2) : undefined,
-              bottom: corner.includes("s") ? -(H / 2) : undefined,
+              width: HIT_PX,
+              height: HIT_PX,
+              cursor: HANDLE_CURSORS[h],
+              ...HANDLE_STYLE[h],
             }}
-            onPointerDown={(e) => onCornerDown(e, corner)}
-          />
+            onPointerDown={(e) => onHandleDown(e, h)}
+          >
+            <div
+              className="pointer-events-none rounded-sm bg-white"
+              style={{
+                width: VIS_PX,
+                height: VIS_PX,
+                boxShadow: "0 1px 4px rgba(0,0,0,0.6)",
+              }}
+            />
+          </div>
         ))}
       </div>
     </div>
@@ -2117,7 +2175,7 @@ export default function Studio({
   }, [localVideoTrack]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Compositor always runs so the preview canvas is live regardless of stream state.
-  const { stream: compositeStream } = useCompositor({
+  const { stream: compositeStream, setCamTransformLive } = useCompositor({
     localVideoTrack,
     localScreenTrack,
     localAudioTrack,
@@ -2251,6 +2309,9 @@ export default function Studio({
           <PreviewCanvas
             stream={compositeStream}
             overlayCell={overlayCell}
+            onCamLiveChange={(cell) => {
+              setCamTransformLive({ x: cell.x * 1280, y: cell.y * 720, width: cell.w * 1280, height: cell.h * 720 });
+            }}
             onCamCommit={(cell) => {
               if (cameraLayer) {
                 updateLayerRoot(activeScene.id, cameraLayer.id, {

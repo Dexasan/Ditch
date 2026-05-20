@@ -102,7 +102,7 @@ export function useCompositor({
   cameraLayer = null,
   targetFps = DEFAULT_FPS,
   onFps,
-}: CompositorOptions): { stream: MediaStream | null } {
+}: CompositorOptions): { stream: MediaStream | null; setCamTransformLive: (patch: Partial<Layer["transform"]>) => void } {
   const [stream, setStream] = useState<MediaStream | null>(null);
 
   const canvasRef    = useRef<HTMLCanvasElement | null>(null);
@@ -399,5 +399,13 @@ export function useCompositor({
     }
   }, [enabled, localAudioTrack, remoteUsers]);
 
-  return { stream };
+  function setCamTransformLive(patch: Partial<Layer["transform"]>) {
+    if (!cameraLayerRef.current) return;
+    cameraLayerRef.current = {
+      ...cameraLayerRef.current,
+      transform: { ...cameraLayerRef.current.transform, ...patch },
+    };
+  }
+
+  return { stream, setCamTransformLive };
 }
