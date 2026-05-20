@@ -34,6 +34,7 @@ export interface ServerToClientEvents {
   "participant:status_change": (data: { participant: Participant }) => void;
   "participant:queue_update": (data: { session_id: string; participants: Participant[] }) => void;
   "chat:message": (data: { message: ChatMessage }) => void;
+  "chat:error": (data: { code: string; message: string }) => void;
   "error": (data: { message: string }) => void;
 }
 

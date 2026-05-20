@@ -17,6 +17,10 @@ export function registerChatHandlers(io: AppServer, socket: AppSocket) {
    * Payload: { session_id, body, display_name, platform_origin }
    */
   socket.on("chat:message", async ({ session_id, body, display_name }) => {
+    if (!socket.data.user_id) {
+      socket.emit("chat:error", { code: "auth_required", message: "Sign in to chat" });
+      return;
+    }
     if (!body?.trim()) return;
     if (body.length > 500) return;
 
