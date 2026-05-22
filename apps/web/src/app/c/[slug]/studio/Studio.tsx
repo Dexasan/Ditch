@@ -642,9 +642,14 @@ function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessi
       {showEndModal && (
         <EndStreamModal
           onCancel={() => setShowEndModal(false)}
-          onConfirm={() => {
+          onConfirm={async () => {
             setShowEndModal(false);
             setStreamStatus("offline");
+            try {
+              await api.delete(`/sessions/${sessionId}`, { token });
+            } catch {
+              // session end is best-effort; relay already stopped
+            }
           }}
         />
       )}
