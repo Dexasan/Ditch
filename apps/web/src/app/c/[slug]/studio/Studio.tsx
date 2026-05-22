@@ -11,6 +11,7 @@ import { CREATOR_CAM_UID, CREATOR_SCREEN_UID } from "@/lib/agora";
 import { getSocket, type SessionJoinAck } from "@/lib/socket";
 import { useStudioStore } from "@/lib/studio-store";
 import { api, ApiError } from "@/lib/api";
+import { getChromaKeyEffect, withChromaKey, DEFAULT_CHROMA_KEY, type ChromaKeyConfig } from "@/lib/chromaKey";
 import { createClient } from "@/lib/supabase/browser";
 import type { ChatMessage, Participant, ParticipantStatus, StreamDestination, StreamPlatform } from "@ditch/types";
 import type { ILocalAudioTrack, ILocalVideoTrack } from "agora-rtc-sdk-ng";
@@ -1674,6 +1675,95 @@ function TransformSection({
   );
 }
 
+const CK_PRESETS = [
+  { label: "Green", color: "#00ff00" },
+  { label: "Blue",  color: "#0000ff" },
+];
+
+function ChromaKeySection({
+  layer,
+  onUpdateLayer,
+}: {
+  layer: Layer;
+  onUpdateLayer: (patch: Partial<Layer>) => void;
+}) {
+  const ck = getChromaKeyEffect(layer.effects) ?? DEFAULT_CHROMA_KEY;
+
+  function set(patch: Partial<Omit<ChromaKeyConfig, "type">>) {
+    onUpdateLayer({ effects: withChromaKey(layer.effects, patch) });
+  }
+
+  return (
+    <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+          Chroma Key
+        </p>
+        <button
+          onClick={() => set({ enabled: !ck.enabled })}
+          className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+            ck.enabled
+              ? "bg-[var(--accent-primary)] text-white"
+              : "border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+          }`}
+        >
+          {ck.enabled ? "On" : "Off"}
+        </button>
+      </div>
+
+      {ck.enabled && (
+        <>
+          <div className="space-y-1.5">
+            <label className="text-[10px] text-[var(--text-muted)]">Key Color</label>
+            <div className="flex items-center gap-2">
+              {CK_PRESETS.map((p) => (
+                <button
+                  key={p.color}
+                  onClick={() => set({ color: p.color })}
+                  title={p.label}
+                  className="w-6 h-6 rounded border-2 transition-all shrink-0"
+                  style={{
+                    backgroundColor: p.color,
+                    borderColor: ck.color === p.color ? "var(--accent-primary)" : "var(--border)",
+                  }}
+                />
+              ))}
+              <input
+                type="color"
+                value={ck.color}
+                onChange={(e) => set({ color: e.target.value })}
+                className="w-6 h-6 rounded cursor-pointer border border-[var(--border)] bg-transparent shrink-0"
+                title="Custom color"
+              />
+              <span className="text-[10px] font-mono text-[var(--text-muted)] truncate">{ck.color}</span>
+            </div>
+          </div>
+
+          {(
+            [
+              { key: "similarity" as const, label: "Tolerance",       min: 0.05, max: 0.8,  step: 0.01 },
+              { key: "smoothness" as const, label: "Edge Softness",   min: 0.0,  max: 0.3,  step: 0.01 },
+              { key: "spill"      as const, label: "Spill Reduction", min: 0.0,  max: 1.0,  step: 0.05 },
+            ] as const
+          ).map(({ key, label, min, max, step }) => (
+            <div key={key} className="space-y-1">
+              <div className="flex justify-between">
+                <label className="text-[10px] text-[var(--text-muted)]">{label}</label>
+                <span className="text-[10px] font-mono text-[var(--text-primary)]">{ck[key].toFixed(2)}</span>
+              </div>
+              <input
+                type="range" min={min} max={max} step={step} value={ck[key]}
+                onChange={(e) => set({ [key]: Number(e.target.value) })}
+                className="w-full h-1 cursor-pointer accent-[var(--accent-primary)]"
+              />
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
 function Inspector({
   chatProps,
   queueProps,
@@ -1858,6 +1948,12 @@ function Inspector({
                   layer={selectedLayer}
                   onUpdateLayer={(patch) => updateLayer(activeScene.id, selectedLayer.id, patch)}
                 />
+                {selectedLayer.type === "camera" && (
+                  <ChromaKeySection
+                    layer={selectedLayer}
+                    onUpdateLayer={(patch) => updateLayer(activeScene.id, selectedLayer.id, patch)}
+                  />
+                )}
               </>
             )}
           </div>

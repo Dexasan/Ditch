@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { IAgoraRTCRemoteUser, ILocalVideoTrack, ILocalAudioTrack } from "agora-rtc-sdk-ng";
 import type { Participant } from "@ditch/types";
 import type { Layer } from "@/lib/studio-store";
+import { ChromaKeyProcessor, type ChromaKeyConfig } from "@/lib/chromaKey";
 
 const W = 1280;
 const H = 720;
@@ -113,6 +114,8 @@ export function useCompositor({
   const cameraLayerRef = useRef<Layer | null>(cameraLayer ?? null);
   useEffect(() => { cameraLayerRef.current = cameraLayer ?? null; }, [cameraLayer]);
 
+  const chromaKeyRef = useRef<ChromaKeyProcessor | null>(null);
+
   // Fallback path: CanvasCaptureMediaStreamTrack with manual requestFrame()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const captureTrackRef = useRef<any>(null);
@@ -165,6 +168,10 @@ export function useCompositor({
 
     setStream(new MediaStream([videoTrack, ...audioDest.stream.getAudioTracks()]));
 
+    try { chromaKeyRef.current = new ChromaKeyProcessor(); } catch {
+      console.warn("[compositor] WebGL unavailable — chroma key disabled");
+    }
+
     // Resume AudioContext when tab regains focus (Chrome suspends it on hide)
     function onVisibility() {
       console.log(`[compositor] visibility: ${document.visibilityState}`);
@@ -193,6 +200,8 @@ export function useCompositor({
       frameCacheRef.current.forEach((f) => { try { f.close(); } catch {} });
       frameCacheRef.current.clear();
       canvasRef.current = null;
+      chromaKeyRef.current?.dispose();
+      chromaKeyRef.current = null;
       setStream(null);
     };
   }, [enabled]);
@@ -330,7 +339,23 @@ export function useCompositor({
         try {
           const native = localVideoTrack.getMediaStreamTrack();
           const source = useBreakout ? frameCacheRef.current.get(native.id) : getVideoElem(native.id, native);
-          if (source) drawCover(source, camTransform.x, camTransform.y, camTransform.width, camTransform.height);
+          if (source) {
+            const ckCfg = (cameraLayerRef.current?.effects ?? [])
+              .find((e) => (e as Record<string, unknown>)["type"] === "chromaKey" &&
+                           (e as Record<string, unknown>)["enabled"]) as ChromaKeyConfig | undefined;
+            if (ckCfg && chromaKeyRef.current) {
+              const nw = (source.displayWidth ?? source.videoWidth) || W;
+              const nh = (source.displayHeight ?? source.videoHeight) || H;
+              const keyed  = chromaKeyRef.current.process(source, nw, nh, ckCfg);
+              const { x: dx, y: dy, width: dw, height: dh } = camTransform;
+              const scale  = Math.max(dw / nw, dh / nh);
+              const sw = dw / scale, sh = dh / scale;
+              const sx = (nw - sw) / 2, sy = (nh - sh) / 2;
+              ctx!.drawImage(keyed, sx, sy, sw, sh, dx, dy, dw, dh);
+            } else {
+              drawCover(source, camTransform.x, camTransform.y, camTransform.width, camTransform.height);
+            }
+          }
         } catch {}
       }
 
