@@ -787,3 +787,76 @@ Step 3 — Invite modal (`commit 0a1ba98`)
 **Issue 2 — Scene transitions not functional**
 - The transition type selector (cut / fade / slide) and duration are stored in `Scene.transition` and `switchScene` in the store sets `isTransitioning: true` with a timer. The canvas wrapper receives a CSS animation class during transition. However: (a) fade/slide animations are defined as `@keyframes` in the inline `<style>` block in the Studio root but may not be triggering correctly, (b) the "Transitions" panel icon in the right strip likely opens a panel that isn't fully wired to per-scene transition config, (c) there is no UI to set transition type/duration per scene.
 - Investigation needed: verify the `isTransitioning` flag actually applies the CSS class to the canvas wrapper, check whether the Transitions panel exists and what it renders, confirm `switchScene` reads `target.transition` correctly from the store.
+
+---
+
+### Day 14 — 2026-05-22
+
+**Stage 1 (2026-05-20) — Day 13 carry items resolved**
+
+Step 1 — Meld-style layer overlay (`commit 07a74eb`)
+- Fixed overlay never rendering: wired `onCamLiveChange` from Studio root → `PreviewCanvas`
+- Added `setCamTransformLive` to `useCompositor` — writes directly to `cameraLayerRef` without React state; compositor updates frame-accurately during drag with zero re-renders
+- Replaced 4 corner handles (8px hit area) with 8 handles: 4 corners (nw/ne/sw/se) + 4 edges (n/s/e/w)
+- Hit area expanded to 24px, 10px visible dot with drop shadow
+- Shift key locks aspect ratio on corner drags: width leads, height follows
+
+Step 2 — Scene transitions now functional (`commit 1146841`)
+Three root causes identified and fixed:
+1. `durationMs` was always 0 — type buttons now set a default (fade=400ms, slide=300ms) when switching from cut; `switchScene` early-returns on `durationMs=0` so nothing played
+2. CSS animation wouldn't restart on second switch — same `@keyframes` name on same DOM element is a no-op; added `transitionKey` counter to store, incremented on each non-cut switch, used in the animation name so the browser sees a new animation every time
+3. No duration UI — added a range slider (100–1500ms) below the type buttons when transition type is not cut
+
+Step 3 — Block anonymous chat sends server-side (`commit 998aa32`)
+- Audit confirmed anonymous sockets could write to `chat_messages` via the admin client (bypassing RLS)
+- Added `user_id` check at the top of the `chat:message` handler in `apps/realtime/src/handlers/chat.ts` — unauthenticated sockets receive `chat:error` with code `"auth_required"` and the message is dropped before any DB write
+- Added `chat:error` to `ServerToClientEvents` in `apps/realtime/src/types.ts` so the frontend can handle it
+
+---
+
+**Stage 2 (2026-05-22) — Viewer experience overhaul**
+
+Step 4 — Status check + participant camera audit
+- Full audit of the post-accept participant camera flow written to `docs/audit-participant-promotion.md`
+- Verdict: Mode A — tracks never created, errors silenced. `useAgoraRoom` error field was never destructured in `ChannelView`, so any Agora failure (permissions denied, UID conflict, etc.) was completely invisible. Viewer saw "You're live!" but no camera prompt.
+
+Step 5 — Participant queue real-time updates + studio layout persistence (`commit 3fff6a4`)
+- **Queue fix:** Participant join requests required a page refresh to appear in the creator's queue. Root cause: the `POST /participants` API call wrote to DB directly; the realtime server was never notified. Fix: added `participant:notify_new` socket event (client emits after `requestJoin` succeeds); realtime handler fetches active participants and broadcasts `participant:queue_update` to the session room.
+- **Studio persist:** Creator's scenes, layer positions, and settings reset to defaults on every page refresh. Fixed by wrapping `useStudioStore` in Zustand `persist` middleware with `partialize` — scenes, `activeSceneId`, `targetFps`, `snapToGrid` persist to `localStorage` under key `"ditch-studio-v1"`. Destinations intentionally excluded to keep stream keys out of browser storage.
+
+Step 6 — Anonymous watch + gated chat + Agora error surface (`commit 1e43587`)
+- **Viewer model:** anonymous users can watch the stream freely; an account is required to send chat. No redirect or signup wall — stream keeps playing. Implemented in `ChannelView.tsx`:
+  - `tokenState`/`viewerNameState` are mutable state (updated after sign-in) — socket reconnects with auth token automatically
+  - Unauthenticated branch renders a draft `<input>` + "Sign in" button in place of the chat list
+  - Draft message text is preserved through the sign-in flow and prefilled into the live chat input on success
+  - `SignInModal` component: sign-in + sign-up tabs, `display_name` field at signup (stored in Supabase `user_metadata`), email verification screen, backdrop-click dismiss, auto-focus, error display
+  - Server enforces the gate: `chat:message` handler drops unauthenticated sends with `chat:error auth_required`
+- **Agora error surface:** destructured `error: agoraError` from `useAgoraRoom`; rendered as a red card in the participant panel when `isLiveParticipant && agoraError`. Previously all Agora failures were completely invisible.
+- **`publish: false` always:** removed auto-publish from the `useAgoraRoom` effect; `getUserMedia` must come from a direct user tap for iOS Safari.
+
+Step 7 — iOS Safari camera permission fix (`commits 55ba32d`, `0b108c5`)
+- **Root cause:** `useAgoraRoom` effect re-ran when `uid`/`role`/`publish` changed on promotion (socket event chain). Even `setClientRole("host")` triggers Agora's internal audio init on iOS, which requires a user gesture. The effect running from a socket event failed, set `agoraError`, and hid the "Tap to start camera" button before the user could tap anything.
+- First fix: exposed `publishTracks()` from the hook — called from `onClick` instead of the effect. Added `joinedRef` guard to prevent "INVALID_OPERATION: can't publish stream, haven't joined yet" when button was tapped too early.
+
+Step 8 — `goLiveAsHost`: complete iOS Safari fix (`commit bc4d7e9`)
+- **Root cause (deeper):** `uid: isLiveParticipant ? mySlotUid : 0` and `role: isLiveParticipant ? "host" : "audience"` still changed on promotion, still triggering the effect re-run, still calling `setClientRole("host")` from the socket event chain. The button never appeared.
+- **Fix:** ChannelView now always passes `uid: 0, role: "audience"` — the effect never re-runs on promotion. Added `goLiveAsHost(hostUid: number)` to `useAgoraRoom`:
+  - Leaves the current audience client
+  - Creates a new client, sets role to host, joins with the slot UID
+  - Creates mic+camera tracks and publishes — all in one call
+  - Called directly from the button `onClick`, so the entire promotion flow runs within the iOS gesture context
+  - `goingLive` state prevents double-tap; button shows "Starting…" during the async flow
+- Replaces `publishTracks` entirely; `goLiveAsHost` is the only camera promotion path on both Android and iOS
+
+**Commits this session:** `3fff6a4`, `1e43587`, `55ba32d`, `0b108c5`, `bc4d7e9`
+
+**State at end of Day 14:**
+- Anonymous viewers can watch freely; sign-in modal overlay with draft preservation
+- Chat gated server-side and client-side; no silent drops
+- Participant join requests appear in creator queue in real-time without refresh
+- Studio layout survives page refresh (Zustand persist)
+- Agora errors visible to participants with actionable message
+- Camera promotion works on both Android and iOS Safari: "Tap to start camera" button always renders when live, full flow runs inside the tap gesture
+- TypeScript: 0 errors across all changes
+
+**Next logical step (Day 15):** End-to-end test with an iPhone — verify the "Tap to start camera" button appears after promotion and that iOS grants the camera permission prompt on tap. Follow with a multi-participant stream test.
