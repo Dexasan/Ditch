@@ -110,11 +110,13 @@ export default function ChannelView({
   const isLiveParticipant = myParticipant?.status === "live";
   const mySlotUid = isLiveParticipant ? slotToUid(myParticipant!.slot_index ?? 0) : 0;
 
-  const { localVideoTrack, localAudioTrack, remoteUsers, error: agoraError } = useAgoraRoom({
+  const { localVideoTrack, localAudioTrack, remoteUsers, error: agoraError, publishTracks } = useAgoraRoom({
     channelName: sessionId,
     uid: isLiveParticipant ? mySlotUid : 0,
     role: isLiveParticipant ? "host" : "audience",
-    publish: isLiveParticipant,
+    // Never auto-publish from the effect — getUserMedia must be triggered by a direct
+    // user tap so iOS Safari grants the permission prompt.
+    publish: false,
     enabled: true,
   });
 
@@ -380,7 +382,13 @@ export default function ChannelView({
                     </div>
                   )}
                   {isLiveParticipant && !agoraError && !localVideoTrack && (
-                    <p className="text-xs text-[var(--color-text-muted)]">Starting camera…</p>
+                    <button
+                      type="button"
+                      onClick={publishTracks}
+                      className="w-full py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition-colors"
+                    >
+                      Tap to start camera
+                    </button>
                   )}
                   {isLiveParticipant && !agoraError && localVideoTrack && (
                     <div className="flex gap-2">

@@ -18,6 +18,11 @@ export interface AgoraRoomState {
   error: string | null;
   isScreenSharing: boolean;
   toggleScreenShare: () => Promise<void>;
+  /** Call this directly from an onClick handler. iOS Safari requires getUserMedia to
+   *  be triggered within a user gesture; calling it from useEffect (socket event chain)
+   *  is blocked. This function creates mic+camera tracks and publishes to the already-
+   *  joined client, so the permission prompt fires while the gesture context is active. */
+  publishTracks: () => Promise<void>;
 }
 
 export function useAgoraRoom(options: {
@@ -31,7 +36,7 @@ export function useAgoraRoom(options: {
 }): AgoraRoomState {
   const { channelName, uid, role, publish, enabled, screenShareUid } = options;
 
-  const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "toggleScreenShare">>({
+  const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "toggleScreenShare" | "publishTracks">>({
     localVideoTrack: null,
     localAudioTrack: null,
     remoteUsers: [],
@@ -167,5 +172,22 @@ export function useAgoraRoom(options: {
     }
   }, [screenShareUid]);
 
-  return { ...state, localScreenTrack, toggleScreenShare };
+  const publishTracks = useCallback(async () => {
+    const client = clientRef.current;
+    if (!client) {
+      setState((prev) => ({ ...prev, error: "Not connected — try reloading" }));
+      return;
+    }
+    try {
+      const AgoraRTC = await getAgoraRTC();
+      const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+      camTrackRef.current = videoTrack;
+      await client.publish([audioTrack, videoTrack]);
+      setState((prev) => ({ ...prev, localVideoTrack: videoTrack, localAudioTrack: audioTrack, error: null }));
+    } catch (err) {
+      setState((prev) => ({ ...prev, error: String(err) }));
+    }
+  }, []);
+
+  return { ...state, localScreenTrack, toggleScreenShare, publishTracks };
 }
