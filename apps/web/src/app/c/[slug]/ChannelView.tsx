@@ -7,11 +7,466 @@ import { useAgoraRoom } from "@/hooks/useAgoraRoom";
 import { slotToUid, CREATOR_CAM_UID, CREATOR_SCREEN_UID } from "@/lib/agora";
 import { api } from "@/lib/api";
 import type { ChatMessage, Participant } from "@ditch/types";
+import type { ILocalVideoTrack, IRemoteVideoTrack } from "agora-rtc-sdk-ng";
 import SignInModal from "@/components/SignInModal";
 
 const AgoraVideoTile = dynamic(() => import("@/components/AgoraVideoTile"), { ssr: false });
 
 const MAX_CHAT = 200;
+
+const PLATFORM_COLOR: Record<string, string> = {
+  twitch:  "#9146ff",
+  youtube: "#ff0000",
+  tiktok:  "#ff0050",
+  kick:    "#53fc18",
+  ditch:   "#FF1DB4",
+};
+
+// ── Icons ─────────────────────────────────────────────────────────────────────
+
+function MicIcon({ muted }: { muted: boolean }) {
+  return muted ? (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="1" y1="1" x2="23" y2="23" />
+      <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+      <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
+      <line x1="12" y1="19" x2="12" y2="23" />
+      <line x1="8" y1="23" x2="16" y2="23" />
+    </svg>
+  ) : (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+      <line x1="12" y1="19" x2="12" y2="23" />
+      <line x1="8" y1="23" x2="16" y2="23" />
+    </svg>
+  );
+}
+
+function CamIcon({ off }: { off: boolean }) {
+  return off ? (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="1" y1="1" x2="23" y2="23" />
+      <path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34m-7.72-2.06a4 4 0 1 1-5.56-5.56" />
+    </svg>
+  ) : (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="23 7 16 12 23 17 23 7" />
+      <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+    </svg>
+  );
+}
+
+// ── Participant tile (secondary strip) ────────────────────────────────────────
+
+function ParticipantTile({
+  participant,
+  videoTrack,
+  isMe,
+}: {
+  participant: Participant;
+  videoTrack: ILocalVideoTrack | IRemoteVideoTrack | null;
+  isMe: boolean;
+}) {
+  return (
+    <div
+      className="relative flex-shrink-0 rounded-lg overflow-hidden"
+      style={{ width: 112, height: 63, background: "#111120" }}
+    >
+      {videoTrack ? (
+        <AgoraVideoTile track={videoTrack} />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+            style={{ background: "var(--color-brand)" }}
+          >
+            {(participant.display_name?.[0] ?? "?").toUpperCase()}
+          </div>
+        </div>
+      )}
+      <div
+        className="absolute bottom-0 left-0 right-0 px-1.5 py-0.5 flex items-center gap-1"
+        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)" }}
+      >
+        {isMe && (
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 animate-pulse" />
+        )}
+        <span className="text-[10px] text-white/80 truncate leading-none">
+          {participant.display_name}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Join panel — full state machine ───────────────────────────────────────────
+
+function JoinPanel({
+  isOwner,
+  channelSlug,
+  myParticipant,
+  agoraError,
+  localVideoTrack,
+  goingLive,
+  micEnabled,
+  camEnabled,
+  requesting,
+  requestError,
+  requestName,
+  onNameChange,
+  onRequest,
+  onGoLive,
+  onToggleMic,
+  onToggleCam,
+}: {
+  isOwner: boolean;
+  channelSlug: string;
+  myParticipant: Participant | null;
+  agoraError: string | null;
+  localVideoTrack: ILocalVideoTrack | null;
+  goingLive: boolean;
+  micEnabled: boolean;
+  camEnabled: boolean;
+  requesting: boolean;
+  requestError: string | null;
+  requestName: string;
+  onNameChange: (v: string) => void;
+  onRequest: (e: React.FormEvent) => void;
+  onGoLive: () => void;
+  onToggleMic: () => void;
+  onToggleCam: () => void;
+}) {
+  if (isOwner) {
+    return (
+      <div className="p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "var(--color-brand)" }} />
+          <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+            Your Stream
+          </span>
+        </div>
+        <a
+          href={`/c/${channelSlug}/live`}
+          className="block w-full py-2.5 rounded-xl text-sm font-bold text-center text-white transition-opacity hover:opacity-90"
+          style={{ background: "var(--color-brand)" }}
+        >
+          Open Studio →
+        </a>
+      </div>
+    );
+  }
+
+  const status = myParticipant?.status;
+
+  // ── Not yet requested / removed ──────────────────────────────────────────────
+  if (!myParticipant || status === "removed") {
+    return (
+      <form onSubmit={onRequest} className="p-4 flex flex-col gap-3">
+        <div>
+          <h3 className="text-[15px] font-bold text-white leading-tight">Join this stream</h3>
+          <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+            Go live on screen — no download needed.
+          </p>
+        </div>
+        <input
+          type="text"
+          required
+          value={requestName}
+          onChange={(e) => onNameChange(e.target.value)}
+          placeholder="Your display name"
+          maxLength={64}
+          className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none transition-colors"
+          style={{
+            background: "#111120",
+            border: "1px solid var(--color-surface-border)",
+          }}
+          onFocus={(e) => { e.target.style.borderColor = "var(--color-brand)"; }}
+          onBlur={(e)  => { e.target.style.borderColor = "var(--color-surface-border)"; }}
+        />
+        {requestError && (
+          <p className="text-[11px] text-red-400">{requestError}</p>
+        )}
+        <button
+          type="submit"
+          disabled={requesting || !requestName.trim()}
+          className="relative w-full py-2.5 rounded-xl text-sm font-bold text-white transition-all overflow-hidden disabled:opacity-50"
+          style={{ background: "var(--color-brand)" }}
+        >
+          {requesting ? "Sending…" : "Request to join"}
+          {!requesting && (
+            <span
+              className="absolute inset-0 rounded-xl animate-ping opacity-25 pointer-events-none"
+              style={{ boxShadow: "0 0 0 4px var(--color-brand)" }}
+            />
+          )}
+        </button>
+      </form>
+    );
+  }
+
+  // ── Waiting ──────────────────────────────────────────────────────────────────
+  if (status === "waiting") {
+    return (
+      <div className="p-4 flex flex-col items-center gap-5 py-7">
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <span
+            className="absolute inset-0 rounded-full animate-ping opacity-20"
+            style={{ border: "2px solid var(--color-brand)", animationDuration: "2.2s" }}
+          />
+          <span
+            className="absolute inset-2 rounded-full animate-ping opacity-30"
+            style={{ border: "2px solid var(--color-brand)", animationDuration: "2.2s", animationDelay: "0.7s" }}
+          />
+          <span
+            className="w-8 h-8 rounded-full flex items-center justify-center"
+            style={{ background: "rgba(255,29,180,0.12)", border: "1.5px solid var(--color-brand)" }}
+          >
+            <span
+              className="w-3 h-3 rounded-full animate-pulse"
+              style={{ background: "var(--color-brand)" }}
+            />
+          </span>
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-semibold text-white">Request sent!</p>
+          <p className="text-[11px] leading-relaxed mt-1" style={{ color: "var(--color-text-muted)" }}>
+            Waiting for the creator<br />to approve your spot.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Approved ─────────────────────────────────────────────────────────────────
+  if (status === "approved") {
+    return (
+      <div className="p-4 flex flex-col gap-3">
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-lg"
+          style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)" }}
+        >
+          <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
+          <span className="text-[11px] font-semibold text-green-400">You're approved!</span>
+        </div>
+        <p className="text-[11px] px-0.5 leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+          Ready to go on air. Tap below to start your camera.
+        </p>
+        <button
+          onClick={onGoLive}
+          disabled={goingLive}
+          className="relative w-full py-2.5 rounded-xl text-sm font-bold text-white overflow-hidden transition-all disabled:opacity-50"
+          style={{ background: "#16a34a" }}
+        >
+          {goingLive ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              Starting camera…
+            </span>
+          ) : (
+            <>
+              Go live now →
+              <span className="absolute inset-0 rounded-xl animate-ping opacity-20 pointer-events-none"
+                    style={{ boxShadow: "0 0 0 4px #16a34a" }} />
+            </>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  // ── Live ─────────────────────────────────────────────────────────────────────
+  if (status === "live") {
+    if (agoraError) {
+      return (
+        <div className="p-4 flex flex-col gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-red-400">Camera error</span>
+          </div>
+          <p className="text-[11px] leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+            {agoraError}
+          </p>
+          <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+            Check browser camera permissions and reload.
+          </p>
+        </div>
+      );
+    }
+
+    if (!localVideoTrack) {
+      return (
+        <div className="p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+            <span className="text-[11px] font-bold uppercase tracking-widest text-white">You&apos;re live</span>
+          </div>
+          <button
+            onClick={onGoLive}
+            disabled={goingLive}
+            className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-500 disabled:opacity-50 transition-colors"
+          >
+            {goingLive ? "Starting…" : "Start your camera"}
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+          <span className="text-[11px] font-bold uppercase tracking-widest text-white">You&apos;re live</span>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={onToggleMic}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border transition-colors ${
+              micEnabled
+                ? "text-[var(--color-text)] hover:border-red-500/40"
+                : "bg-red-500/10 text-red-400 border-red-500/40"
+            }`}
+            style={{ borderColor: micEnabled ? "var(--color-surface-border)" : undefined }}
+          >
+            <MicIcon muted={!micEnabled} />
+            {micEnabled ? "Mute" : "Unmute"}
+          </button>
+          <button
+            onClick={onToggleCam}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border transition-colors ${
+              camEnabled
+                ? "text-[var(--color-text)] hover:border-red-500/40"
+                : "bg-red-500/10 text-red-400 border-red-500/40"
+            }`}
+            style={{ borderColor: camEnabled ? "var(--color-surface-border)" : undefined }}
+          >
+            <CamIcon off={!camEnabled} />
+            {camEnabled ? "Cam off" : "Cam on"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// ── Chat panel ────────────────────────────────────────────────────────────────
+
+function ChatPanel({
+  messages,
+  chatBody,
+  chatDraft,
+  connected,
+  tokenState,
+  chatEndRef,
+  chatInputRef,
+  onSend,
+  onBodyChange,
+  onDraftChange,
+  onSignInClick,
+}: {
+  messages: ChatMessage[];
+  chatBody: string;
+  chatDraft: string;
+  connected: boolean;
+  tokenState: string | null;
+  chatEndRef: React.RefObject<HTMLDivElement>;
+  chatInputRef: React.RefObject<HTMLInputElement>;
+  onSend: (e: React.FormEvent) => void;
+  onBodyChange: (v: string) => void;
+  onDraftChange: (v: string) => void;
+  onSignInClick: () => void;
+}) {
+  return (
+    <>
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 min-h-0">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-20 gap-1.5 opacity-30 select-none">
+            <span className="text-xl">💬</span>
+            <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              {connected ? "No messages yet" : "Connecting…"}
+            </p>
+          </div>
+        ) : (
+          messages.map((m) => (
+            <div key={m.id} className="text-[12px] leading-relaxed">
+              <span
+                className="font-semibold"
+                style={{ color: PLATFORM_COLOR[m.platform] ?? "var(--color-brand-light)" }}
+              >
+                {m.author_display_name}
+              </span>
+              <span className="ml-1.5" style={{ color: "var(--color-text)" }}>
+                {m.body}
+              </span>
+            </div>
+          ))
+        )}
+        <div ref={chatEndRef} />
+      </div>
+
+      {tokenState ? (
+        <form
+          onSubmit={onSend}
+          className="flex gap-2 p-3 border-t shrink-0"
+          style={{ borderColor: "var(--color-surface-border)" }}
+        >
+          <input
+            ref={chatInputRef}
+            type="text"
+            value={chatBody}
+            onChange={(e) => onBodyChange(e.target.value)}
+            placeholder="Say something…"
+            maxLength={500}
+            className="flex-1 min-w-0 px-3 py-2 rounded-lg text-[13px] focus:outline-none transition-colors"
+            style={{
+              background: "#111120",
+              border: "1px solid var(--color-surface-border)",
+            }}
+            onFocus={(e) => { e.target.style.borderColor = "var(--color-brand)"; }}
+            onBlur={(e)  => { e.target.style.borderColor = "var(--color-surface-border)"; }}
+          />
+          <button
+            type="submit"
+            disabled={!chatBody.trim()}
+            className="px-3 py-2 rounded-lg text-[12px] font-semibold text-white disabled:opacity-40 transition-colors shrink-0"
+            style={{ background: "var(--color-brand)" }}
+          >
+            Send
+          </button>
+        </form>
+      ) : (
+        <div
+          className="flex gap-2 p-3 border-t shrink-0"
+          style={{ borderColor: "var(--color-surface-border)" }}
+        >
+          <input
+            type="text"
+            value={chatDraft}
+            onChange={(e) => onDraftChange(e.target.value)}
+            placeholder="Sign in to chat…"
+            maxLength={500}
+            className="flex-1 min-w-0 px-3 py-2 rounded-lg text-[13px] focus:outline-none cursor-text"
+            style={{
+              background: "#111120",
+              border: "1px solid var(--color-surface-border)",
+            }}
+          />
+          <button
+            onClick={onSignInClick}
+            className="px-3 py-2 rounded-lg text-[12px] font-semibold text-white shrink-0 transition-opacity hover:opacity-90"
+            style={{ background: "var(--color-brand)" }}
+          >
+            Sign in
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function ChannelView({
   sessionId,
@@ -26,46 +481,47 @@ export default function ChannelView({
   isOwner: boolean;
   channelSlug: string;
 }) {
-  // tokenState / viewerNameState are mutable — updated after sign-in so the
-  // socket reconnects with auth and the display name is correct in chat.
-  const [tokenState, setTokenState] = useState<string | null>(token);
+  const [tokenState, setTokenState]           = useState<string | null>(token);
   const [viewerNameState, setViewerNameState] = useState<string | null>(viewerName);
-
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [myParticipant, setMyParticipant] = useState<Participant | null>(null);
-  const [chatBody, setChatBody] = useState("");
-  const [chatDraft, setChatDraft] = useState(""); // anon draft preserved through sign-in
+  const [messages, setMessages]               = useState<ChatMessage[]>([]);
+  const [participants, setParticipants]       = useState<Participant[]>([]);
+  const [myParticipant, setMyParticipant]     = useState<Participant | null>(null);
+  const [chatBody, setChatBody]               = useState("");
+  const [chatDraft, setChatDraft]             = useState("");
   const [showSignInModal, setShowSignInModal] = useState(false);
-  const [requestName, setRequestName] = useState(viewerName ?? "");
-  const [requesting, setRequesting] = useState(false);
-  const [requestError, setRequestError] = useState<string | null>(null);
-  const [connected, setConnected] = useState(false);
-  const [sessionError, setSessionError] = useState<string | null>(null);
-  const [micEnabled, setMicEnabled] = useState(true);
-  const [camEnabled, setCamEnabled] = useState(true);
-  const [goingLive, setGoingLive] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [requestName, setRequestName]         = useState(viewerName ?? "");
+  const [requesting, setRequesting]           = useState(false);
+  const [requestError, setRequestError]       = useState<string | null>(null);
+  const [connected, setConnected]             = useState(false);
+  const [sessionError, setSessionError]       = useState<string | null>(null);
+  const [micEnabled, setMicEnabled]           = useState(true);
+  const [camEnabled, setCamEnabled]           = useState(true);
+  const [goingLive, setGoingLive]             = useState(false);
+  const [mobileTab, setMobileTab]             = useState<"chat" | "join">("join");
+
+  const chatEndRef  = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
 
-  // Close sign-in modal if the stream ends while it's open.
   useEffect(() => {
     if (sessionError) setShowSignInModal(false);
   }, [sessionError]);
 
+  // Switch mobile tab to show controls the moment they're approved
+  useEffect(() => {
+    if (myParticipant?.status === "approved" || myParticipant?.status === "live") {
+      setMobileTab("join");
+    }
+  }, [myParticipant?.status]);
+
+  // Socket
   useEffect(() => {
     const socket = getSocket(tokenState ?? undefined);
-
     socket.connect();
-
     socket.on("connect", () => setConnected(true));
     socket.on("connect_error", () => setConnected(false));
 
     const onJoin: SessionJoinAck = (err, state) => {
-      if (err) {
-        setSessionError(err);
-        return;
-      }
+      if (err) { setSessionError(err); return; }
       if (state) {
         setParticipants(state.participants);
         setMessages(state.recentMessages.slice(-MAX_CHAT));
@@ -77,7 +533,6 @@ export default function ChannelView({
     socket.on("chat:message", ({ message }) => {
       setMessages((prev) => [...prev.slice(-MAX_CHAT + 1), message]);
     });
-
     socket.on("participant:queue_update", ({ participants: updated }) => {
       setParticipants(updated);
       setMyParticipant((prev) => {
@@ -85,11 +540,8 @@ export default function ChannelView({
         return updated.find((p: Participant) => p.id === prev.id) ?? prev;
       });
     });
-
     socket.on("participant:status_change", ({ participant }) => {
-      setParticipants((prev) =>
-        prev.map((p) => (p.id === participant.id ? participant : p))
-      );
+      setParticipants((prev) => prev.map((p) => (p.id === participant.id ? participant : p)));
       setMyParticipant((prev) => (prev?.id === participant.id ? participant : prev));
     });
 
@@ -111,9 +563,6 @@ export default function ChannelView({
   const isLiveParticipant = myParticipant?.status === "live";
   const mySlotUid = isLiveParticipant ? slotToUid(myParticipant!.slot_index ?? 0) : 0;
 
-  // Always join as audience — role/uid never change on their own.
-  // goLiveAsHost() handles the full leave-audience → join-as-host → create-tracks → publish
-  // flow within a single click-handler call so iOS Safari grants the permission prompt.
   const { localVideoTrack, localAudioTrack, remoteUsers, error: agoraError, goLiveAsHost } = useAgoraRoom({
     channelName: sessionId,
     uid: 0,
@@ -139,8 +588,7 @@ export default function ChannelView({
   function sendChat(e: React.FormEvent) {
     e.preventDefault();
     if (!chatBody.trim()) return;
-    const socket = getSocket(tokenState ?? undefined);
-    socket.emit("chat:message", {
+    getSocket(tokenState ?? undefined).emit("chat:message", {
       session_id: sessionId,
       body: chatBody.trim(),
       display_name: viewerNameState ?? "Viewer",
@@ -160,7 +608,7 @@ export default function ChannelView({
       });
       setMyParticipant(participant);
       getSocket(tokenState ?? undefined).emit("participant:notify_new", { session_id: sessionId });
-    } catch (err: unknown) {
+    } catch (err) {
       setRequestError(err instanceof Error ? err.message : "Failed to request.");
     }
     setRequesting(false);
@@ -170,10 +618,8 @@ export default function ChannelView({
     setTokenState(newToken);
     setViewerNameState(displayName);
     setShowSignInModal(false);
-    // Prefill chat with the draft and focus the input.
     setChatBody(chatDraft);
     setChatDraft("");
-    // Focus happens after the authed input mounts (next tick).
     setTimeout(() => {
       chatInputRef.current?.focus();
       const len = chatInputRef.current?.value.length ?? 0;
@@ -181,278 +627,317 @@ export default function ChannelView({
     }, 0);
   }
 
-  const liveSlots = participants.filter((p) => p.status === "live");
+  function handleGoLive() {
+    setGoingLive(true);
+    goLiveAsHost(mySlotUid).finally(() => setGoingLive(false));
+  }
 
+  // Derived
+  const creatorVideo = remoteUsers.find((u) => u.uid === CREATOR_CAM_UID)?.videoTrack ?? null;
+  const screenVideo  = remoteUsers.find((u) => u.uid === CREATOR_SCREEN_UID)?.videoTrack ?? null;
+  const liveSlots    = participants.filter((p) => p.status === "live");
+  const onStreamCount = liveSlots.length + 1; // +1 for creator
+  const hasStrip     = !!(screenVideo || liveSlots.length > 0);
+
+  // ── Error state ───────────────────────────────────────────────────────────────
   if (sessionError) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center space-y-2">
-          <p className="text-[var(--color-text-muted)]">
-            {sessionError === "Session has ended"
-              ? "This stream has ended."
-              : "Unable to connect to stream."}
+      <div className="flex-1 flex flex-col items-center justify-center gap-5" style={{ background: "#0A0A14" }}>
+        <div
+          className="w-16 h-16 rounded-full flex items-center justify-center text-2xl"
+          style={{ background: "rgba(255,29,180,0.08)", border: "1px solid rgba(255,29,180,0.2)" }}
+        >
+          📡
+        </div>
+        <div className="text-center space-y-1">
+          <p className="font-semibold text-white">
+            {sessionError === "Session has ended" ? "Stream ended" : "Connection lost"}
           </p>
-          {sessionError !== "Session has ended" && (
-            <p className="text-xs text-[var(--color-text-muted)]">{sessionError}</p>
-          )}
+          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+            {sessionError === "Session has ended"
+              ? "Thanks for watching. The stream has ended."
+              : "Unable to connect. Try reloading the page."}
+          </p>
         </div>
       </div>
     );
   }
 
+  // ── Main render ───────────────────────────────────────────────────────────────
   return (
     <>
-    <div className="flex flex-col h-[calc(100vh-57px)]">
-      {/* Feeds row: creator camera + screen share (if active) + live participants */}
-      <div className="flex flex-wrap gap-3 p-4 bg-[var(--color-surface-raised)] border-b border-[var(--color-surface-border)]">
-        {/* Creator camera — always shown */}
-        {(() => {
-          const creatorVideo = remoteUsers.find((u) => u.uid === CREATOR_CAM_UID)?.videoTrack ?? null;
-          return (
-            <div className="relative w-48 h-28 rounded-lg bg-zinc-900 border-2 border-[var(--color-brand)]/40 overflow-hidden">
-              {creatorVideo ? (
-                <AgoraVideoTile track={creatorVideo} />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs text-[var(--color-text-muted)]">Host</span>
-                </div>
-              )}
-              <span className="absolute bottom-1 left-2 text-xs text-white/70 bg-black/40 px-1 rounded">
-                Host
-              </span>
-            </div>
-          );
-        })()}
+      <div
+        className="flex flex-col md:flex-row overflow-hidden"
+        style={{ height: "calc(100dvh - 57px)", background: "#0A0A14" }}
+      >
 
-        {/* Creator screen share — shown only when active */}
-        {(() => {
-          const screenVideo = remoteUsers.find((u) => u.uid === CREATOR_SCREEN_UID)?.videoTrack ?? null;
-          if (!screenVideo) return null;
-          return (
-            <div className="relative w-64 h-28 rounded-lg bg-zinc-900 border border-blue-500/50 overflow-hidden">
-              <AgoraVideoTile track={screenVideo} />
-              <span className="absolute bottom-1 left-2 text-xs text-white/70 bg-black/40 px-1 rounded">
-                Screen
-              </span>
-            </div>
-          );
-        })()}
+        {/* ── LEFT: video + chat ────────────────────────────────────────────── */}
+        <div className="flex-1 flex flex-col min-h-0 min-w-0">
 
-        {/* Live participants */}
-        {liveSlots.map((p) => {
-          const uid = slotToUid(p.slot_index ?? 0);
-          const isMe = myParticipant?.id === p.id;
-          const videoTrack = isMe
-            ? localVideoTrack
-            : remoteUsers.find((u) => u.uid === uid)?.videoTrack ?? null;
-          return (
+          {/* Main video */}
+          <div
+            className="relative bg-black flex-shrink-0"
+            style={{ aspectRatio: "16/9" }}
+          >
+            {creatorVideo ? (
+              <AgoraVideoTile track={creatorVideo} />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 select-none"
+                   style={{ opacity: 0.25 }}>
+                <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="23 7 16 12 23 17 23 7" />
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+                <span className="text-[11px] uppercase tracking-widest">Starting stream…</span>
+              </div>
+            )}
+
+            {/* LIVE pill */}
             <div
-              key={p.id}
-              className="relative w-48 h-28 rounded-lg bg-[var(--color-surface)] border border-[var(--color-surface-border)] overflow-hidden"
+              className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+              style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
             >
-              {videoTrack ? (
-                <AgoraVideoTile track={videoTrack} />
-              ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-xs font-medium truncate px-2 w-full text-center">
-                    {p.display_name}
-                  </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-[10px] font-bold text-white tracking-widest">LIVE</span>
+            </div>
+
+            {/* On-stream count */}
+            {onStreamCount > 1 && (
+              <div
+                className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--color-brand)" }} />
+                <span className="text-[10px] font-semibold text-white">{onStreamCount} on stream</span>
+              </div>
+            )}
+          </div>
+
+          {/* Secondary strip — screenshare + live participants */}
+          {hasStrip && (
+            <div
+              className="flex items-center gap-2 px-3 py-2 overflow-x-auto flex-shrink-0"
+              style={{ background: "#0D0D1A", borderBottom: "1px solid var(--color-surface-border)" }}
+            >
+              {screenVideo && (
+                <div
+                  className="relative flex-shrink-0 rounded-lg overflow-hidden"
+                  style={{ width: 130, height: 73, background: "#111120" }}
+                >
+                  <AgoraVideoTile track={screenVideo} />
+                  <div
+                    className="absolute bottom-0 left-0 right-0 px-1.5 py-0.5"
+                    style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75), transparent)" }}
+                  >
+                    <span className="text-[10px] text-white/70">Screen</span>
+                  </div>
                 </div>
               )}
-              <span className="absolute bottom-1 left-2 text-xs text-white/70 bg-black/40 px-1 rounded">
-                {p.display_name}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* Chat */}
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {tokenState ? (
-            // ── Authenticated: full chat ──────────────────────────────────────
-            <>
-              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-                {messages.length === 0 && (
-                  <p className="text-sm text-[var(--color-text-muted)] text-center pt-8">
-                    {connected ? "Chat is empty. Say something!" : "Connecting..."}
-                  </p>
-                )}
-                {messages.map((m) => (
-                  <div key={m.id} className="text-sm">
-                    <span className="font-semibold text-[var(--color-brand-light)]">{m.author_display_name}</span>
-                    <span className="text-[var(--color-text-muted)] text-xs ml-1 capitalize">[{m.platform}]</span>
-                    <span className="ml-2 text-[var(--color-text)]">{m.body}</span>
-                  </div>
-                ))}
-                <div ref={chatEndRef} />
-              </div>
-              <form onSubmit={sendChat} className="flex gap-2 p-3 border-t border-[var(--color-surface-border)]">
-                <input
-                  ref={chatInputRef}
-                  type="text"
-                  value={chatBody}
-                  onChange={(e) => setChatBody(e.target.value)}
-                  placeholder="Say something..."
-                  maxLength={500}
-                  className="flex-1 px-3 py-2 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-surface-border)] text-sm focus:outline-none focus:border-[var(--color-brand)]"
-                />
-                <button
-                  type="submit"
-                  disabled={!chatBody.trim()}
-                  className="px-4 py-2 rounded-lg bg-[var(--color-brand)] hover:bg-[var(--color-brand-light)] text-white text-sm font-semibold disabled:opacity-50 transition-colors"
-                >
-                  Send
-                </button>
-              </form>
-            </>
-          ) : (
-            // ── Anonymous: no chat list, locked input ─────────────────────────
-            <div className="flex flex-col flex-1 justify-end">
-              <div className="flex gap-2 p-3 border-t border-[var(--color-surface-border)]">
-                <input
-                  type="text"
-                  value={chatDraft}
-                  onChange={(e) => setChatDraft(e.target.value)}
-                  placeholder="Sign in to chat…"
-                  maxLength={500}
-                  className="flex-1 px-3 py-2 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-surface-border)] text-sm focus:outline-none focus:border-[var(--color-brand)] transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowSignInModal(true)}
-                  className="px-4 py-2 rounded-lg bg-[var(--color-brand)] hover:bg-[var(--color-brand-light)] text-white text-sm font-semibold transition-colors"
-                >
-                  Sign in
-                </button>
-              </div>
+              {liveSlots.map((p) => {
+                const uid   = slotToUid(p.slot_index ?? 0);
+                const isMe  = myParticipant?.id === p.id;
+                const track = isMe
+                  ? localVideoTrack
+                  : (remoteUsers.find((u) => u.uid === uid)?.videoTrack ?? null);
+                return (
+                  <ParticipantTile
+                    key={p.id}
+                    participant={p}
+                    videoTrack={track}
+                    isMe={isMe}
+                  />
+                );
+              })}
             </div>
           )}
+
+          {/* Chat — desktop only, fills remaining height */}
+          <div className="hidden md:flex flex-col flex-1 min-h-0">
+            <ChatPanel
+              messages={messages}
+              chatBody={chatBody}
+              chatDraft={chatDraft}
+              connected={connected}
+              tokenState={tokenState}
+              chatEndRef={chatEndRef}
+              chatInputRef={chatInputRef}
+              onSend={sendChat}
+              onBodyChange={setChatBody}
+              onDraftChange={setChatDraft}
+              onSignInClick={() => setShowSignInModal(true)}
+            />
+          </div>
+
+          {/* Mobile tabs */}
+          <div className="md:hidden flex flex-col flex-1 min-h-0">
+            <div
+              className="flex shrink-0 border-b"
+              style={{ borderColor: "var(--color-surface-border)" }}
+            >
+              {(["join", "chat"] as const).map((t) => {
+                const label = t === "join"
+                  ? (myParticipant?.status === "live" ? "Controls" : "Join")
+                  : "Chat";
+                const isActive = mobileTab === t;
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setMobileTab(t)}
+                    className="flex-1 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-colors border-b-2 -mb-px"
+                    style={{
+                      borderColor: isActive ? "var(--color-brand)" : "transparent",
+                      color: isActive ? "white" : "var(--color-text-muted)",
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+              {mobileTab === "join" ? (
+                <JoinPanel
+                  isOwner={isOwner}
+                  channelSlug={channelSlug}
+                  myParticipant={myParticipant}
+                  agoraError={agoraError}
+                  localVideoTrack={localVideoTrack}
+                  goingLive={goingLive}
+                  micEnabled={micEnabled}
+                  camEnabled={camEnabled}
+                  requesting={requesting}
+                  requestError={requestError}
+                  requestName={requestName}
+                  onNameChange={setRequestName}
+                  onRequest={requestJoin}
+                  onGoLive={handleGoLive}
+                  onToggleMic={toggleMic}
+                  onToggleCam={toggleCam}
+                />
+              ) : (
+                <ChatPanel
+                  messages={messages}
+                  chatBody={chatBody}
+                  chatDraft={chatDraft}
+                  connected={connected}
+                  tokenState={tokenState}
+                  chatEndRef={chatEndRef}
+                  chatInputRef={chatInputRef}
+                  onSend={sendChat}
+                  onBodyChange={setChatBody}
+                  onDraftChange={setChatDraft}
+                  onSignInClick={() => setShowSignInModal(true)}
+                />
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Join / control room panel */}
-        <div className="w-64 border-l border-[var(--color-surface-border)] p-4 flex flex-col gap-4 overflow-y-auto">
-          {isOwner ? (
-            <>
-              <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
-                Your Stream
+        {/* ── RIGHT SIDEBAR (desktop only) ──────────────────────────────────── */}
+        <div
+          className="hidden md:flex flex-col shrink-0 border-l overflow-hidden"
+          style={{
+            width: 300,
+            borderColor: "var(--color-surface-border)",
+            background: "#0D0D1A",
+          }}
+        >
+          {/* Join panel */}
+          <div className="shrink-0 border-b" style={{ borderColor: "var(--color-surface-border)" }}>
+            <JoinPanel
+              isOwner={isOwner}
+              channelSlug={channelSlug}
+              myParticipant={myParticipant}
+              agoraError={agoraError}
+              localVideoTrack={localVideoTrack}
+              goingLive={goingLive}
+              micEnabled={micEnabled}
+              camEnabled={camEnabled}
+              requesting={requesting}
+              requestError={requestError}
+              requestName={requestName}
+              onNameChange={setRequestName}
+              onRequest={requestJoin}
+              onGoLive={handleGoLive}
+              onToggleMic={toggleMic}
+              onToggleCam={toggleCam}
+            />
+          </div>
+
+          {/* Live participants list */}
+          {liveSlots.length > 0 && (
+            <div className="shrink-0 px-4 py-3 border-b" style={{ borderColor: "var(--color-surface-border)" }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-2.5"
+                 style={{ color: "var(--color-text-muted)" }}>
+                On air
               </p>
-              <a
-                href={`/c/${channelSlug}/live`}
-                className="w-full py-2 rounded-lg bg-[var(--color-brand)] hover:bg-[var(--color-brand-light)] text-white text-sm font-semibold text-center transition-colors"
-              >
-                Go to Control Room →
-              </a>
-            </>
-          ) : (
-            <>
-              <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
-                Join Stream
-              </p>
-              {!myParticipant ? (
-                <form onSubmit={requestJoin} className="space-y-3">
-                  <input
-                    type="text"
-                    required
-                    value={requestName}
-                    onChange={(e) => setRequestName(e.target.value)}
-                    placeholder="Your name"
-                    maxLength={64}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-surface-border)] text-sm focus:outline-none focus:border-[var(--color-brand)]"
-                  />
-                  {requestError && <p className="text-red-400 text-xs">{requestError}</p>}
-                  <button
-                    type="submit"
-                    disabled={requesting || !requestName.trim()}
-                    className="w-full py-2 rounded-lg bg-[var(--color-brand)] hover:bg-[var(--color-brand-light)] text-white text-sm font-semibold disabled:opacity-50 transition-colors"
-                  >
-                    {requesting ? "Requesting..." : "Request to join"}
-                  </button>
-                </form>
-              ) : (
-                <div className="space-y-3">
-                  <StatusBadge status={myParticipant.status} />
-                  {isLiveParticipant && agoraError && (
-                    <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2 space-y-1">
-                      <p className="text-xs font-semibold text-red-400">Camera failed to start</p>
-                      <p className="text-[11px] text-red-400/80 leading-snug">{agoraError}</p>
-                      <p className="text-[11px] text-[var(--color-text-muted)]">
-                        Check that your browser has camera and microphone permission for this site, then reload.
-                      </p>
-                    </div>
-                  )}
-                  {isLiveParticipant && !agoraError && !localVideoTrack && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setGoingLive(true);
-                        goLiveAsHost(mySlotUid).finally(() => setGoingLive(false));
-                      }}
-                      disabled={goingLive}
-                      className="w-full py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-wait"
-                    >
-                      {goingLive ? "Starting…" : "Tap to start camera"}
-                    </button>
-                  )}
-                  {isLiveParticipant && !agoraError && localVideoTrack && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={toggleMic}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                          micEnabled
-                            ? "border-[var(--color-surface-border)] text-[var(--color-text)] hover:border-red-500"
-                            : "border-red-500 text-red-400 hover:border-[var(--color-surface-border)] hover:text-[var(--color-text)]"
-                        }`}
+              <div className="flex flex-col gap-1.5">
+                {liveSlots.map((p) => (
+                  <div key={p.id} className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+                    <span className="text-[12px] text-white truncate">{p.display_name}</span>
+                    {myParticipant?.id === p.id && (
+                      <span
+                        className="ml-auto text-[10px] font-bold shrink-0 uppercase tracking-wide"
+                        style={{ color: "var(--color-brand)" }}
                       >
-                        {micEnabled ? "Mute" : "Unmute"}
-                      </button>
-                      <button
-                        onClick={toggleCam}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                          camEnabled
-                            ? "border-[var(--color-surface-border)] text-[var(--color-text)] hover:border-red-500"
-                            : "border-red-500 text-red-400 hover:border-[var(--color-surface-border)] hover:text-[var(--color-text)]"
-                        }`}
-                      >
-                        {camEnabled ? "Cam off" : "Cam on"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
+                        You
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
-          {/* Viewer count */}
-          <div className="mt-auto text-xs text-[var(--color-text-muted)]">
-            {participants.filter((p) => p.status !== "removed").length} participant
-            {participants.length !== 1 ? "s" : ""}
+          {/* Waiting count teaser */}
+          {participants.filter((p) => p.status === "waiting").length > 0 && (
+            <div className="shrink-0 px-4 py-2.5">
+              <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+                {participants.filter((p) => p.status === "waiting").length} waiting to join
+              </p>
+            </div>
+          )}
+
+          {/* Chat — fills rest of sidebar */}
+          <div
+            className="flex-1 flex flex-col min-h-0 border-t"
+            style={{ borderColor: "var(--color-surface-border)" }}
+          >
+            <div
+              className="px-4 py-2 shrink-0 border-b"
+              style={{ borderColor: "var(--color-surface-border)" }}
+            >
+              <span className="text-[10px] font-semibold uppercase tracking-widest"
+                    style={{ color: "var(--color-text-muted)" }}>
+                Chat
+              </span>
+            </div>
+            <ChatPanel
+              messages={messages}
+              chatBody={chatBody}
+              chatDraft={chatDraft}
+              connected={connected}
+              tokenState={tokenState}
+              chatEndRef={chatEndRef}
+              chatInputRef={chatInputRef}
+              onSend={sendChat}
+              onBodyChange={setChatBody}
+              onDraftChange={setChatDraft}
+              onSignInClick={() => setShowSignInModal(true)}
+            />
           </div>
         </div>
       </div>
-    </div>
 
-    {showSignInModal && (
-      <SignInModal
-        onSuccess={handleSignInSuccess}
-        onClose={() => setShowSignInModal(false)}
-        initialDraft={chatDraft}
-        onDraftChange={setChatDraft}
-      />
-    )}
+      {showSignInModal && (
+        <SignInModal
+          onSuccess={handleSignInSuccess}
+          onClose={() => setShowSignInModal(false)}
+          initialDraft={chatDraft}
+          onDraftChange={setChatDraft}
+        />
+      )}
     </>
   );
-}
-
-function StatusBadge({ status }: { status: Participant["status"] }) {
-  const config = {
-    waiting:  { label: "Waiting for approval...", color: "text-yellow-400" },
-    approved: { label: "Approved! Joining soon...", color: "text-blue-400" },
-    live:     { label: "You're live!", color: "text-green-400" },
-    removed:  { label: "Removed from stream", color: "text-zinc-500" },
-  };
-  const { label, color } = config[status];
-  return <p className={`text-sm font-medium ${color}`}>{label}</p>;
 }

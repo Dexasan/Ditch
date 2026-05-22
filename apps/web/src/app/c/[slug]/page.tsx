@@ -66,12 +66,22 @@ export default async function ChannelPage({
           channelSlug={slug}
         />
       ) : (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-2">
-            <p className="text-[var(--color-text-muted)]">{channel.display_name} is not live right now.</p>
-            {channel.description && (
-              <p className="text-sm text-[var(--color-text-muted)]">{channel.description}</p>
-            )}
+        <div className="flex-1 flex items-center justify-center" style={{ background: "#0A0A14" }}>
+          <div className="text-center space-y-3">
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center mx-auto"
+              style={{ background: "rgba(255,29,180,0.08)", border: "1px solid rgba(255,29,180,0.15)" }}
+            >
+              <span className="text-xl">📡</span>
+            </div>
+            <div className="space-y-1">
+              <p className="font-semibold text-white">{channel.display_name} is offline</p>
+              {channel.description ? (
+                <p className="text-sm text-[var(--color-text-muted)]">{channel.description}</p>
+              ) : (
+                <p className="text-sm text-[var(--color-text-muted)]">Check back soon.</p>
+              )}
+            </div>
           </div>
         </div>
       )}
