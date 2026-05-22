@@ -656,11 +656,8 @@ function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessi
         style={{ gridArea: "topbar", height: 44 }}
       >
         {/* Logo */}
-        <a
-          href="/dashboard"
-          className="font-bold tracking-tight text-sm text-[var(--text-primary)] hover:text-[var(--accent-primary)] transition-colors shrink-0"
-        >
-          DITCH
+        <a href="/dashboard" className="shrink-0">
+          <img src="/logo.png" alt="DITCH" className="h-6 w-6 rounded-md" />
         </a>
 
         <span className="text-[var(--border)]">|</span>

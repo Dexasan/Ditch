@@ -18,8 +18,9 @@ function HomePageContent() {
     <div className="min-h-screen">
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-[var(--color-surface-border)] bg-[var(--color-surface)]/80 backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="text-2xl font-bold tracking-tight">
-            <span className="text-[var(--color-brand)]">DITCH</span>
+          <Link href="/" className="flex items-center gap-2.5">
+            <img src="/logo.png" alt="DITCH" className="h-8 w-8 rounded-md" />
+            <span className="text-xl font-bold tracking-tight text-[var(--color-brand)]">DITCH</span>
           </Link>
           <div className="flex items-center gap-4">
             <Link
@@ -219,8 +220,9 @@ function HomePageContent() {
       <footer className="border-t border-[var(--color-surface-border)] py-12">
         <div className="mx-auto max-w-6xl px-6">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="text-2xl font-bold tracking-tight">
-              <span className="text-[var(--color-brand)]">DITCH</span>
+            <div className="flex items-center gap-2.5">
+              <img src="/logo.png" alt="DITCH" className="h-8 w-8 rounded-md" />
+              <span className="text-xl font-bold tracking-tight text-[var(--color-brand)]">DITCH</span>
             </div>
             <p className="text-sm text-[var(--color-text-muted)]">
               © 2026 DITCH. Go live once. Stream everywhere.

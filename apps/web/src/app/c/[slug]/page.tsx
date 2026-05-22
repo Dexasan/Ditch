@@ -42,7 +42,7 @@ export default async function ChannelPage({
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="border-b border-[var(--color-surface-border)] px-6 py-4 flex items-center gap-4">
-        <a href="/" className="font-bold tracking-tight text-sm">DITCH</a>
+        <a href="/"><img src="/logo.png" alt="DITCH" className="h-7 w-7 rounded-md" /></a>
         <span className="text-[var(--color-text-muted)] text-sm">/</span>
         <span className="font-semibold">{channel.display_name}</span>
         {isLive ? (

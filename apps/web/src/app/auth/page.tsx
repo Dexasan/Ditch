@@ -79,7 +79,9 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">DITCH</h1>
+          <div className="flex justify-center">
+            <img src="/logo.png" alt="DITCH" className="h-14 w-14 rounded-xl" />
+          </div>
           <p className="text-[var(--color-text-muted)] text-sm">
             {mode === "signin" ? "Welcome back." : "Create your account."}
           </p>

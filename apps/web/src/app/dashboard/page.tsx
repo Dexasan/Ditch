@@ -32,7 +32,7 @@ export default async function DashboardPage() {
       {/* Nav */}
       <header className="border-b border-[var(--color-surface-border)] px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="font-bold tracking-tight">DITCH</span>
+          <img src="/logo.png" alt="DITCH" className="h-7 w-7 rounded-md" />
           <span className="text-[var(--color-text-muted)] text-sm">/</span>
           <span className="text-sm text-[var(--color-text-muted)]">{channel.slug}</span>
         </div>
