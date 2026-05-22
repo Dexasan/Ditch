@@ -7,6 +7,7 @@ import { useAgoraRoom } from "@/hooks/useAgoraRoom";
 import { slotToUid, CREATOR_CAM_UID, CREATOR_SCREEN_UID } from "@/lib/agora";
 import { api } from "@/lib/api";
 import type { ChatMessage, Participant } from "@ditch/types";
+import SignInModal from "@/components/SignInModal";
 
 const AgoraVideoTile = dynamic(() => import("@/components/AgoraVideoTile"), { ssr: false });
 
@@ -25,10 +26,17 @@ export default function ChannelView({
   isOwner: boolean;
   channelSlug: string;
 }) {
+  // tokenState / viewerNameState are mutable — updated after sign-in so the
+  // socket reconnects with auth and the display name is correct in chat.
+  const [tokenState, setTokenState] = useState<string | null>(token);
+  const [viewerNameState, setViewerNameState] = useState<string | null>(viewerName);
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [myParticipant, setMyParticipant] = useState<Participant | null>(null);
   const [chatBody, setChatBody] = useState("");
+  const [chatDraft, setChatDraft] = useState(""); // anon draft preserved through sign-in
+  const [showSignInModal, setShowSignInModal] = useState(false);
   const [requestName, setRequestName] = useState(viewerName ?? "");
   const [requesting, setRequesting] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -37,9 +45,15 @@ export default function ChannelView({
   const [micEnabled, setMicEnabled] = useState(true);
   const [camEnabled, setCamEnabled] = useState(true);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
+
+  // Close sign-in modal if the stream ends while it's open.
+  useEffect(() => {
+    if (sessionError) setShowSignInModal(false);
+  }, [sessionError]);
 
   useEffect(() => {
-    const socket = getSocket(token ?? undefined);
+    const socket = getSocket(tokenState ?? undefined);
 
     socket.connect();
 
@@ -87,7 +101,7 @@ export default function ChannelView({
       socket.off("participant:status_change");
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, token]);
+  }, [sessionId, tokenState]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -96,7 +110,7 @@ export default function ChannelView({
   const isLiveParticipant = myParticipant?.status === "live";
   const mySlotUid = isLiveParticipant ? slotToUid(myParticipant!.slot_index ?? 0) : 0;
 
-  const { localVideoTrack, localAudioTrack, remoteUsers } = useAgoraRoom({
+  const { localVideoTrack, localAudioTrack, remoteUsers, error: agoraError } = useAgoraRoom({
     channelName: sessionId,
     uid: isLiveParticipant ? mySlotUid : 0,
     role: isLiveParticipant ? "host" : "audience",
@@ -121,11 +135,11 @@ export default function ChannelView({
   function sendChat(e: React.FormEvent) {
     e.preventDefault();
     if (!chatBody.trim()) return;
-    const socket = getSocket(token ?? undefined);
+    const socket = getSocket(tokenState ?? undefined);
     socket.emit("chat:message", {
       session_id: sessionId,
       body: chatBody.trim(),
-      display_name: viewerName ?? "Viewer",
+      display_name: viewerNameState ?? "Viewer",
       platform_origin: "ditch",
     });
     setChatBody("");
@@ -137,15 +151,30 @@ export default function ChannelView({
     setRequestError(null);
     try {
       const { participant } = await api.post<{ participant: Participant }>("/participants", {
-        token: token ?? undefined,
+        token: tokenState ?? undefined,
         body: { session_id: sessionId, display_name: requestName.trim(), platform_origin: "ditch" },
       });
       setMyParticipant(participant);
-      getSocket(token ?? undefined).emit("participant:notify_new", { session_id: sessionId });
+      getSocket(tokenState ?? undefined).emit("participant:notify_new", { session_id: sessionId });
     } catch (err: unknown) {
       setRequestError(err instanceof Error ? err.message : "Failed to request.");
     }
     setRequesting(false);
+  }
+
+  function handleSignInSuccess(newToken: string, displayName: string) {
+    setTokenState(newToken);
+    setViewerNameState(displayName);
+    setShowSignInModal(false);
+    // Prefill chat with the draft and focus the input.
+    setChatBody(chatDraft);
+    setChatDraft("");
+    // Focus happens after the authed input mounts (next tick).
+    setTimeout(() => {
+      chatInputRef.current?.focus();
+      const len = chatInputRef.current?.value.length ?? 0;
+      chatInputRef.current?.setSelectionRange(len, len);
+    }, 0);
   }
 
   const liveSlots = participants.filter((p) => p.status === "live");
@@ -168,6 +197,7 @@ export default function ChannelView({
   }
 
   return (
+    <>
     <div className="flex flex-col h-[calc(100vh-57px)]">
       {/* Feeds row: creator camera + screen share (if active) + live participants */}
       <div className="flex flex-wrap gap-3 p-4 bg-[var(--color-surface-raised)] border-b border-[var(--color-surface-border)]">
@@ -237,39 +267,65 @@ export default function ChannelView({
       <div className="flex flex-1 overflow-hidden">
         {/* Chat */}
         <div className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-            {messages.length === 0 && (
-              <p className="text-sm text-[var(--color-text-muted)] text-center pt-8">
-                {connected ? "Chat is empty. Say something!" : "Connecting..."}
-              </p>
-            )}
-            {messages.map((m) => (
-              <div key={m.id} className="text-sm">
-                <span className="font-semibold text-[var(--color-brand-light)]">{m.author_display_name}</span>
-                <span className="text-[var(--color-text-muted)] text-xs ml-1 capitalize">[{m.platform}]</span>
-                <span className="ml-2 text-[var(--color-text)]">{m.body}</span>
+          {tokenState ? (
+            // ── Authenticated: full chat ──────────────────────────────────────
+            <>
+              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+                {messages.length === 0 && (
+                  <p className="text-sm text-[var(--color-text-muted)] text-center pt-8">
+                    {connected ? "Chat is empty. Say something!" : "Connecting..."}
+                  </p>
+                )}
+                {messages.map((m) => (
+                  <div key={m.id} className="text-sm">
+                    <span className="font-semibold text-[var(--color-brand-light)]">{m.author_display_name}</span>
+                    <span className="text-[var(--color-text-muted)] text-xs ml-1 capitalize">[{m.platform}]</span>
+                    <span className="ml-2 text-[var(--color-text)]">{m.body}</span>
+                  </div>
+                ))}
+                <div ref={chatEndRef} />
               </div>
-            ))}
-            <div ref={chatEndRef} />
-          </div>
-
-          <form onSubmit={sendChat} className="flex gap-2 p-3 border-t border-[var(--color-surface-border)]">
-            <input
-              type="text"
-              value={chatBody}
-              onChange={(e) => setChatBody(e.target.value)}
-              placeholder="Say something..."
-              maxLength={500}
-              className="flex-1 px-3 py-2 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-surface-border)] text-sm focus:outline-none focus:border-[var(--color-brand)]"
-            />
-            <button
-              type="submit"
-              disabled={!chatBody.trim()}
-              className="px-4 py-2 rounded-lg bg-[var(--color-brand)] hover:bg-[var(--color-brand-light)] text-white text-sm font-semibold disabled:opacity-50 transition-colors"
-            >
-              Send
-            </button>
-          </form>
+              <form onSubmit={sendChat} className="flex gap-2 p-3 border-t border-[var(--color-surface-border)]">
+                <input
+                  ref={chatInputRef}
+                  type="text"
+                  value={chatBody}
+                  onChange={(e) => setChatBody(e.target.value)}
+                  placeholder="Say something..."
+                  maxLength={500}
+                  className="flex-1 px-3 py-2 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-surface-border)] text-sm focus:outline-none focus:border-[var(--color-brand)]"
+                />
+                <button
+                  type="submit"
+                  disabled={!chatBody.trim()}
+                  className="px-4 py-2 rounded-lg bg-[var(--color-brand)] hover:bg-[var(--color-brand-light)] text-white text-sm font-semibold disabled:opacity-50 transition-colors"
+                >
+                  Send
+                </button>
+              </form>
+            </>
+          ) : (
+            // ── Anonymous: no chat list, locked input ─────────────────────────
+            <div className="flex flex-col flex-1 justify-end">
+              <div className="flex gap-2 p-3 border-t border-[var(--color-surface-border)]">
+                <input
+                  type="text"
+                  value={chatDraft}
+                  onChange={(e) => setChatDraft(e.target.value)}
+                  placeholder="Sign in to chat…"
+                  maxLength={500}
+                  className="flex-1 px-3 py-2 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-surface-border)] text-sm focus:outline-none focus:border-[var(--color-brand)] transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSignInModal(true)}
+                  className="px-4 py-2 rounded-lg bg-[var(--color-brand)] hover:bg-[var(--color-brand-light)] text-white text-sm font-semibold transition-colors"
+                >
+                  Sign in
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Join / control room panel */}
@@ -314,7 +370,19 @@ export default function ChannelView({
               ) : (
                 <div className="space-y-3">
                   <StatusBadge status={myParticipant.status} />
-                  {isLiveParticipant && (
+                  {isLiveParticipant && agoraError && (
+                    <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2 space-y-1">
+                      <p className="text-xs font-semibold text-red-400">Camera failed to start</p>
+                      <p className="text-[11px] text-red-400/80 leading-snug">{agoraError}</p>
+                      <p className="text-[11px] text-[var(--color-text-muted)]">
+                        Check that your browser has camera and microphone permission for this site, then reload.
+                      </p>
+                    </div>
+                  )}
+                  {isLiveParticipant && !agoraError && !localVideoTrack && (
+                    <p className="text-xs text-[var(--color-text-muted)]">Starting camera…</p>
+                  )}
+                  {isLiveParticipant && !agoraError && localVideoTrack && (
                     <div className="flex gap-2">
                       <button
                         onClick={toggleMic}
@@ -351,6 +419,16 @@ export default function ChannelView({
         </div>
       </div>
     </div>
+
+    {showSignInModal && (
+      <SignInModal
+        onSuccess={handleSignInSuccess}
+        onClose={() => setShowSignInModal(false)}
+        initialDraft={chatDraft}
+        onDraftChange={setChatDraft}
+      />
+    )}
+    </>
   );
 }
 
