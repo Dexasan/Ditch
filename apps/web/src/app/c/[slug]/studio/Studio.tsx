@@ -1983,12 +1983,111 @@ function BitrateSparkline({ data }: { data: number[] }) {
   );
 }
 
-function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocalAudioTrack | null; onClipClick: () => void }) {
+// ── Audio mixer ───────────────────────────────────────────────────────────────
+
+type MixerChannel = { volume: number; muted: boolean };
+
+function AudioMixer({
+  localAudioTrack,
+  liveParticipants,
+  setTrackGain,
+}: {
+  localAudioTrack: ILocalAudioTrack | null;
+  liveParticipants: Participant[];
+  setTrackGain: (sourceId: string, volume: number, muted: boolean) => void;
+}) {
+  const [channels, setChannels] = useState<Record<string, MixerChannel>>({
+    mic: { volume: 1.0, muted: false },
+  });
+
+  const sources = useMemo(() => {
+    const list: { id: string; label: string }[] = [];
+    if (localAudioTrack) list.push({ id: "mic", label: "Mic" });
+    for (const p of liveParticipants) {
+      list.push({
+        id: `participant-${p.slot_index ?? 0}`,
+        label: (p.display_name ?? "Guest").split(" ")[0],
+      });
+    }
+    return list;
+  }, [localAudioTrack, liveParticipants]);
+
+  function update(sourceId: string, patch: Partial<MixerChannel>) {
+    setChannels((prev) => {
+      const cur  = prev[sourceId] ?? { volume: 1.0, muted: false };
+      const next = { ...cur, ...patch };
+      setTrackGain(sourceId, next.volume, next.muted);
+      if (sourceId === "mic" && localAudioTrack) {
+        localAudioTrack.setEnabled(!next.muted).catch(() => {});
+      }
+      return { ...prev, [sourceId]: next };
+    });
+  }
+
+  if (sources.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-1.5 overflow-x-auto">
+      <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-widest shrink-0">Mixer</span>
+      {sources.map((src) => {
+        const ch = channels[src.id] ?? { volume: 1.0, muted: false };
+        return (
+          <div
+            key={src.id}
+            className="flex flex-col gap-1 shrink-0 px-2 py-1.5 rounded bg-[var(--bg-base)] border border-[var(--border)]"
+            style={{ width: 108 }}
+          >
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[9px] font-semibold uppercase tracking-wide truncate"
+                style={{ color: ch.muted ? "var(--text-muted)" : "var(--text-primary)" }}>
+                {src.label}
+              </span>
+              <button
+                onClick={() => update(src.id, { muted: !ch.muted })}
+                title={ch.muted ? "Unmute" : "Mute"}
+                className={`shrink-0 w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold transition-colors ${
+                  ch.muted
+                    ? "bg-red-500/20 text-red-400"
+                    : "bg-[var(--bg-mid)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                M
+              </button>
+            </div>
+            <div className="flex items-center gap-1">
+              <input
+                type="range" min={0} max={1} step={0.01}
+                value={ch.volume}
+                onChange={(e) => update(src.id, { volume: Number(e.target.value), muted: false })}
+                className={`flex-1 h-0.5 cursor-pointer accent-[var(--accent-primary)] transition-opacity ${ch.muted ? "opacity-30" : ""}`}
+              />
+              <span className="text-[9px] font-mono w-6 text-right shrink-0 tabular-nums"
+                style={{ color: ch.muted ? "var(--text-muted)" : "var(--text-primary)" }}>
+                {ch.muted ? "—" : `${Math.round(ch.volume * 100)}`}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function StreamPulse({
+  localAudioTrack,
+  liveParticipants,
+  setTrackGain,
+  onClipClick,
+}: {
+  localAudioTrack: ILocalAudioTrack | null;
+  liveParticipants: Participant[];
+  setTrackGain: (sourceId: string, volume: number, muted: boolean) => void;
+  onClipClick: () => void;
+}) {
   const { scenes, activeSceneId, switchScene, streamStatus, fps, bitrateKbps, updateLayer } = useStudioStore();
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
   const cameraLayer = activeScene.layers.find((l) => l.type === "camera") ?? null;
 
-  const [micMuted, setMicMuted] = useState(false);
   const [bitrateHistory, setBitrateHistory] = useState<number[]>([]);
 
   useEffect(() => {
@@ -1997,13 +2096,6 @@ function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocal
       return next.length > 30 ? next.slice(-30) : next;
     });
   }, [bitrateKbps]);
-
-  function toggleMic() {
-    if (!localAudioTrack) return;
-    const next = !micMuted;
-    localAudioTrack.setEnabled(!next).catch(() => {});
-    setMicMuted(next);
-  }
 
   function toggleCamera() {
     if (!cameraLayer) return;
@@ -2021,11 +2113,11 @@ function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocal
 
   return (
     <div
-      className="flex items-center gap-4 px-4 border-t border-[var(--border)]"
+      className="flex items-center gap-3 px-4 border-t border-[var(--border)]"
       style={{ gridArea: "mixer", background: "var(--bg-deep, #0A0A18)" }}
     >
       {/* Scene filmstrip */}
-      <div className="flex items-center gap-1.5 overflow-x-auto shrink-0" style={{ maxWidth: 260 }}>
+      <div className="flex items-center gap-1.5 overflow-x-auto shrink-0" style={{ maxWidth: 200 }}>
         {scenes.map((scene: Scene) => (
           <button
             key={scene.id}
@@ -2035,7 +2127,7 @@ function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocal
                 ? "ring-1 ring-[var(--accent-primary)] bg-[var(--accent-primary)]/15 text-[var(--text-primary)]"
                 : "bg-[var(--bg-base)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
             }`}
-            style={{ width: 48, height: 28 }}
+            style={{ width: 44, height: 28 }}
             title={scene.name}
           >
             {scene.name.replace("Scene ", "S").slice(0, 3)}
@@ -2045,44 +2137,42 @@ function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocal
 
       <div className="w-px h-8 bg-[var(--border)] shrink-0" />
 
+      {/* Audio mixer */}
+      <div className="flex-1 min-w-0 overflow-x-auto">
+        <AudioMixer
+          localAudioTrack={localAudioTrack}
+          liveParticipants={liveParticipants}
+          setTrackGain={setTrackGain}
+        />
+      </div>
+
+      <div className="w-px h-8 bg-[var(--border)] shrink-0" />
+
       {/* Stream health */}
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5">
           <span
-            className={`w-2 h-2 rounded-full shrink-0 ${streamStatus === "live" ? "animate-pulse" : ""}`}
+            className={`w-2 h-2 rounded-full ${streamStatus === "live" ? "animate-pulse" : ""}`}
             style={{ backgroundColor: statusColor }}
           />
           <span className="text-[10px] font-bold tracking-widest tabular-nums" style={{ color: statusColor }}>
             {statusLabel}
           </span>
         </div>
-        <span className="text-[10px] font-mono text-[var(--text-muted)] tabular-nums shrink-0">
-          FPS <span className="text-[var(--text-primary)]">{fps ?? "—"}</span>
+        <span className="text-[10px] font-mono text-[var(--text-muted)] tabular-nums">
+          <span className="text-[var(--text-primary)]">{fps ?? "—"}</span> fps
         </span>
         <BitrateSparkline data={bitrateHistory} />
-        <span className="text-[10px] font-mono text-[var(--text-muted)] tabular-nums shrink-0">
-          {streamStatus === "live" && bitrateKbps > 0
-            ? `${bitrateKbps.toLocaleString()} kbps`
-            : "— kbps"}
+        <span className="text-[10px] font-mono text-[var(--text-muted)] tabular-nums">
+          {streamStatus === "live" && bitrateKbps > 0 ? `${bitrateKbps.toLocaleString()} kbps` : "— kbps"}
         </span>
       </div>
 
       {/* Quick actions */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        <button
-          onClick={toggleMic}
-          className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
-            micMuted
-              ? "bg-red-500/15 text-red-400 hover:bg-red-500/25"
-              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
-          }`}
-          title={micMuted ? "Unmute mic" : "Mute mic"}
-        >
-          {micMuted ? <IconMicOff /> : <IconMic />}
-        </button>
+      <div className="flex items-center gap-1 shrink-0">
         <button
           onClick={toggleCamera}
-          className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
+          className={`w-7 h-7 flex items-center justify-center rounded transition-colors ${
             cameraLayer && !cameraLayer.visible
               ? "bg-red-500/15 text-red-400 hover:bg-red-500/25"
               : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
@@ -2093,14 +2183,14 @@ function StreamPulse({ localAudioTrack, onClipClick }: { localAudioTrack: ILocal
         </button>
         <button
           onClick={onClipClick}
-          className="w-8 h-8 flex items-center justify-center rounded transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
+          className="w-7 h-7 flex items-center justify-center rounded transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
           title="Save clip (last ~60s)"
         >
           <IconScissors />
         </button>
         <div className="flex items-center gap-1 px-2 py-1 rounded bg-[var(--bg-base)] text-[var(--text-muted)]">
           <IconUsers />
-          <span className="text-[10px] font-mono tabular-nums">0</span>
+          <span className="text-[10px] font-mono tabular-nums">{liveParticipants.length}</span>
         </div>
       </div>
     </div>
@@ -2294,7 +2384,7 @@ export default function Studio({
   }, [localVideoTrack]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Compositor always runs so the preview canvas is live regardless of stream state.
-  const { stream: compositeStream, setCamTransformLive } = useCompositor({
+  const { stream: compositeStream, setCamTransformLive, setTrackGain } = useCompositor({
     localVideoTrack,
     localScreenTrack,
     localAudioTrack,
@@ -2399,7 +2489,7 @@ export default function Studio({
           display: "grid",
           gridTemplateAreas: `"topbar topbar topbar" "scenes canvas inspector" "layers canvas inspector" "mixer mixer mixer"`,
           gridTemplateColumns: "220px 1fr 280px",
-          gridTemplateRows: "48px 1fr 1fr 64px",
+          gridTemplateRows: "48px 1fr 1fr 72px",
           height: "100vh",
           overflow: "hidden",
           background: "var(--bg-deep, #0A0A18)",
@@ -2442,7 +2532,12 @@ export default function Studio({
           chatProps={{ messages, chatBody, onChange: setChatBody, onSend: sendChat }}
           queueProps={{ waiting, approved, nextSlot, onChangeStatus: changeParticipantStatus }}
         />
-        <StreamPulse localAudioTrack={localAudioTrack} onClipClick={handleClipClick} />
+        <StreamPulse
+          localAudioTrack={localAudioTrack}
+          liveParticipants={liveParticipants}
+          setTrackGain={setTrackGain}
+          onClipClick={handleClipClick}
+        />
       </div>
       <style>{`
         @keyframes sceneIn-${transitionKey} {

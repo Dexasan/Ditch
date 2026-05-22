@@ -103,7 +103,11 @@ export function useCompositor({
   cameraLayer = null,
   targetFps = DEFAULT_FPS,
   onFps,
-}: CompositorOptions): { stream: MediaStream | null; setCamTransformLive: (patch: Partial<Layer["transform"]>) => void } {
+}: CompositorOptions): {
+  stream: MediaStream | null;
+  setCamTransformLive: (patch: Partial<Layer["transform"]>) => void;
+  setTrackGain: (sourceId: string, volume: number, muted: boolean) => void;
+} {
   const [stream, setStream] = useState<MediaStream | null>(null);
 
   const canvasRef    = useRef<HTMLCanvasElement | null>(null);
@@ -130,7 +134,9 @@ export function useCompositor({
 
   const audioCtxRef       = useRef<AudioContext | null>(null);
   const audioDestRef      = useRef<MediaStreamAudioDestinationNode | null>(null);
+  // keyed by sourceId ("mic" | "participant-N")
   const connectedAudioRef = useRef<Set<string>>(new Set());
+  const gainNodesRef      = useRef<Map<string, GainNode>>(new Map());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const frameWriterRef    = useRef<WritableStreamDefaultWriter<any> | null>(null);
 
@@ -193,6 +199,7 @@ export function useCompositor({
       audioCtxRef.current  = null;
       audioDestRef.current = null;
       connectedAudioRef.current.clear();
+      gainNodesRef.current.clear();
       videoElemsRef.current.forEach((el) => { el.srcObject = null; });
       videoElemsRef.current.clear();
       processorCleanupsRef.current.forEach((fn) => fn());
@@ -406,21 +413,27 @@ export function useCompositor({
   useEffect(() => {
     if (!enabled || !audioCtxRef.current || !audioDestRef.current) return;
 
-    function connectIfNew(nativeTrack: MediaStreamTrack) {
-      if (connectedAudioRef.current.has(nativeTrack.id)) return;
+    function ensureConnected(sourceId: string, nativeTrack: MediaStreamTrack) {
+      if (connectedAudioRef.current.has(sourceId)) return;
       try {
-        const src = audioCtxRef.current!.createMediaStreamSource(new MediaStream([nativeTrack]));
-        src.connect(audioDestRef.current!);
-        connectedAudioRef.current.add(nativeTrack.id);
+        const src  = audioCtxRef.current!.createMediaStreamSource(new MediaStream([nativeTrack]));
+        const gain = audioCtxRef.current!.createGain();
+        gain.gain.value = 1.0;
+        src.connect(gain);
+        gain.connect(audioDestRef.current!);
+        gainNodesRef.current.set(sourceId, gain);
+        connectedAudioRef.current.add(sourceId);
       } catch {}
     }
 
     if (localAudioTrack) {
-      try { connectIfNew(localAudioTrack.getMediaStreamTrack()); } catch {}
+      try { ensureConnected("mic", localAudioTrack.getMediaStreamTrack()); } catch {}
     }
     for (const user of remoteUsers) {
       if (!user.audioTrack) continue;
-      try { connectIfNew(user.audioTrack.getMediaStreamTrack()); } catch {}
+      // Agora UID = slot_index + 1, so slot_index = uid - 1
+      const slotIndex = Number(user.uid) - 1;
+      try { ensureConnected(`participant-${slotIndex}`, user.audioTrack.getMediaStreamTrack()); } catch {}
     }
   }, [enabled, localAudioTrack, remoteUsers]);
 
@@ -432,5 +445,13 @@ export function useCompositor({
     };
   }
 
-  return { stream, setCamTransformLive };
+  function setTrackGain(sourceId: string, volume: number, muted: boolean) {
+    const gn  = gainNodesRef.current.get(sourceId);
+    const ctx = audioCtxRef.current;
+    if (!gn || !ctx) return;
+    // setTargetAtTime gives a 15ms click-free ramp instead of a hard jump
+    gn.gain.setTargetAtTime(muted ? 0 : volume, ctx.currentTime, 0.015);
+  }
+
+  return { stream, setCamTransformLive, setTrackGain };
 }
