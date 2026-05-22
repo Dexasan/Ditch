@@ -128,4 +128,16 @@ export function registerParticipantHandlers(io: AppServer, socket: AppSocket) {
     const participants = await fetchActiveParticipants(session_id);
     socket.emit("participant:queue_update", { session_id, participants });
   });
+
+  /**
+   * participant:notify_new
+   *
+   * Emitted by a viewer's socket immediately after POST /participants succeeds.
+   * Fetches the current queue and broadcasts it to the session room so the
+   * creator sees the new request without refreshing.
+   */
+  socket.on("participant:notify_new", async ({ session_id }) => {
+    const participants = await fetchActiveParticipants(session_id);
+    io.to(session_id).emit("participant:queue_update", { session_id, participants });
+  });
 }

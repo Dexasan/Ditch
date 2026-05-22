@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type { StreamPlatform } from "@ditch/types";
 
 export type CamCell = { x: number; y: number; w: number; h: number };
@@ -143,7 +144,9 @@ interface StudioStore {
 const INITIAL_SCENE_ID = "scene-1";
 let transitionTimer: ReturnType<typeof setTimeout> | null = null;
 
-export const useStudioStore = create<StudioStore>((set) => ({
+export const useStudioStore = create<StudioStore>()(
+  persist(
+  (set) => ({
   // Toasts
   toasts: [],
   addToast: (message, type = "info", duration = 3000) =>
@@ -279,4 +282,18 @@ export const useStudioStore = create<StudioStore>((set) => ({
         sc.id === sceneId ? { ...sc, layers: newOrder } : sc,
       ),
     })),
-}));
+  }),
+  {
+    name: "ditch-studio-v1",
+    storage: createJSONStorage(() => localStorage),
+    // Only persist layout state. Stream status, bitrate, recording, toasts,
+    // and undo history are ephemeral — they reset correctly on reload.
+    // settings (destinations) intentionally excluded to keep stream keys out of localStorage.
+    partialize: (state) => ({
+      scenes: state.scenes,
+      activeSceneId: state.activeSceneId,
+      targetFps: state.targetFps,
+      snapToGrid: state.snapToGrid,
+    }),
+  }
+));

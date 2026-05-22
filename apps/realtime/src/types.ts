@@ -19,6 +19,8 @@ export interface ClientToServerEvents {
 
   "participant:queue_update": (data: { session_id: string }) => void;
 
+  "participant:notify_new": (data: { session_id: string }) => void;
+
   "chat:message": (data: {
     session_id: string;
     body: string;

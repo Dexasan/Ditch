@@ -141,6 +141,7 @@ export default function ChannelView({
         body: { session_id: sessionId, display_name: requestName.trim(), platform_origin: "ditch" },
       });
       setMyParticipant(participant);
+      getSocket(token ?? undefined).emit("participant:notify_new", { session_id: sessionId });
     } catch (err: unknown) {
       setRequestError(err instanceof Error ? err.message : "Failed to request.");
     }
