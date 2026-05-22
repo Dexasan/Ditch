@@ -110,7 +110,7 @@ export default function ChannelView({
   const isLiveParticipant = myParticipant?.status === "live";
   const mySlotUid = isLiveParticipant ? slotToUid(myParticipant!.slot_index ?? 0) : 0;
 
-  const { localVideoTrack, localAudioTrack, remoteUsers, error: agoraError, publishTracks } = useAgoraRoom({
+  const { localVideoTrack, localAudioTrack, remoteUsers, joined: agoraJoined, error: agoraError, publishTracks } = useAgoraRoom({
     channelName: sessionId,
     uid: isLiveParticipant ? mySlotUid : 0,
     role: isLiveParticipant ? "host" : "audience",
@@ -385,9 +385,10 @@ export default function ChannelView({
                     <button
                       type="button"
                       onClick={publishTracks}
-                      className="w-full py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition-colors"
+                      disabled={!agoraJoined}
+                      className="w-full py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-wait"
                     >
-                      Tap to start camera
+                      {agoraJoined ? "Tap to start camera" : "Joining…"}
                     </button>
                   )}
                   {isLiveParticipant && !agoraError && localVideoTrack && (

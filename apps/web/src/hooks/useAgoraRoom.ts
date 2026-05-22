@@ -47,6 +47,7 @@ export function useAgoraRoom(options: {
   const [localScreenTrack, setLocalScreenTrack] = useState<ILocalVideoTrack | null>(null);
 
   const clientRef = useRef<IAgoraRTCClient | null>(null);
+  const joinedRef = useRef(false); // tracks join completion for publishTracks guard
   const camTrackRef = useRef<ILocalVideoTrack | null>(null);
   // Second client + track used exclusively for screen share
   const screenClientRef = useRef<IAgoraRTCClient | null>(null);
@@ -88,6 +89,7 @@ export function useAgoraRoom(options: {
       await client.join(AGORA_APP_ID, channelName, null, uid);
       if (!mounted) return;
 
+      joinedRef.current = true;
       setState((prev) => ({ ...prev, joined: true, remoteUsers: [...client.remoteUsers] }));
 
       if (publish) {
@@ -105,6 +107,7 @@ export function useAgoraRoom(options: {
 
     return () => {
       mounted = false;
+      joinedRef.current = false;
       camTrackRef.current?.close();
       camTrackRef.current = null;
       // Clean up screen client if still active
@@ -174,8 +177,8 @@ export function useAgoraRoom(options: {
 
   const publishTracks = useCallback(async () => {
     const client = clientRef.current;
-    if (!client) {
-      setState((prev) => ({ ...prev, error: "Not connected — try reloading" }));
+    if (!client || !joinedRef.current) {
+      setState((prev) => ({ ...prev, error: "Still joining — wait a moment and try again" }));
       return;
     }
     try {
