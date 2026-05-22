@@ -6,6 +6,7 @@ import type {
   IAgoraRTCRemoteUser,
   ILocalVideoTrack,
   ILocalAudioTrack,
+  IMicrophoneAudioTrack,
 } from "agora-rtc-sdk-ng";
 import { AGORA_APP_ID, getAgoraRTC } from "@/lib/agora";
 
@@ -18,6 +19,8 @@ export interface AgoraRoomState {
   error: string | null;
   isScreenSharing: boolean;
   toggleScreenShare: () => Promise<void>;
+  /** Hot-switch the active microphone without dropping the channel. */
+  switchMicDevice: (deviceId: string) => Promise<void>;
   /** Leaves the current audience client and re-joins as host, then creates and
    *  publishes mic+camera tracks — all in one call meant to be invoked directly
    *  from an onClick handler. iOS Safari requires getUserMedia (and setClientRole)
@@ -37,7 +40,7 @@ export function useAgoraRoom(options: {
 }): AgoraRoomState {
   const { channelName, uid, role, publish, enabled, screenShareUid } = options;
 
-  const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "toggleScreenShare" | "goLiveAsHost">>({
+  const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "toggleScreenShare" | "switchMicDevice" | "goLiveAsHost">>({
     localVideoTrack: null,
     localAudioTrack: null,
     remoteUsers: [],
@@ -50,6 +53,7 @@ export function useAgoraRoom(options: {
   const clientRef = useRef<IAgoraRTCClient | null>(null);
   const joinedRef = useRef(false);
   const camTrackRef = useRef<ILocalVideoTrack | null>(null);
+  const localAudioTrackRef = useRef<IMicrophoneAudioTrack | null>(null);
   // Second client + track used exclusively for screen share
   const screenClientRef = useRef<IAgoraRTCClient | null>(null);
   const screenTrackRef = useRef<ILocalVideoTrack | null>(null);
@@ -98,6 +102,7 @@ export function useAgoraRoom(options: {
         if (!mounted) return;
         await client.publish([audioTrack, videoTrack]);
         camTrackRef.current = videoTrack;
+        localAudioTrackRef.current = audioTrack;
         setState((prev) => ({ ...prev, localVideoTrack: videoTrack, localAudioTrack: audioTrack }));
       }
     }
@@ -111,6 +116,7 @@ export function useAgoraRoom(options: {
       joinedRef.current = false;
       camTrackRef.current?.close();
       camTrackRef.current = null;
+      localAudioTrackRef.current = null;
       // Clean up screen client if still active
       screenTrackRef.current?.close();
       screenTrackRef.current = null;
@@ -176,6 +182,11 @@ export function useAgoraRoom(options: {
     }
   }, [screenShareUid]);
 
+  const switchMicDevice = useCallback(async (deviceId: string) => {
+    if (!localAudioTrackRef.current) return;
+    await localAudioTrackRef.current.setDevice(deviceId);
+  }, []);
+
   const goLiveAsHost = useCallback(async (hostUid: number) => {
     if (!AGORA_APP_ID) return;
     try {
@@ -214,6 +225,7 @@ export function useAgoraRoom(options: {
 
       const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
       camTrackRef.current = videoTrack;
+      localAudioTrackRef.current = audioTrack;
       await client.publish([audioTrack, videoTrack]);
       setState((prev) => ({ ...prev, localVideoTrack: videoTrack, localAudioTrack: audioTrack, error: null }));
     } catch (err) {
@@ -221,5 +233,5 @@ export function useAgoraRoom(options: {
     }
   }, []);
 
-  return { ...state, localScreenTrack, toggleScreenShare, goLiveAsHost };
+  return { ...state, localScreenTrack, toggleScreenShare, switchMicDevice, goLiveAsHost };
 }

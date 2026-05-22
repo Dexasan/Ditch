@@ -1991,14 +1991,28 @@ function AudioMixer({
   localAudioTrack,
   liveParticipants,
   setTrackGain,
+  audioInputs,
+  switchMicDevice,
 }: {
   localAudioTrack: ILocalAudioTrack | null;
   liveParticipants: Participant[];
   setTrackGain: (sourceId: string, volume: number, muted: boolean) => void;
+  audioInputs: MediaDeviceInfo[];
+  switchMicDevice: (deviceId: string) => Promise<void>;
 }) {
   const [channels, setChannels] = useState<Record<string, MixerChannel>>({
     mic: { volume: 1.0, muted: false },
   });
+  const [activeMicId, setActiveMicId] = useState<string>("");
+
+  // Sync activeMicId when localAudioTrack first becomes available
+  useEffect(() => {
+    if (!localAudioTrack) return;
+    try {
+      const id = localAudioTrack.getMediaStreamTrack().getSettings().deviceId ?? "";
+      setActiveMicId(id);
+    } catch {}
+  }, [localAudioTrack]);
 
   const sources = useMemo(() => {
     const list: { id: string; label: string }[] = [];
@@ -2031,11 +2045,12 @@ function AudioMixer({
       <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-widest shrink-0">Mixer</span>
       {sources.map((src) => {
         const ch = channels[src.id] ?? { volume: 1.0, muted: false };
+        const isMic = src.id === "mic";
         return (
           <div
             key={src.id}
             className="flex flex-col gap-1 shrink-0 px-2 py-1.5 rounded bg-[var(--bg-base)] border border-[var(--border)]"
-            style={{ width: 108 }}
+            style={{ width: isMic && audioInputs.length > 1 ? 160 : 108 }}
           >
             <div className="flex items-center justify-between gap-1">
               <span className="text-[9px] font-semibold uppercase tracking-wide truncate"
@@ -2066,6 +2081,23 @@ function AudioMixer({
                 {ch.muted ? "—" : `${Math.round(ch.volume * 100)}`}
               </span>
             </div>
+            {isMic && audioInputs.length > 1 && (
+              <select
+                value={activeMicId}
+                onChange={(e) => {
+                  setActiveMicId(e.target.value);
+                  switchMicDevice(e.target.value).catch(() => {});
+                }}
+                className="w-full text-[8px] bg-[var(--bg-mid)] border border-[var(--border)] rounded px-1 py-0.5 text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)] cursor-pointer truncate"
+                title="Select microphone"
+              >
+                {audioInputs.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.label || `Mic ${d.deviceId.slice(0, 6)}`}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         );
       })}
@@ -2077,11 +2109,15 @@ function StreamPulse({
   localAudioTrack,
   liveParticipants,
   setTrackGain,
+  audioInputs,
+  switchMicDevice,
   onClipClick,
 }: {
   localAudioTrack: ILocalAudioTrack | null;
   liveParticipants: Participant[];
   setTrackGain: (sourceId: string, volume: number, muted: boolean) => void;
+  audioInputs: MediaDeviceInfo[];
+  switchMicDevice: (deviceId: string) => Promise<void>;
   onClipClick: () => void;
 }) {
   const { scenes, activeSceneId, switchScene, streamStatus, fps, bitrateKbps, updateLayer } = useStudioStore();
@@ -2143,6 +2179,8 @@ function StreamPulse({
           localAudioTrack={localAudioTrack}
           liveParticipants={liveParticipants}
           setTrackGain={setTrackGain}
+          audioInputs={audioInputs}
+          switchMicDevice={switchMicDevice}
         />
       </div>
 
@@ -2218,6 +2256,7 @@ export default function Studio({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatBody, setChatBody] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([]);
 
   const {
     streamStatus, setStreamStatus, setStreamError, setFps,
@@ -2351,6 +2390,7 @@ export default function Studio({
     remoteUsers,
     isScreenSharing,
     toggleScreenShare,
+    switchMicDevice,
   } = useAgoraRoom({
     channelName: sessionId,
     uid: CREATOR_CAM_UID,
@@ -2382,6 +2422,14 @@ export default function Studio({
       });
     });
   }, [localVideoTrack]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Enumerate audio input devices once permissions are granted (localAudioTrack is the signal).
+  useEffect(() => {
+    if (!localAudioTrack || !navigator.mediaDevices?.enumerateDevices) return;
+    navigator.mediaDevices.enumerateDevices().then((devices) => {
+      setAudioInputs(devices.filter((d) => d.kind === "audioinput"));
+    });
+  }, [localAudioTrack]);
 
   // Compositor always runs so the preview canvas is live regardless of stream state.
   const { stream: compositeStream, setCamTransformLive, setTrackGain } = useCompositor({
@@ -2536,6 +2584,8 @@ export default function Studio({
           localAudioTrack={localAudioTrack}
           liveParticipants={liveParticipants}
           setTrackGain={setTrackGain}
+          audioInputs={audioInputs}
+          switchMicDevice={switchMicDevice}
           onClipClick={handleClipClick}
         />
       </div>
