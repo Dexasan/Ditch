@@ -18,11 +18,12 @@ export interface AgoraRoomState {
   error: string | null;
   isScreenSharing: boolean;
   toggleScreenShare: () => Promise<void>;
-  /** Call this directly from an onClick handler. iOS Safari requires getUserMedia to
-   *  be triggered within a user gesture; calling it from useEffect (socket event chain)
-   *  is blocked. This function creates mic+camera tracks and publishes to the already-
-   *  joined client, so the permission prompt fires while the gesture context is active. */
-  publishTracks: () => Promise<void>;
+  /** Leaves the current audience client and re-joins as host, then creates and
+   *  publishes mic+camera tracks — all in one call meant to be invoked directly
+   *  from an onClick handler. iOS Safari requires getUserMedia (and setClientRole)
+   *  to be triggered within a user gesture; this keeps the entire promotion flow
+   *  inside that gesture context. */
+  goLiveAsHost: (hostUid: number) => Promise<void>;
 }
 
 export function useAgoraRoom(options: {
@@ -36,7 +37,7 @@ export function useAgoraRoom(options: {
 }): AgoraRoomState {
   const { channelName, uid, role, publish, enabled, screenShareUid } = options;
 
-  const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "toggleScreenShare" | "publishTracks">>({
+  const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "toggleScreenShare" | "goLiveAsHost">>({
     localVideoTrack: null,
     localAudioTrack: null,
     remoteUsers: [],
@@ -47,7 +48,7 @@ export function useAgoraRoom(options: {
   const [localScreenTrack, setLocalScreenTrack] = useState<ILocalVideoTrack | null>(null);
 
   const clientRef = useRef<IAgoraRTCClient | null>(null);
-  const joinedRef = useRef(false); // tracks join completion for publishTracks guard
+  const joinedRef = useRef(false);
   const camTrackRef = useRef<ILocalVideoTrack | null>(null);
   // Second client + track used exclusively for screen share
   const screenClientRef = useRef<IAgoraRTCClient | null>(null);
@@ -175,14 +176,42 @@ export function useAgoraRoom(options: {
     }
   }, [screenShareUid]);
 
-  const publishTracks = useCallback(async () => {
-    const client = clientRef.current;
-    if (!client || !joinedRef.current) {
-      setState((prev) => ({ ...prev, error: "Still joining — wait a moment and try again" }));
-      return;
-    }
+  const goLiveAsHost = useCallback(async (hostUid: number) => {
+    if (!AGORA_APP_ID) return;
     try {
       const AgoraRTC = await getAgoraRTC();
+
+      // Leave the current audience client before re-joining as host.
+      if (clientRef.current) {
+        await clientRef.current.leave().catch(() => {});
+        clientRef.current = null;
+      }
+      joinedRef.current = false;
+      setState((prev) => ({ ...prev, joined: false, error: null }));
+
+      const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+
+      const syncRemote = () =>
+        setState((prev) => ({ ...prev, remoteUsers: [...client.remoteUsers] }));
+
+      client.on("user-published", async (user, mediaType) => {
+        await client.subscribe(user, mediaType);
+        if (mediaType === "audio" && user.audioTrack) user.audioTrack.play();
+        syncRemote();
+      });
+      client.on("user-unpublished", (user, mediaType) => {
+        if (mediaType === "audio") user.audioTrack?.stop();
+        syncRemote();
+      });
+      client.on("user-left", syncRemote);
+
+      await client.setClientRole("host");
+      await client.join(AGORA_APP_ID, channelNameRef.current, null, hostUid);
+
+      clientRef.current = client;
+      joinedRef.current = true;
+      setState((prev) => ({ ...prev, joined: true, remoteUsers: [...client.remoteUsers] }));
+
       const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
       camTrackRef.current = videoTrack;
       await client.publish([audioTrack, videoTrack]);
@@ -192,5 +221,5 @@ export function useAgoraRoom(options: {
     }
   }, []);
 
-  return { ...state, localScreenTrack, toggleScreenShare, publishTracks };
+  return { ...state, localScreenTrack, toggleScreenShare, goLiveAsHost };
 }

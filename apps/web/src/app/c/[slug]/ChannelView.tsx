@@ -44,6 +44,7 @@ export default function ChannelView({
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [micEnabled, setMicEnabled] = useState(true);
   const [camEnabled, setCamEnabled] = useState(true);
+  const [goingLive, setGoingLive] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
 
@@ -110,12 +111,13 @@ export default function ChannelView({
   const isLiveParticipant = myParticipant?.status === "live";
   const mySlotUid = isLiveParticipant ? slotToUid(myParticipant!.slot_index ?? 0) : 0;
 
-  const { localVideoTrack, localAudioTrack, remoteUsers, joined: agoraJoined, error: agoraError, publishTracks } = useAgoraRoom({
+  // Always join as audience — role/uid never change on their own.
+  // goLiveAsHost() handles the full leave-audience → join-as-host → create-tracks → publish
+  // flow within a single click-handler call so iOS Safari grants the permission prompt.
+  const { localVideoTrack, localAudioTrack, remoteUsers, error: agoraError, goLiveAsHost } = useAgoraRoom({
     channelName: sessionId,
-    uid: isLiveParticipant ? mySlotUid : 0,
-    role: isLiveParticipant ? "host" : "audience",
-    // Never auto-publish from the effect — getUserMedia must be triggered by a direct
-    // user tap so iOS Safari grants the permission prompt.
+    uid: 0,
+    role: "audience",
     publish: false,
     enabled: true,
   });
@@ -384,11 +386,14 @@ export default function ChannelView({
                   {isLiveParticipant && !agoraError && !localVideoTrack && (
                     <button
                       type="button"
-                      onClick={publishTracks}
-                      disabled={!agoraJoined}
+                      onClick={() => {
+                        setGoingLive(true);
+                        goLiveAsHost(mySlotUid).finally(() => setGoingLive(false));
+                      }}
+                      disabled={goingLive}
                       className="w-full py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-wait"
                     >
-                      {agoraJoined ? "Tap to start camera" : "Joining…"}
+                      {goingLive ? "Starting…" : "Tap to start camera"}
                     </button>
                   )}
                   {isLiveParticipant && !agoraError && localVideoTrack && (
