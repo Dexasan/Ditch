@@ -42,7 +42,7 @@ function HomePageContent() {
         <section className="relative flex min-h-screen flex-col items-center justify-center px-6 pt-20">
           <div className="absolute inset-0 overflow-hidden">
             <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--color-brand)] opacity-10 blur-[120px]" />
-            <div className="absolute left-1/4 top-1/3 h-[400px] w-[400px] rounded-full bg-purple-500 opacity-5 blur-[100px]" />
+            <div className="absolute left-1/4 top-1/3 h-[400px] w-[400px] rounded-full bg-[var(--color-brand)] opacity-5 blur-[100px]" />
             <div className="absolute right-1/4 bottom-1/3 h-[300px] w-[300px] rounded-full bg-blue-500 opacity-5 blur-[80px]" />
           </div>
 
@@ -90,7 +90,7 @@ function HomePageContent() {
                 <span className="ml-4 text-sm text-[var(--color-text-muted)]">DITCH Control Room</span>
               </div>
               <div className="grid grid-cols-3 gap-2 p-4">
-                <div className="col-span-2 aspect-video rounded-lg bg-gradient-to-br from-[var(--color-brand)]/20 to-purple-900/20 p-4">
+                <div className="col-span-2 aspect-video rounded-lg bg-gradient-to-br from-[var(--color-brand)]/20 to-[var(--color-brand)]/5 p-4">
                   <div className="flex h-full items-center justify-center">
                     <div className="text-center">
                       <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-brand)]/20">

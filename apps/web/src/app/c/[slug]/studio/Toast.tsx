@@ -8,7 +8,7 @@ const BORDER: Record<ToastType, string> = {
   success: "#00D4AA",
   warning: "#FFAA00",
   error:   "#FF4444",
-  info:    "#6C63FF",
+  info:    "#FF1DB4",
 };
 
 const ICON: Record<ToastType, string> = {

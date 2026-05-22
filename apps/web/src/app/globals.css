@@ -6,7 +6,7 @@
   --bg-mid:            #1A1A3E;
   --bg-deep:           #0D0D1A;
   --bg-hover:          #1A1A2E;
-  --accent-primary:    #6C63FF;
+  --accent-primary:    #FF1DB4;
   --accent-secondary:  #00D4AA;
   --text-primary:      #E0E0FF;
   --text-muted:        #888899;
@@ -19,7 +19,7 @@
   --vu-high:           #FF4444;
 
   /* ── Kept in @theme so Tailwind generates hover variants ────────── */
-  --color-brand-light: #8B84FF;
+  --color-brand-light: #FF54C8;
 }
 
 /* ── Legacy aliases — non-studio files still use old names ──────────
