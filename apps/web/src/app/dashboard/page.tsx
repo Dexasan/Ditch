@@ -37,7 +37,12 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3">
           <img src="/logo.png" alt="DITCH" className="h-7 w-7 rounded-md" />
           <span className="text-[var(--color-text-muted)] text-sm">/</span>
-          <span className="text-sm text-[var(--color-text-muted)]">{channel.slug}</span>
+          <a
+            href={`/c/${channel.slug}`}
+            className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+          >
+            {channel.slug}
+          </a>
         </div>
         <div className="flex items-center gap-4">
           {liveSession && liveSession.status !== "ended" && (
