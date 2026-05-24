@@ -314,11 +314,11 @@ export default function HomeCards() {
     <>
       <style>{KEYFRAMES}</style>
       {/* Explore: wider (3/5), Studio: narrower (2/5) */}
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 items-stretch">
-        <div className="sm:col-span-3 flex">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
+        <div className="flex">
           <ExploreCard />
         </div>
-        <div className="sm:col-span-2 flex">
+        <div className="flex">
           <StudioCard />
         </div>
       </div>
