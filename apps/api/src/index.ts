@@ -7,6 +7,7 @@ import { channelRoutes } from "./routes/channels";
 import { sessionRoutes } from "./routes/sessions";
 import { destinationRoutes } from "./routes/destinations";
 import { participantRoutes } from "./routes/participants";
+import { communityRoutes } from "./routes/community";
 
 validateEnv();
 
@@ -54,6 +55,7 @@ async function start() {
   await server.register(sessionRoutes);
   await server.register(destinationRoutes);
   await server.register(participantRoutes);
+  await server.register(communityRoutes);
 
   // ── Start ─────────────────────────────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { api } from "@/lib/api";
-import type { Channel, LiveSession, StreamDestination } from "@ditch/types";
+import type { Channel, LiveSession, StreamDestination, CommunityPost } from "@ditch/types";
 import SessionPanel from "./SessionPanel";
 import DestinationList from "./DestinationList";
 import SignOutButton from "./SignOutButton";
@@ -17,14 +17,17 @@ export default async function DashboardPage() {
   const { channel } = await api.get<{ channel: Channel | null }>("/channels/mine", { token });
   if (!channel) redirect("/onboarding");
 
-  // Get active session + destinations in parallel
-  const [{ session: liveSession }, { destinations }] = await Promise.all([
+  // Get active session, destinations, and top suggestions in parallel
+  const [{ session: liveSession }, { destinations }, { suggestions }] = await Promise.all([
     api.get<{ session: LiveSession | null; channel: Channel }>(`/channels/${channel.slug}`).then(
       (r) => ({ session: r.session })
     ),
     api
       .get<{ destinations: StreamDestination[] }>(`/destinations?channel_id=${channel.id}`, { token })
       .catch(() => ({ destinations: [] as StreamDestination[] })),
+    api
+      .get<{ suggestions: CommunityPost[] }>("/channels/mine/suggestions", { token })
+      .catch(() => ({ suggestions: [] as CommunityPost[] })),
   ]);
 
   return (
@@ -69,6 +72,41 @@ export default async function DashboardPage() {
             sessionId={liveSession.id}
             initialDestinations={destinations}
           />
+        )}
+
+        {/* Top suggestions from your community */}
+        {suggestions.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-sm font-semibold text-[var(--color-text)]">Top suggestions</h2>
+              <a
+                href={`/c/${channel.slug}?tab=community`}
+                className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-brand)] transition-colors"
+              >
+                View all →
+              </a>
+            </div>
+            <div className="space-y-2">
+              {suggestions.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                  style={{ background: "var(--color-surface-raised)", border: "1px solid var(--color-surface-border)" }}
+                >
+                  <span
+                    className="text-sm font-bold tabular-nums min-w-[2rem] text-center"
+                    style={{ color: "var(--color-brand)" }}
+                  >
+                    {s.vote_count}
+                  </span>
+                  <p className="text-sm text-[var(--color-text)] flex-1 line-clamp-1">{s.title}</p>
+                  <span className="text-xs text-[var(--color-text-muted)] shrink-0">
+                    {s.author_display_name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
       </main>
     </div>

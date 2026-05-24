@@ -77,6 +77,26 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+// ─── Community ────────────────────────────────────────────────────────────────
+
+export type CommunityPostType = "moment" | "discussion" | "suggestion";
+
+export interface CommunityPost {
+  id: string;
+  channel_id: string;
+  author_id: string;
+  author_display_name: string;
+  type: CommunityPostType;
+  title: string;
+  body: string | null;
+  media_url: string | null;
+  session_id: string | null;
+  is_pinned: boolean;
+  vote_count: number;
+  user_voted: boolean;
+  created_at: string;
+}
+
 // ─── Socket event payloads ────────────────────────────────────────────────────
 
 export interface JoinChannelPayload {
