@@ -860,3 +860,97 @@ Step 8 — `goLiveAsHost`: complete iOS Safari fix (`commit bc4d7e9`)
 - TypeScript: 0 errors across all changes
 
 **Next logical step (Day 15):** End-to-end test with an iPhone — verify the "Tap to start camera" button appears after promotion and that iOS grants the camera permission prompt on tap. Follow with a multi-participant stream test.
+
+---
+
+### Day 15 — 2026-05-22 (Product Strategy Session)
+
+**No code written. Full product strategy and positioning review.**
+
+**Legal clarity — multi-streaming is not illegal:**
+- Pushing creator-owned content to platform RTMP ingest endpoints is what those endpoints exist for. Restream, Castr, and StreamYard have done this for years without legal liability.
+- Twitch removed simulcasting restrictions for Partners in 2023. YouTube has never prohibited it. TikTok has no enforceable legal prohibition.
+- The real risk is algorithmic (platforms may deprioritize detected simulcasts) and technical (TikTok may tighten RTMP access). Neither is a DITCH legal problem — both are creator reach problems.
+- DITCH's legal exposure is essentially zero. The risks are in the creator's platform agreements, not DITCH's.
+
+**Competitive positioning — Restream is the biggest competitor:**
+- Restream is the market leader in multi-streaming: well-funded, widely used, established.
+- Critical distinction: Restream is a pipe. It pushes streams out and stops. No interaction layer, no viewer participation, no unified audience convergence.
+- Secondary: StreamYard (browser studio + multi-stream, no participation), Castr (multi-streaming + analytics, just a pipe).
+- Restream could build the interaction layer — they have the distribution infrastructure. They don't see it as their direction (B2B infrastructure tool, not a creator-audience platform). DITCH needs to make the participation moment so good that by the time Restream notices, it's already a category.
+
+**DITCH's potential ceiling — infrastructure layer, not just a destination:**
+- Wrong comparison: raw viewer hours vs. Twitch/YouTube. DITCH probably never wins that fight.
+- Right comparison: Google vs. every individual website. Google is worth more not because it has more pages — because it's the layer everything flows through.
+- DITCH thesis: every creator sacrifices one audience for another (Twitch vs. YouTube vs. TikTok). DITCH removes that constraint. If that becomes standard practice, DITCH touches every stream on every platform. That's infrastructure-level leverage. Stripe didn't replace banks — it became more valuable than most of them.
+
+**Marketing positioning — "home base", not "search engine":**
+- Rejected framing: "search engine of streams." Wrong direction — search engines index things that exist independently. DITCH originates the stream and pushes outward.
+- Correct framing: DITCH is the creator's home base. Every platform is a billboard. The channel is where you actually live.
+- One-liner to test: **"Go live once. Your audience meets you here."**
+- The unique story: DITCH is the first platform where fragmented audiences (Twitch chat, YouTube chat, TikTok comments) merge and can interact with each other and the creator simultaneously.
+
+**New feature direction — Community layer (Phase 1, investor-facing):**
+- Every channel gets a Reddit-like community at `/c/[slug]` that is active even when the creator is offline.
+- Three structured post types (NOT a flat comment section):
+  1. **Moments** — viewer-submitted clips/timestamps from past streams. Community becomes the creator's highlight reel. Creator does zero clipping work.
+  2. **Discussions** — nested threaded text posts. Upvotes surface quality; chronological order is not the default.
+  3. **Suggestions** — viewer-proposed ideas for future streams, voteable. Top suggestions surface on the creator's dashboard before going live.
+- The Suggestions loop is the investor proof point: community makes the next stream better than the last. No other platform has this.
+- Moderation: creator pins + removes, upvotes as the primary quality filter, viewer flair based on participation history (frequent on-stream participants get visual weight), no anonymous posting.
+- Investor pitch frame: *every other platform has a comment section. DITCH has a community that makes the next stream better than the last one.*
+
+**Next logical step (Day 16):** DB schema + API routes for the community layer (posts, comments, votes tables). Then web UI for `/c/[slug]` community tab.
+
+---
+
+### Day 16 — 2026-05-24
+
+**Post-login home page, viewer explore page, and full community layer.**
+
+**Step 1 — Viewer explore page (`/explore`)**
+- `GET /channels/live` API endpoint: joins `live_sessions` → `channels` + `stream_destinations` + `participants`; returns platform pills and on-screen count per channel
+- `/explore` page: magazine layout (featured card 3/5 + stacked pair 2/5, then 3-col grid); stage cards use deterministic slug-hashed gradients, platform pills in brand colors (Twitch purple / YouTube red / TikTok cyan / Kick green), empty state
+- `/` now redirects authenticated users to `/home`
+
+**Step 2 — Post-login home page (`/home`)**
+- Two-card hub: Explore (teal) and Studio (pink), both 380px tall, borderless, 50/50 grid
+- Explore card: 4 large blurred color orbs (platform brand colors) wandering on independent slow drift paths — pure aurora light, no text. Hover: orbs intensify + broadcast ripple circles from center
+- Studio card: 20 EQ bars along bottom, dim at rest, bright on hover. Hover: scanline sweep, viewfinder corner brackets slide in, blinking REC indicator
+- Personalized greeting using `display_name` from Supabase user metadata
+- Sign-out fixed (was navigating to `/auth` without calling `supabase.auth.signOut()`)
+- Auth, onboarding, and root redirect all point to `/home`
+
+**Step 3 — Community layer (full stack)**
+
+*DB — migration 005 applied to Supabase:*
+- `community_posts`: moment / discussion / suggestion types, `is_pinned`, author FK, optional `session_id` and `media_url`
+- `community_votes`: composite PK `(post_id, user_id)` enforces one vote per user per post
+- Full RLS: public read, authenticated insert, channel owner can pin/delete, author can delete own
+
+*API — 4 new endpoints:*
+- `GET /channels/:slug/community` — posts sorted pinned-first then by vote count; optional `?type=` filter; caller identity resolved from optional Bearer token for `user_voted` field
+- `POST /channels/:slug/community` — create post (authenticated)
+- `POST /community/posts/:postId/vote` — toggle vote (idempotent), returns `{ voted, vote_count }`
+- `GET /channels/mine/suggestions` — top 5 suggestions for creator's own channel (dashboard widget)
+
+*Web:*
+- `/c/[slug]` gains `Live | Community` tab switcher in header; defaults to Community when offline, Live when streaming; offline state links to community
+- `CommunityTab`: filter bar (All / Suggestions / Discussions / Moments), upvote button with optimistic state, create-post form with type selector, empty states, sign-in prompt for unauthenticated users
+- Dashboard: "Top suggestions" widget — vote count + title + author, links to full community
+- Dashboard channel slug made into a link to `/c/[slug]`
+
+*Types:*
+- `CommunityPost` and `CommunityPostType` added to `@ditch/types`
+- Supabase DB types regenerated after migration — `community_posts` and `community_votes` fully typed, `as any` cast removed
+
+**Commits this session:** `da60f25`, `7e3da83`, `ff42c44`, `100bb66`, `7e99aeb`, `1a85b0d`, `771e644`, `b62a044`, `9ecd36d`, `c574610`
+
+**State at end of Day 16:**
+- Authenticated users land on `/home` with animated choice cards
+- Viewers can discover live channels at `/explore`
+- Every channel has a community tab active even when offline
+- Suggestions from viewers surface on creator dashboard before going live
+- Supabase types in sync with live schema
+
+**Next logical step (Day 17):** Relay JWT optimization (local `jsonwebtoken.verify()` replacing HTTP `getUser()` call — saves 100–500ms on stream start). Then viewer count tracking via realtime server → explore page cards.
