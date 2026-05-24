@@ -40,7 +40,7 @@ export default function OnboardingForm({ defaultDisplayName }: { defaultDisplayN
         token: session.access_token,
         body: { slug, display_name: displayName.trim() },
       });
-      router.push("/dashboard");
+      router.push("/home");
       router.refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong.");

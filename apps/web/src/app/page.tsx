@@ -7,7 +7,7 @@ export default async function HomePage() {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (session) {
-    redirect("/explore");
+    redirect("/home");
   }
 
   return <HomePageContent />;
