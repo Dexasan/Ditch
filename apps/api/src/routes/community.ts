@@ -3,11 +3,6 @@ import type { CommunityPostType } from "@ditch/types";
 import { supabaseAdmin } from "@ditch/db";
 import { authenticate } from "../lib/authenticate";
 
-// community_posts and community_votes aren't in the generated DB types yet
-// (types regenerate after migration runs on Supabase — cast until then)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
-
 type PostType = CommunityPostType;
 
 function shapePosts(rows: any[], userId: string | null) {
@@ -72,7 +67,7 @@ export async function communityRoutes(server: FastifyInstance) {
         userId = user?.id ?? null;
       }
 
-      let query = db
+      let query = supabaseAdmin!
         .from("community_posts")
         .select("*, users!author_id ( display_name ), community_votes ( user_id )")
         .eq("channel_id", channel.id)
@@ -120,7 +115,7 @@ export async function communityRoutes(server: FastifyInstance) {
 
       if (chanErr || !channel) return reply.status(404).send({ error: "Channel not found" });
 
-      const { data: row, error } = await db
+      const { data: row, error } = await supabaseAdmin!
         .from("community_posts")
         .insert({ channel_id: channel.id, author_id, type, title, body, media_url, session_id })
         .select("*, users!author_id ( display_name ), community_votes ( user_id )")
@@ -147,7 +142,7 @@ export async function communityRoutes(server: FastifyInstance) {
       const { postId } = request.params;
       const userId     = request.user.id;
 
-      const { data: existing } = await db
+      const { data: existing } = await supabaseAdmin!
         .from("community_votes")
         .select("user_id")
         .eq("post_id", postId)
@@ -155,19 +150,19 @@ export async function communityRoutes(server: FastifyInstance) {
         .maybeSingle();
 
       if (existing) {
-        await db
+        await supabaseAdmin!
           .from("community_votes")
           .delete()
           .eq("post_id", postId)
           .eq("user_id", userId);
       } else {
-        await db
+        await supabaseAdmin!
           .from("community_votes")
           .insert({ post_id: postId, user_id: userId });
       }
 
       // Return fresh vote count
-      const { count } = await db
+      const { count } = await supabaseAdmin!
         .from("community_votes")
         .select("*", { count: "exact", head: true })
         .eq("post_id", postId);
@@ -198,7 +193,7 @@ export async function communityRoutes(server: FastifyInstance) {
 
       if (!channel) return reply.send({ suggestions: [] });
 
-      const { data: rows } = await db
+      const { data: rows } = await supabaseAdmin!
         .from("community_posts")
         .select("*, users!author_id ( display_name ), community_votes ( user_id )")
         .eq("channel_id", channel.id)
