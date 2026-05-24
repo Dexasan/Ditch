@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import HomeCards from "./HomeCards";
+import SignOutButton from "@/app/dashboard/SignOutButton";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -18,9 +19,7 @@ export default async function HomePage() {
           <img src="/logo.png" alt="DITCH" className="h-7 w-7 rounded-md" />
           <span className="text-lg font-bold tracking-tight text-[#FF1DB4]">DITCH</span>
         </Link>
-        <Link href="/auth" className="text-xs text-white/30 hover:text-white/60 transition-colors">
-          Sign out
-        </Link>
+        <SignOutButton />
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
