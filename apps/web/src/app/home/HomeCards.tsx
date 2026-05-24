@@ -104,8 +104,9 @@ function ExploreCard() {
       className="group relative flex flex-col overflow-hidden rounded-2xl transition-transform duration-300 hover:scale-[1.012]"
       style={{
         background: "#07070f",
-        border: "1px solid rgba(255,255,255,0.06)",
+        border: "none",
         minHeight: "380px",
+        width: "100%",
         padding: "28px",
       }}
       onMouseEnter={() => setHovered(true)}
@@ -204,8 +205,9 @@ function StudioCard() {
       className="group relative flex flex-col overflow-hidden rounded-2xl p-7 transition-transform duration-300 hover:scale-[1.015]"
       style={{
         background: "linear-gradient(155deg, #0d0910 0%, #110c15 100%)",
-        border: "1px solid rgba(255,255,255,0.07)",
+        border: "none",
         minHeight: "380px",
+        width: "100%",
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -312,11 +314,11 @@ export default function HomeCards() {
     <>
       <style>{KEYFRAMES}</style>
       {/* Explore: wider (3/5), Studio: narrower (2/5) */}
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-        <div className="sm:col-span-3">
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 items-stretch">
+        <div className="sm:col-span-3 flex">
           <ExploreCard />
         </div>
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-2 flex">
           <StudioCard />
         </div>
       </div>
