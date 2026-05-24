@@ -54,13 +54,15 @@ function HomePageContent() {
             </div>
 
             <h1 className="mb-6 text-5xl font-bold leading-tight tracking-tight sm:text-6xl lg:text-7xl">
-              Go live <span className="text-[var(--color-brand)]">once</span>.
+              One stream.
               <br />
-              Stream <span className="text-[var(--color-brand)]">everywhere</span>.
+              <span className="text-[var(--color-brand)]">Every platform.</span>
+              <br />
+              Anyone can join.
             </h1>
 
             <p className="mx-auto mb-10 max-w-2xl text-lg text-[var(--color-text-muted)] sm:text-xl">
-              DITCH is the video-first live platform. Broadcast to Twitch, YouTube, TikTok, and Kick simultaneously — while bringing your audience together in one interactive space.
+              Go live from your browser and hit Twitch, YouTube, TikTok, and Kick at the same time. Viewers from any of them can step off the sidelines and appear on your stream — live, visible to everyone, everywhere.
             </p>
 
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -136,8 +138,8 @@ function HomePageContent() {
         <section className="py-24">
           <div className="mx-auto max-w-6xl px-6">
             <div className="mb-16 text-center">
-              <h2 className="mb-4 text-3xl font-bold sm:text-4xl">Three platforms in one</h2>
-              <p className="text-lg text-[var(--color-text-muted)]">Everything you need to go live and grow your audience</p>
+              <h2 className="mb-4 text-3xl font-bold sm:text-4xl">Not just a streaming tool.</h2>
+              <p className="text-lg text-[var(--color-text-muted)]">Most tools push your video out. DITCH is where your audience becomes part of it.</p>
             </div>
 
             <div className="grid gap-8 md:grid-cols-3">
@@ -147,8 +149,8 @@ function HomePageContent() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 }
-                title="Multi-stream Gateway"
-                description="One RTMP source pushed to Twitch, YouTube, TikTok, Kick, and more simultaneously. DITCH is the origin — no cross-streaming restrictions."
+                title="Stream everywhere, at once"
+                description="Point your broadcasting software at DITCH. We push it to Twitch, YouTube, TikTok, and Kick simultaneously. You run one stream. Your audience is on every platform."
               />
               <FeatureCard
                 icon={
@@ -156,8 +158,8 @@ function HomePageContent() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 }
-                title="Interaction Hub"
-                description="Your DITCH channel is the live control center. Viewers from any platform can become on-screen participants, broadcast back across all destinations."
+                title="Viewers don't just watch"
+                description="Any viewer — on Twitch, on YouTube, wherever — can request to join your stream. Accept them and they're on screen, live, visible to your whole audience across every platform at once."
               />
               <FeatureCard
                 icon={
@@ -165,8 +167,8 @@ function HomePageContent() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                   </svg>
                 }
-                title="Audience Growth Engine"
-                description="Viewer finds you on Platform X → moves to DITCH → appears live on stream → inspires others. Your audience acquires itself."
+                title="The loop runs itself"
+                description="Someone finds you on Twitch. They join your stream on DITCH. Their followers see them on screen. Those followers come to watch. Your audience grows because people want to be part of it — not because you ran an ad."
               />
             </div>
           </div>
@@ -176,15 +178,15 @@ function HomePageContent() {
           <div className="mx-auto max-w-6xl px-6">
             <div className="mb-16 text-center">
               <h2 className="mb-4 text-3xl font-bold sm:text-4xl">How it works</h2>
-              <p className="text-lg text-[var(--color-text-muted)]">From zero to live in under a minute</p>
+              <p className="text-lg text-[var(--color-text-muted)]">Set up once. Stream everywhere, forever.</p>
             </div>
 
             <div className="grid gap-12 md:grid-cols-4">
               {[
-                { step: "01", title: "Create your channel", desc: "Sign up and claim your unique DITCH URL" },
-                { step: "02", title: "Add destinations", desc: "Connect your Twitch, YouTube, TikTok, and Kick accounts" },
-                { step: "03", title: "Go live", desc: "Start streaming from your browser — no OBS required" },
-                { step: "04", title: "Bring viewers on", desc: "Accept participants and feature them on your stream" },
+                { step: "01", title: "Claim your channel", desc: "Sign up and get your DITCH link. Takes 30 seconds." },
+                { step: "02", title: "Connect your platforms", desc: "Link Twitch, YouTube, TikTok, Kick — whichever you use. Done once, remembered forever." },
+                { step: "03", title: "Go live", desc: "Stream from your browser. No software to install. DITCH pushes it everywhere." },
+                { step: "04", title: "Let viewers in", desc: "Your audience requests to join. You approve. They're on screen — live, across every platform." },
               ].map((item) => (
                 <div key={item.step} className="text-center">
                   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-brand)]/10 text-2xl font-bold text-[var(--color-brand)]">
@@ -200,15 +202,15 @@ function HomePageContent() {
 
         <section className="border-t border-[var(--color-surface-border)] py-24">
           <div className="mx-auto max-w-4xl px-6 text-center">
-            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">Ready to ditch the limitations?</h2>
+            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">Your audience is split across four platforms. Bring them together.</h2>
             <p className="mb-10 text-lg text-[var(--color-text-muted)]">
-              Join creators who stream to every platform at once and build communities that grow themselves.
+              Free to start. No software to download. Just your stream, on every platform at once.
             </p>
             <Link
               href="/auth"
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-brand)] px-8 py-4 text-lg font-semibold text-white transition hover:bg-[var(--color-brand-light)]"
             >
-              Start Streaming Free
+              Start for Free
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -225,7 +227,7 @@ function HomePageContent() {
               <span className="text-xl font-bold tracking-tight text-[var(--color-brand)]">DITCH</span>
             </div>
             <p className="text-sm text-[var(--color-text-muted)]">
-              © 2026 DITCH. Go live once. Stream everywhere.
+              © 2026 DITCH. One stream. Every platform.
             </p>
           </div>
         </div>
