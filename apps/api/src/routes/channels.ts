@@ -133,4 +133,46 @@ export async function channelRoutes(server: FastifyInstance) {
       });
     }
   );
+
+  /**
+   * GET /channels/live
+   *
+   * Public — no auth required. Returns all channels currently in a live session,
+   * including their active RTMP destinations (for platform pills) and live
+   * participant count.
+   *
+   * Return: 200 { channels: LiveChannelCard[] }
+   */
+  server.get("/channels/live", async (_request, reply) => {
+    const { data: sessions, error } = await supabaseAdmin!
+      .from("live_sessions")
+      .select(`
+        id,
+        created_at,
+        channels!inner (id, slug, display_name, description),
+        stream_destinations (platform),
+        participants (status)
+      `)
+      .eq("status", "live")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (error) {
+      return reply.status(500).send({ error: "Failed to fetch live channels" });
+    }
+
+    const channels = (sessions ?? []).map((s: any) => ({
+      session_id: s.id,
+      live_since: s.created_at,
+      channel: s.channels,
+      platforms: [...new Set(
+        (s.stream_destinations ?? [])
+          .map((d: any) => d.platform)
+          .filter((p: string) => p !== "ditch"),
+      )],
+      on_screen: (s.participants ?? []).filter((p: any) => p.status === "live").length,
+    }));
+
+    return reply.status(200).send({ channels });
+  });
 }
