@@ -78,7 +78,7 @@ function ParticipantTile({
       ) : (
         <div className="absolute inset-0 flex items-center justify-center">
           <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
             style={{ background: "var(--color-brand)" }}
           >
             {(participant.display_name?.[0] ?? "?").toUpperCase()}
@@ -142,13 +142,13 @@ function JoinPanel({
       <div className="p-4 flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "var(--color-brand)" }} />
-          <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+          <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
             Your Stream
           </span>
         </div>
         <a
           href={`/c/${channelSlug}/live`}
-          className="block w-full py-2.5 rounded-xl text-sm font-bold text-center text-white transition-opacity hover:opacity-90"
+          className="block w-full py-2.5 min-h-[44px] flex items-center justify-center rounded-xl text-sm font-bold text-center text-white transition-opacity hover:opacity-90"
           style={{ background: "var(--color-brand)" }}
         >
           Open Studio →
@@ -165,7 +165,7 @@ function JoinPanel({
       <form onSubmit={onRequest} className="p-4 flex flex-col gap-3">
         <div>
           <h3 className="text-[15px] font-bold text-white leading-tight">Join this stream</h3>
-          <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+          <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
             Go live on screen — no download needed.
           </p>
         </div>
@@ -185,12 +185,12 @@ function JoinPanel({
           onBlur={(e)  => { e.target.style.borderColor = "var(--color-surface-border)"; }}
         />
         {requestError && (
-          <p className="text-[11px] text-red-400">{requestError}</p>
+          <p className="text-xs text-red-400">{requestError}</p>
         )}
         <button
           type="submit"
           disabled={requesting || !requestName.trim()}
-          className="relative w-full py-2.5 rounded-xl text-sm font-bold text-white transition-all overflow-hidden disabled:opacity-50"
+          className="relative w-full py-2.5 min-h-[44px] rounded-xl text-sm font-bold text-white transition-all overflow-hidden disabled:opacity-50"
           style={{ background: "var(--color-brand)" }}
         >
           {requesting ? "Sending…" : "Request to join"}
@@ -230,7 +230,7 @@ function JoinPanel({
         </div>
         <div className="text-center">
           <p className="text-sm font-semibold text-white">Request sent!</p>
-          <p className="text-[11px] leading-relaxed mt-1" style={{ color: "var(--color-text-muted)" }}>
+          <p className="text-xs leading-relaxed mt-1" style={{ color: "var(--color-text-muted)" }}>
             Waiting for the creator<br />to approve your spot.
           </p>
         </div>
@@ -247,15 +247,15 @@ function JoinPanel({
           style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)" }}
         >
           <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
-          <span className="text-[11px] font-semibold text-green-400">You're approved!</span>
+          <span className="text-xs font-semibold text-green-400">You're approved!</span>
         </div>
-        <p className="text-[11px] px-0.5 leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+        <p className="text-xs px-0.5 leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
           Ready to go on air. Tap below to start your camera.
         </p>
         <button
           onClick={onGoLive}
           disabled={goingLive}
-          className="relative w-full py-2.5 rounded-xl text-sm font-bold text-white overflow-hidden transition-all disabled:opacity-50"
+          className="relative w-full py-2.5 min-h-[44px] rounded-xl text-sm font-bold text-white overflow-hidden transition-all disabled:opacity-50"
           style={{ background: "#16a34a" }}
         >
           {goingLive ? (
@@ -282,12 +282,12 @@ function JoinPanel({
         <div className="p-4 flex flex-col gap-2.5">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-red-400">Camera error</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-red-400">Camera error</span>
           </div>
-          <p className="text-[11px] leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+          <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
             {agoraError}
           </p>
-          <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
             Check browser camera permissions and reload.
           </p>
         </div>
@@ -299,12 +299,12 @@ function JoinPanel({
         <div className="p-4 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-            <span className="text-[11px] font-bold uppercase tracking-widest text-white">You&apos;re live</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-white">You&apos;re live</span>
           </div>
           <button
             onClick={onGoLive}
             disabled={goingLive}
-            className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-500 disabled:opacity-50 transition-colors"
+            className="w-full py-2.5 min-h-[44px] rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-500 disabled:opacity-50 transition-colors"
           >
             {goingLive ? "Starting…" : "Start your camera"}
           </button>
@@ -316,12 +316,12 @@ function JoinPanel({
       <div className="p-4 flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-          <span className="text-[11px] font-bold uppercase tracking-widest text-white">You&apos;re live</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-white">You&apos;re live</span>
         </div>
         <div className="flex gap-2">
           <button
             onClick={onToggleMic}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold border transition-colors ${
               micEnabled
                 ? "text-[var(--color-text)] hover:border-red-500/40"
                 : "bg-red-500/10 text-red-400 border-red-500/40"
@@ -333,7 +333,7 @@ function JoinPanel({
           </button>
           <button
             onClick={onToggleCam}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold border transition-colors ${
               camEnabled
                 ? "text-[var(--color-text)] hover:border-red-500/40"
                 : "bg-red-500/10 text-red-400 border-red-500/40"
@@ -384,7 +384,7 @@ function ChatPanel({
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-20 gap-1.5 opacity-30 select-none">
             <span className="text-xl">💬</span>
-            <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+            <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
               {connected ? "No messages yet" : "Connecting…"}
             </p>
           </div>
@@ -430,7 +430,7 @@ function ChatPanel({
           <button
             type="submit"
             disabled={!chatBody.trim()}
-            className="px-3 py-2 rounded-lg text-[12px] font-semibold text-white disabled:opacity-40 transition-colors shrink-0"
+            className="px-3 py-2 min-h-[44px] rounded-lg text-xs font-semibold text-white disabled:opacity-40 transition-colors shrink-0"
             style={{ background: "var(--color-brand)" }}
           >
             Send
@@ -455,7 +455,7 @@ function ChatPanel({
           />
           <button
             onClick={onSignInClick}
-            className="px-3 py-2 rounded-lg text-[12px] font-semibold text-white shrink-0 transition-opacity hover:opacity-90"
+            className="px-3 py-2 min-h-[44px] rounded-lg text-xs font-semibold text-white shrink-0 transition-opacity hover:opacity-90"
             style={{ background: "var(--color-brand)" }}
           >
             Sign in
@@ -569,6 +569,7 @@ export default function ChannelView({
     role: "audience",
     publish: false,
     enabled: true,
+    authToken: tokenState ?? undefined,
   });
 
   function toggleMic() {
@@ -688,7 +689,7 @@ export default function ChannelView({
                   <polygon points="23 7 16 12 23 17 23 7" />
                   <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                 </svg>
-                <span className="text-[11px] uppercase tracking-widest">Starting stream…</span>
+                <span className="text-xs uppercase tracking-widest">Starting stream…</span>
               </div>
             )}
 
@@ -783,7 +784,7 @@ export default function ChannelView({
                   <button
                     key={t}
                     onClick={() => setMobileTab(t)}
-                    className="flex-1 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-colors border-b-2 -mb-px"
+                    className="flex-1 py-3.5 text-xs font-semibold uppercase tracking-wider transition-colors border-b-2 -mb-px"
                     style={{
                       borderColor: isActive ? "var(--color-brand)" : "transparent",
                       color: isActive ? "white" : "var(--color-text-muted)",
@@ -867,7 +868,7 @@ export default function ChannelView({
           {/* Live participants list */}
           {liveSlots.length > 0 && (
             <div className="shrink-0 px-4 py-3 border-b" style={{ borderColor: "var(--color-surface-border)" }}>
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-2.5"
+              <p className="text-xs font-semibold uppercase tracking-widest mb-2.5"
                  style={{ color: "var(--color-text-muted)" }}>
                 On air
               </p>
@@ -878,7 +879,7 @@ export default function ChannelView({
                     <span className="text-[12px] text-white truncate">{p.display_name}</span>
                     {myParticipant?.id === p.id && (
                       <span
-                        className="ml-auto text-[10px] font-bold shrink-0 uppercase tracking-wide"
+                        className="ml-auto text-xs font-bold shrink-0 uppercase tracking-wide"
                         style={{ color: "var(--color-brand)" }}
                       >
                         You
@@ -893,7 +894,7 @@ export default function ChannelView({
           {/* Waiting count teaser */}
           {participants.filter((p) => p.status === "waiting").length > 0 && (
             <div className="shrink-0 px-4 py-2.5">
-              <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
                 {participants.filter((p) => p.status === "waiting").length} waiting to join
               </p>
             </div>
@@ -908,7 +909,7 @@ export default function ChannelView({
               className="px-4 py-2 shrink-0 border-b"
               style={{ borderColor: "var(--color-surface-border)" }}
             >
-              <span className="text-[10px] font-semibold uppercase tracking-widest"
+              <span className="text-xs font-semibold uppercase tracking-widest"
                     style={{ color: "var(--color-text-muted)" }}>
                 Chat
               </span>
