@@ -25,14 +25,12 @@ export const metadata: Metadata = {
     title: "DITCH — Go live once. Stream everywhere.",
     description:
       "Stream to Twitch, YouTube, TikTok, Kick and more at the same time. Pull viewers from any platform onto your live stream.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "DITCH" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "DITCH — Go live once. Stream everywhere.",
     description:
       "Stream to Twitch, YouTube, TikTok, Kick and more at the same time. Pull viewers from any platform onto your live stream.",
-    images: ["/og-image.png"],
   },
   robots: {
     index: true,
