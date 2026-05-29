@@ -2,8 +2,45 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DITCH",
-  description: "Go live once. Stream everywhere. Bring everyone back.",
+  metadataBase: new URL("https://ditchlive.app"),
+  title: {
+    default: "DITCH — Go live once. Stream everywhere.",
+    template: "%s | DITCH",
+  },
+  description:
+    "DITCH lets you stream to Twitch, YouTube, TikTok, Kick and more simultaneously — and pull viewers from any platform onto your live stream in real time.",
+  keywords: [
+    "multi-stream",
+    "live streaming",
+    "stream to multiple platforms",
+    "interactive live stream",
+    "go live",
+    "viewer on stream",
+    "ditch live",
+  ],
+  openGraph: {
+    type: "website",
+    url: "https://ditchlive.app",
+    siteName: "DITCH",
+    title: "DITCH — Go live once. Stream everywhere.",
+    description:
+      "Stream to Twitch, YouTube, TikTok, Kick and more at the same time. Pull viewers from any platform onto your live stream.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "DITCH" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DITCH — Go live once. Stream everywhere.",
+    description:
+      "Stream to Twitch, YouTube, TikTok, Kick and more at the same time. Pull viewers from any platform onto your live stream.",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: "https://ditchlive.app",
+  },
 };
 
 export default function RootLayout({
