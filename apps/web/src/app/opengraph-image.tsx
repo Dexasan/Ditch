@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "DITCH — Go live once. Stream everywhere.";
+export const alt = "DITCH — One stream. Every platform. Anyone can join.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -59,8 +59,9 @@ export default function Image() {
             gap: 10,
           }}
         >
-          <span>Go live once.</span>
-          <span style={{ color: "#FF1DB4" }}>Stream everywhere.</span>
+          <span>One stream.</span>
+          <span style={{ color: "#FF1DB4" }}>Every platform.</span>
+          <span>Anyone can join.</span>
         </div>
 
         {/* Platform pills */}

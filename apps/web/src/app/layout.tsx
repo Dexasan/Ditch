@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://ditchlive.app"),
   title: {
-    default: "DITCH — Go live once. Stream everywhere.",
+    default: "DITCH — One stream. Every platform. Anyone can join.",
     template: "%s | DITCH",
   },
   description:
@@ -22,13 +22,13 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://ditchlive.app",
     siteName: "DITCH",
-    title: "DITCH — Go live once. Stream everywhere.",
+    title: "DITCH — One stream. Every platform. Anyone can join.",
     description:
       "Stream to Twitch, YouTube, TikTok, Kick and more at the same time. Pull viewers from any platform onto your live stream.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "DITCH — Go live once. Stream everywhere.",
+    title: "DITCH — One stream. Every platform. Anyone can join.",
     description:
       "Stream to Twitch, YouTube, TikTok, Kick and more at the same time. Pull viewers from any platform onto your live stream.",
   },
