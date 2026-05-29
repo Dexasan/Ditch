@@ -10,6 +10,22 @@ import type {
 } from "agora-rtc-sdk-ng";
 import { AGORA_APP_ID, getAgoraRTC } from "@/lib/agora";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+
+async function fetchAgoraToken(sessionId: string, uid: number, authToken?: string): Promise<string | null> {
+  try {
+    const url = `${API_BASE}/agora/token?session_id=${encodeURIComponent(sessionId)}&uid=${uid}`;
+    const headers: Record<string, string> = {};
+    if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+    const res = await fetch(url, { headers, cache: "no-store" });
+    if (!res.ok) return null;
+    const { token } = await res.json();
+    return token as string | null;
+  } catch {
+    return null;
+  }
+}
+
 export interface AgoraRoomState {
   localVideoTrack: ILocalVideoTrack | null;   // camera
   localScreenTrack: ILocalVideoTrack | null;  // screen share (second client)
@@ -37,8 +53,10 @@ export function useAgoraRoom(options: {
   enabled: boolean;
   /** UID for the screen-share second client. Required to enable screenshare. */
   screenShareUid?: number;
+  /** Supabase access token forwarded to the Agora token endpoint. Required when App Certificate is configured. */
+  authToken?: string;
 }): AgoraRoomState {
-  const { channelName, uid, role, publish, enabled, screenShareUid } = options;
+  const { channelName, uid, role, publish, enabled, screenShareUid, authToken } = options;
 
   const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "toggleScreenShare" | "switchMicDevice" | "goLiveAsHost">>({
     localVideoTrack: null,
@@ -60,6 +78,8 @@ export function useAgoraRoom(options: {
   // Stable ref so toggleScreenShare closure can read current channelName
   const channelNameRef = useRef(channelName);
   useEffect(() => { channelNameRef.current = channelName; }, [channelName]);
+  const authTokenRef = useRef(authToken);
+  useEffect(() => { authTokenRef.current = authToken; }, [authToken]);
 
   useEffect(() => {
     if (!enabled || !AGORA_APP_ID) return;
@@ -90,9 +110,14 @@ export function useAgoraRoom(options: {
       client.on("user-left", syncRemote);
 
       await client.setClientRole(role);
-      // null token = Testing mode (no App Certificate required)
-      await client.join(AGORA_APP_ID, channelName, null, uid);
+      const agoraToken = await fetchAgoraToken(channelName, uid, authTokenRef.current);
       if (!mounted) return;
+      await client.join(AGORA_APP_ID, channelName, agoraToken, uid);
+      if (!mounted) return;
+      client.on("token-privilege-will-expire", async () => {
+        const newToken = await fetchAgoraToken(channelNameRef.current, uid, authTokenRef.current);
+        if (newToken) await client.renewToken(newToken);
+      });
 
       joinedRef.current = true;
       setState((prev) => ({ ...prev, joined: true, remoteUsers: [...client.remoteUsers] }));
@@ -148,7 +173,12 @@ export function useAgoraRoom(options: {
       // Create a dedicated second client so the camera client is untouched.
       const screenClient = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
       await screenClient.setClientRole("host");
-      await screenClient.join(AGORA_APP_ID, channelNameRef.current, null, screenShareUid);
+      const screenToken = await fetchAgoraToken(channelNameRef.current, screenShareUid, authTokenRef.current);
+      await screenClient.join(AGORA_APP_ID, channelNameRef.current, screenToken, screenShareUid);
+      screenClient.on("token-privilege-will-expire", async () => {
+        const newToken = await fetchAgoraToken(channelNameRef.current, screenShareUid, authTokenRef.current);
+        if (newToken) await screenClient.renewToken(newToken);
+      });
 
       const result = await AgoraRTC.createScreenVideoTrack({}, "disable");
       const track = Array.isArray(result) ? result[0] : result;
@@ -217,7 +247,12 @@ export function useAgoraRoom(options: {
       client.on("user-left", syncRemote);
 
       await client.setClientRole("host");
-      await client.join(AGORA_APP_ID, channelNameRef.current, null, hostUid);
+      const agoraToken = await fetchAgoraToken(channelNameRef.current, hostUid, authTokenRef.current);
+      await client.join(AGORA_APP_ID, channelNameRef.current, agoraToken, hostUid);
+      client.on("token-privilege-will-expire", async () => {
+        const newToken = await fetchAgoraToken(channelNameRef.current, hostUid, authTokenRef.current);
+        if (newToken) await client.renewToken(newToken);
+      });
 
       clientRef.current = client;
       joinedRef.current = true;
