@@ -1530,6 +1530,7 @@ const PreviewCanvas = forwardRef<PreviewCanvasHandle, {
   onSelectLayer: (id: string | null) => void;
   onLayerTransformLive: (id: string, patch: Partial<Layer["transform"]>) => void;
   onLayerTransformCommit: (id: string, patch: Partial<Layer["transform"]>) => void;
+  onFileDrop?: (file: File) => void;
 }>(function PreviewCanvas({
   stream,
   layers,
@@ -1537,9 +1538,11 @@ const PreviewCanvas = forwardRef<PreviewCanvasHandle, {
   onSelectLayer,
   onLayerTransformLive,
   onLayerTransformCommit,
+  onFileDrop,
 }, ref) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   useImperativeHandle(ref, () => ({
     capture(): string | null {
@@ -1559,6 +1562,29 @@ const PreviewCanvas = forwardRef<PreviewCanvasHandle, {
     if (stream) v.play().catch(() => {});
   }, [stream]);
 
+  function handleDragOver(e: React.DragEvent) {
+    const hasImage = Array.from(e.dataTransfer.items).some(
+      (item) => item.kind === "file" && item.type.startsWith("image/"),
+    );
+    if (!hasImage) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setDragOver(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    if (!onFileDrop) return;
+    Array.from(e.dataTransfer.files)
+      .filter((f) => f.type.startsWith("image/"))
+      .forEach((f) => onFileDrop(f));
+  }
+
   const visibleLayers = layers.filter((l) => l.visible);
 
   return (
@@ -1568,6 +1594,9 @@ const PreviewCanvas = forwardRef<PreviewCanvasHandle, {
         className="relative overflow-hidden"
         style={{ background: "var(--bg-deep)", aspectRatio: "16/9", maxWidth: "100%", maxHeight: "100%", width: "100%" }}
         onClick={() => onSelectLayer(null)}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         <video
           ref={videoRef}
@@ -1601,6 +1630,17 @@ const PreviewCanvas = forwardRef<PreviewCanvasHandle, {
             onTransformCommit={(patch) => onLayerTransformCommit(layer.id, patch)}
           />
         ))}
+        {dragOver && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 pointer-events-none"
+            style={{ background: "rgba(0,0,0,0.55)", border: "2px dashed rgba(139,92,246,0.8)" }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(139,92,246,0.9)" strokeWidth="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span className="text-[12px] font-semibold" style={{ color: "rgba(139,92,246,0.9)" }}>Drop image</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2705,6 +2745,7 @@ export default function Studio({
     isTransitioning, transitionKey,
     updateLayer: updateLayerRoot,
     updateScene,
+    addLayer: addLayerRoot,
     selectedLayerId, setSelectedLayerId,
     addToast,
   } = useStudioStore();
@@ -2883,6 +2924,11 @@ export default function Studio({
   }, [localAudioTrack]);
 
   // Compositor always runs so the preview canvas is live regardless of stream state.
+  const imageLayers = useMemo(
+    () => activeScene.layers.filter((l) => l.type === "image"),
+    [activeScene.layers],
+  );
+
   const { stream: compositeStream, setCamTransformLive, setTrackGain, getAnalyser } = useCompositor({
     localVideoTrack,
     localScreenTrack,
@@ -2891,6 +2937,7 @@ export default function Studio({
     liveParticipants,
     enabled: true,
     cameraLayer,
+    imageLayers,
     targetFps,
     onFps: setFps,
   });
@@ -2968,6 +3015,39 @@ export default function Studio({
     addToast("Clip saved", "success");
   }
 
+  const handleFileDrop = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const src = ev.target?.result as string | undefined;
+      if (!src) return;
+      const img = new Image();
+      img.onload = () => {
+        // Fit inside 80% of canvas, never upscale
+        const maxW = 1280 * 0.8;
+        const maxH = 720  * 0.8;
+        const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
+        const w = Math.round(img.naturalWidth  * scale);
+        const h = Math.round(img.naturalHeight * scale);
+        const x = Math.round((1280 - w) / 2);
+        const y = Math.round((720  - h) / 2);
+        const name = file.name.replace(/\.[^.]+$/, "") || "Image";
+        addLayerRoot(activeSceneId, {
+          id: crypto.randomUUID(),
+          type: "image",
+          name,
+          visible: true,
+          locked: false,
+          opacity: 1,
+          transform: { x, y, width: w, height: h, rotation: 0 },
+          sourceConfig: { src },
+          effects: [],
+        });
+      };
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+  }, [activeSceneId, addLayerRoot]);
+
   function togglePanel(id: RightPanelId) {
     setActivePanel((prev) => (prev === id ? null : id));
   }
@@ -3018,6 +3098,7 @@ export default function Studio({
               const layer = activeScene.layers.find((l) => l.id === id);
               if (layer) updateLayerRoot(activeScene.id, id, { transform: { ...layer.transform, ...patch } });
             }}
+            onFileDrop={handleFileDrop}
           />
         </div>
         <Inspector

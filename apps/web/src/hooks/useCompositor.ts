@@ -89,6 +89,8 @@ interface CompositorOptions {
   enabled: boolean;
   /** Active camera layer — position, visibility, and transform come from here. */
   cameraLayer?: Layer | null;
+  /** Image layers to composite on top of video (logos, overlays, etc.) */
+  imageLayers?: Layer[];
   targetFps?: 30 | 60;
   onFps?: (fps: number) => void;
 }
@@ -101,6 +103,7 @@ export function useCompositor({
   liveParticipants,
   enabled,
   cameraLayer = null,
+  imageLayers = [],
   targetFps = DEFAULT_FPS,
   onFps,
 }: CompositorOptions): {
@@ -118,6 +121,7 @@ export function useCompositor({
   // Synced from the prop on each render via effect.
   const cameraLayerRef = useRef<Layer | null>(cameraLayer ?? null);
   useEffect(() => { cameraLayerRef.current = cameraLayer ?? null; }, [cameraLayer]);
+  useEffect(() => { imageLayersRef.current = imageLayers.filter((l) => l.visible); }, [imageLayers]);
 
   const chromaKeyRef = useRef<ChromaKeyProcessor | null>(null);
 
@@ -139,6 +143,8 @@ export function useCompositor({
   const connectedAudioRef  = useRef<Set<string>>(new Set());
   const gainNodesRef       = useRef<Map<string, GainNode>>(new Map());
   const analyserNodesRef   = useRef<Map<string, AnalyserNode>>(new Map());
+  const imageLayersRef     = useRef<Layer[]>([]);
+  const imageCacheRef      = useRef<Map<string, HTMLImageElement>>(new Map());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const frameWriterRef    = useRef<WritableStreamDefaultWriter<any> | null>(null);
 
@@ -203,6 +209,7 @@ export function useCompositor({
       connectedAudioRef.current.clear();
       gainNodesRef.current.clear();
       analyserNodesRef.current.clear();
+      imageCacheRef.current.clear();
       videoElemsRef.current.forEach((el) => { el.srcObject = null; });
       videoElemsRef.current.clear();
       processorCleanupsRef.current.forEach((fn) => fn());
@@ -367,6 +374,25 @@ export function useCompositor({
             }
           }
         } catch {}
+      }
+
+      // Image layers (overlays: logos, lower-thirds, etc.) — drawn on top of video
+      for (const layer of imageLayersRef.current) {
+        const src = layer.sourceConfig.src as string | undefined;
+        if (!src) continue;
+        let img = imageCacheRef.current.get(layer.id);
+        if (!img) {
+          img = new Image();
+          img.src = src;
+          imageCacheRef.current.set(layer.id, img);
+        }
+        if (img.complete && img.naturalWidth > 0) {
+          const { x, y, width, height } = layer.transform;
+          ctx!.save();
+          ctx!.globalAlpha = layer.opacity;
+          ctx!.drawImage(img, x, y, width, height);
+          ctx!.restore();
+        }
       }
 
       // Deliver the composite frame to the output track
