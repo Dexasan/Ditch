@@ -14,6 +14,7 @@
   --status-live:       #FF4444;
   --status-connecting: #FFAA00;
   --status-ok:         #00D4AA;
+  --status-offline:    #3F3F46;
   --vu-low:            #00D4AA;
   --vu-mid:            #FFAA00;
   --vu-high:           #FF4444;

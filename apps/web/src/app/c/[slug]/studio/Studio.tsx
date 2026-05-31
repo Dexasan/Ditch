@@ -792,7 +792,7 @@ function LayerRow({
       <span className="text-[var(--text-muted)] shrink-0">{layerTypeIcon(layer.type)}</span>
       <span className="flex-1 text-[13px] text-[var(--text-primary)] truncate">{layer.name}</span>
       {layer.sourceUnavailable && (
-        <span title="Source unavailable" style={{ color: "#FFAA00", fontSize: 13, lineHeight: 1 }} className="shrink-0">⚠</span>
+        <span title="Source unavailable" style={{ color: "var(--status-connecting)", fontSize: 13, lineHeight: 1 }} className="shrink-0">⚠</span>
       )}
       <button
         onClick={(e) => { e.stopPropagation(); onToggleVisible(); }}
@@ -2487,8 +2487,8 @@ function Inspector({
                     className="mx-3 mb-3 flex items-center gap-2 px-3 py-2 rounded border text-[11px]"
                     style={{
                       background: "rgba(255,170,0,0.08)",
-                      borderColor: "#FFAA00",
-                      color: "#FFAA00",
+                      borderColor: "var(--status-connecting)",
+                      color: "var(--status-connecting)",
                     }}
                   >
                     <span style={{ fontSize: 13 }}>⚠</span>
@@ -2527,7 +2527,7 @@ function BitrateSparkline({ data }: { data: number[] }) {
     .map((v, i) => `${((i / (data.length - 1)) * W).toFixed(1)},${(H - (v / peak) * H).toFixed(1)}`)
     .join(" ");
   const latest = data[data.length - 1] ?? 0;
-  const stroke = latest > 2000 ? "#22c55e" : latest > 500 ? "#f59e0b" : "#ef4444";
+  const stroke = latest > 2000 ? "#00D4AA" : latest > 500 ? "#FFAA00" : "#FF4444";
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
       <polyline points={pts} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -2595,9 +2595,9 @@ function VUMeter({ analyser, muted }: { analyser: AnalyserNode | null; muted: bo
       for (let i = 0; i < SEGS; i++) {
         const t = i / SEGS;
         const lit = i < active;
-        if (t < 0.65)       ctx2d.fillStyle = lit ? "#22c55e" : "#0f2110";
-        else if (t < 0.85)  ctx2d.fillStyle = lit ? "#eab308" : "#1f1a05";
-        else                ctx2d.fillStyle = lit ? "#ef4444" : "#200a0a";
+        if (t < 0.65)       ctx2d.fillStyle = lit ? "#00D4AA" : "#051a17";
+        else if (t < 0.85)  ctx2d.fillStyle = lit ? "#FFAA00" : "#1a1000";
+        else                ctx2d.fillStyle = lit ? "#FF4444" : "#200a0a";
         ctx2d.fillRect(i * segW, 0, segW - gap, height);
       }
 
@@ -2775,9 +2775,9 @@ function StreamPulse({
   }
 
   const statusColor =
-    streamStatus === "live" ? "#ef4444" :
-    streamStatus === "connecting" ? "#f59e0b" :
-    "#3f3f46";
+    streamStatus === "live" ? "var(--status-live)" :
+    streamStatus === "connecting" ? "var(--status-connecting)" :
+    "var(--status-offline)";
   const statusLabel =
     streamStatus === "live" ? "LIVE" :
     streamStatus === "connecting" ? "CONNECTING" :
@@ -2786,7 +2786,7 @@ function StreamPulse({
   return (
     <div
       className="flex items-center gap-3 px-4 border-t border-[var(--border)]"
-      style={{ gridArea: "mixer", background: "var(--bg-deep, #0A0A18)" }}
+      style={{ gridArea: "mixer", background: "var(--bg-deep, #0D0D1A)" }}
     >
       {/* Scene filmstrip */}
       <div className="flex items-center gap-1.5 overflow-x-auto shrink-0" style={{ maxWidth: 200 }}>
@@ -3223,7 +3223,7 @@ export default function Studio({
           gridTemplateRows: "48px 1fr 1fr 72px",
           height: "100vh",
           overflow: "hidden",
-          background: "var(--bg-deep, #0A0A18)",
+          background: "var(--bg-deep, #0D0D1A)",
         }}
       >
         <TopBar slug={slug} sessionId={sessionId} token={token} onRecordClick={handleRecordClick} />
