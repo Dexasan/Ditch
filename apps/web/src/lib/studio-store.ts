@@ -57,9 +57,16 @@ export interface Destination {
   streamKey: string;
 }
 
+export type EncoderPreset = "quality" | "balanced" | "performance";
+export type OutputResolution = "720p" | "1080p";
+
 interface StudioSettings {
   destinations: Destination[];
   streamTitle: string;
+  videoBitrateKbps: number;
+  audioBitrateKbps: number;
+  encoderPreset: EncoderPreset;
+  outputResolution: OutputResolution;
 }
 
 export interface Scene {
@@ -233,7 +240,14 @@ export const useStudioStore = create<StudioStore>()(
   setSelectedLayerId: (id) => set({ selectedLayerId: id }),
 
   // Settings
-  settings: { destinations: [], streamTitle: "" },
+  settings: {
+    destinations: [],
+    streamTitle: "",
+    videoBitrateKbps: 4000,
+    audioBitrateKbps: 128,
+    encoderPreset: "balanced" as EncoderPreset,
+    outputResolution: "720p" as OutputResolution,
+  },
   updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
   addDestination: (dest) =>
     set((s) => ({ settings: { ...s.settings, destinations: [...s.settings.destinations, dest] } })),

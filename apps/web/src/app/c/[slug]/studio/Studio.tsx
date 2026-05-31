@@ -595,9 +595,10 @@ function EndStreamModal({
 
 function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessionId: string; token: string; onRecordClick: () => void }) {
   const { streamStatus, streamError, fps, setStreamStatus, settings, isRecording, streamDuration } = useStudioStore();
-  const [showGoLiveModal, setShowGoLiveModal] = useState(false);
-  const [showEndModal, setShowEndModal] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showGoLiveModal,    setShowGoLiveModal]    = useState(false);
+  const [showEndModal,       setShowEndModal]       = useState(false);
+  const [showInviteModal,    setShowInviteModal]    = useState(false);
+  const [showSettingsModal,  setShowSettingsModal]  = useState(false);
 
   function handleGoLiveClick() {
     if (streamStatus === "live") {
@@ -657,6 +658,7 @@ function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessi
       {showInviteModal && (
         <InviteModal slug={slug} onClose={() => setShowInviteModal(false)} />
       )}
+      {showSettingsModal && <SettingsModal onClose={() => setShowSettingsModal(false)} />}
       <div
         className="flex items-center border-b border-[var(--border)] bg-[var(--bg-base)] px-3 gap-3"
         style={{ gridArea: "topbar", height: 44 }}
@@ -699,6 +701,13 @@ function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessi
               Invite
             </button>
           )}
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="h-7 w-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            title="Settings"
+          >
+            <IconSettings />
+          </button>
           <button
             onClick={onRecordClick}
             className={`h-7 px-3 rounded text-[11px] font-semibold border transition-colors ${
@@ -1883,7 +1892,158 @@ function QueuePanel({
   );
 }
 
-// ── Settings panel ────────────────────────────────────────────────────────────
+// ── Settings modal ────────────────────────────────────────────────────────────
+
+function SettingsModal({ onClose }: { onClose: () => void }) {
+  const { settings, updateSettings, targetFps, setTargetFps } = useStudioStore();
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const sectionHd = "text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider";
+  const row = "flex items-center justify-between gap-4";
+  const pill = (active: boolean, disabled = false) =>
+    `px-3 py-1 rounded text-[10px] font-semibold border transition-colors ${
+      active
+        ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
+        : disabled
+        ? "border-[var(--border)] text-[var(--text-muted)] opacity-40 cursor-not-allowed"
+        : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]"
+    }`;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.72)" }}
+      onClick={onClose}
+    >
+      <div
+        className="flex flex-col rounded-lg border border-[var(--border)] shadow-2xl overflow-hidden"
+        style={{ width: 480, maxHeight: "80vh", background: "var(--bg-base)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] shrink-0">
+          <div className="flex items-center gap-2">
+            <IconSettings />
+            <h2 className="text-[13px] font-bold text-[var(--text-primary)]">Settings</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--bg-mid)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-[12px]"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-6">
+
+          {/* ── Output ── */}
+          <section className="space-y-3">
+            <p className={sectionHd}>Output</p>
+
+            <div className={row}>
+              <span className="text-[11px] text-[var(--text-primary)]">Resolution</span>
+              <div className="flex gap-1">
+                {(["720p", "1080p"] as const).map((res) => (
+                  <button
+                    key={res}
+                    disabled={res === "1080p"}
+                    onClick={() => res !== "1080p" && updateSettings({ outputResolution: res })}
+                    title={res === "1080p" ? "Coming soon" : undefined}
+                    className={pill(settings.outputResolution === res, res === "1080p")}
+                  >
+                    {res}{res === "1080p" && " ·soon"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={row}>
+              <span className="text-[11px] text-[var(--text-primary)]">Frame rate</span>
+              <div className="flex gap-1">
+                {([30, 60] as const).map((fps) => (
+                  <button key={fps} onClick={() => setTargetFps(fps)} className={pill(targetFps === fps)}>
+                    {fps} fps
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <div className="border-t border-[var(--border)]" />
+
+          {/* ── Video ── */}
+          <section className="space-y-3">
+            <p className={sectionHd}>Video</p>
+
+            <div>
+              <div className={row}>
+                <span className="text-[11px] text-[var(--text-primary)]">Target bitrate</span>
+                <span className="text-[11px] font-mono" style={{ color: "var(--accent-primary)" }}>
+                  {(settings.videoBitrateKbps / 1000).toFixed(1)} Mbps
+                </span>
+              </div>
+              <input
+                type="range" min={1000} max={8000} step={500}
+                value={settings.videoBitrateKbps}
+                onChange={(e) => updateSettings({ videoBitrateKbps: Number(e.target.value) })}
+                className="w-full mt-2 accent-[var(--accent-primary)]"
+              />
+              <div className="flex justify-between text-[9px] text-[var(--text-muted)] mt-0.5">
+                <span>1 Mbps</span><span>4 Mbps</span><span>8 Mbps</span>
+              </div>
+            </div>
+
+            <div className={row}>
+              <span className="text-[11px] text-[var(--text-primary)]">Encoder preset</span>
+              <div className="flex gap-1">
+                {(["quality", "balanced", "performance"] as const).map((p) => (
+                  <button key={p} onClick={() => updateSettings({ encoderPreset: p })}
+                    className={pill(settings.encoderPreset === p) + " capitalize"}>
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <div className="border-t border-[var(--border)]" />
+
+          {/* ── Audio ── */}
+          <section className="space-y-3">
+            <p className={sectionHd}>Audio</p>
+            <div className={row}>
+              <span className="text-[11px] text-[var(--text-primary)]">Bitrate</span>
+              <div className="flex gap-1">
+                {([96, 128, 192, 320] as const).map((kbps) => (
+                  <button key={kbps} onClick={() => updateSettings({ audioBitrateKbps: kbps })}
+                    className={pill(settings.audioBitrateKbps === kbps)}>
+                    {kbps}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-3 border-t border-[var(--border)] shrink-0" style={{ background: "var(--bg-mid)" }}>
+          <p className="text-[10px] text-[var(--text-muted)]">
+            Bitrate and preset changes take effect on next stream start. 1080p output coming soon.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Settings panel (legacy, used in right panel stub) ─────────────────────────
 
 function SettingsPanel({
   targetFps,
