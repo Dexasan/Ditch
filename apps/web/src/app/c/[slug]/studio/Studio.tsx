@@ -1190,18 +1190,182 @@ function CamOverlay({
   );
 }
 
+// ── Layer overlay (per-layer drag/resize on the preview canvas) ───────────────
+
+function LayerOverlay({
+  layer,
+  isSelected,
+  containerRef,
+  onSelect,
+  onTransformLive,
+  onTransformCommit,
+}: {
+  layer: Layer;
+  isSelected: boolean;
+  containerRef: React.RefObject<HTMLDivElement>;
+  onSelect: () => void;
+  onTransformLive: (patch: Partial<Layer["transform"]>) => void;
+  onTransformCommit: (patch: Partial<Layer["transform"]>) => void;
+}) {
+  const isFullScreen = layer.type === "screenshare";
+
+  const toCell = (tr: Layer["transform"]): CamCell =>
+    isFullScreen
+      ? { x: 0, y: 0, w: 1, h: 1 }
+      : { x: tr.x / 1280, y: tr.y / 720, w: tr.width / 1280, h: tr.height / 720 };
+
+  const fromCell = (cell: CamCell): Partial<Layer["transform"]> => ({
+    x: cell.x * 1280, y: cell.y * 720, width: cell.w * 1280, height: cell.h * 720,
+  });
+
+  const [localCell, setLocalCell] = useState<CamCell>(() => toCell(layer.transform));
+  const [hovered, setHovered] = useState(false);
+  const draggingRef = useRef(false);
+  const shiftRef = useRef(false);
+
+  // Sync from store when not dragging
+  const { x, y, width, height } = layer.transform;
+  useEffect(() => {
+    if (!draggingRef.current) setLocalCell(toCell(layer.transform));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [x, y, width, height, isFullScreen]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { shiftRef.current = e.shiftKey; };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKey);
+    };
+  }, []);
+
+  const startRef = useRef<{
+    type: "move" | "resize";
+    handle?: HandleId;
+    cx: number;
+    cy: number;
+    cell: CamCell;
+  } | null>(null);
+
+  useEffect(() => {
+    function computeNext(cx: number, cy: number): CamCell {
+      const s = startRef.current!;
+      const r = containerRef.current?.getBoundingClientRect();
+      if (!r) return s.cell;
+      const fx = (cx - s.cx) / r.width;
+      const fy = (cy - s.cy) / r.height;
+      if (s.type === "move") {
+        return {
+          x: Math.max(0, Math.min(1 - s.cell.w, s.cell.x + fx)),
+          y: Math.max(0, Math.min(1 - s.cell.h, s.cell.y + fy)),
+          w: s.cell.w, h: s.cell.h,
+        };
+      }
+      return applyHandle(s.cell, s.handle!, fx, fy, shiftRef.current);
+    }
+    function onMove(e: PointerEvent) {
+      if (!startRef.current) return;
+      const next = computeNext(e.clientX, e.clientY);
+      setLocalCell(next);
+      onTransformLive(fromCell(next));
+    }
+    function onUp(e: PointerEvent) {
+      if (!startRef.current) return;
+      const next = computeNext(e.clientX, e.clientY);
+      startRef.current = null;
+      draggingRef.current = false;
+      setLocalCell(next);
+      onTransformCommit(fromCell(next));
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [onTransformLive, onTransformCommit, containerRef]);
+
+  function onBodyDown(e: React.PointerEvent) {
+    e.stopPropagation();
+    onSelect();
+    if (isFullScreen || layer.locked) return;
+    startRef.current = { type: "move", cx: e.clientX, cy: e.clientY, cell: localCell };
+    draggingRef.current = true;
+  }
+
+  function onHandleDown(e: React.PointerEvent, handle: HandleId) {
+    e.stopPropagation();
+    startRef.current = { type: "resize", handle, cx: e.clientX, cy: e.clientY, cell: localCell };
+    draggingRef.current = true;
+  }
+
+  const pct = (v: number) => `${(v * 100).toFixed(2)}%`;
+  const showHandles = isSelected && !isFullScreen && !layer.locked;
+  const borderColor = isSelected
+    ? "rgba(139, 92, 246, 0.9)"
+    : hovered ? "rgba(255,255,255,0.35)" : "transparent";
+
+  return (
+    <div className="absolute inset-0 pointer-events-none select-none">
+      <div
+        className="absolute pointer-events-auto"
+        style={{
+          left: pct(localCell.x),
+          top: pct(localCell.y),
+          width: pct(localCell.w),
+          height: pct(localCell.h),
+          border: `1.5px solid ${borderColor}`,
+          cursor: isFullScreen || layer.locked ? "default" : "move",
+          boxSizing: "border-box",
+          transition: "border-color 0.1s",
+        }}
+        onPointerDown={onBodyDown}
+        onPointerEnter={() => setHovered(true)}
+        onPointerLeave={() => setHovered(false)}
+      >
+        {isSelected && (
+          <span
+            className="absolute top-1 left-1.5 text-[9px] font-bold uppercase tracking-widest pointer-events-none"
+            style={{ color: "rgba(255,255,255,0.5)", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
+          >
+            {layer.name}
+          </span>
+        )}
+        {showHandles && ALL_HANDLES.map((h) => (
+          <div
+            key={h}
+            className="absolute pointer-events-auto flex items-center justify-center"
+            style={{ width: HIT_PX, height: HIT_PX, cursor: HANDLE_CURSORS[h], ...HANDLE_STYLE[h] }}
+            onPointerDown={(e) => onHandleDown(e, h)}
+          >
+            <div
+              className="pointer-events-none rounded-sm"
+              style={{ width: VIS_PX, height: VIS_PX, backgroundColor: "rgba(139, 92, 246, 1)", boxShadow: "0 1px 4px rgba(0,0,0,0.6)" }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Preview canvas ────────────────────────────────────────────────────────────
 
 function PreviewCanvas({
   stream,
-  overlayCell,
-  onCamLiveChange,
-  onCamCommit,
+  layers,
+  selectedLayerId,
+  onSelectLayer,
+  onLayerTransformLive,
+  onLayerTransformCommit,
 }: {
   stream: MediaStream | null;
-  overlayCell?: CamCell | null;
-  onCamLiveChange?: (cell: CamCell) => void;
-  onCamCommit?: (cell: CamCell) => void;
+  layers: Layer[];
+  selectedLayerId: string | null;
+  onSelectLayer: (id: string | null) => void;
+  onLayerTransformLive: (id: string, patch: Partial<Layer["transform"]>) => void;
+  onLayerTransformCommit: (id: string, patch: Partial<Layer["transform"]>) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1213,12 +1377,15 @@ function PreviewCanvas({
     if (stream) v.play().catch(() => {});
   }, [stream]);
 
+  const visibleLayers = layers.filter((l) => l.visible);
+
   return (
     <div className="flex-1 flex items-center justify-center bg-black overflow-hidden min-w-0">
       <div
         ref={containerRef}
         className="relative overflow-hidden"
         style={{ background: "var(--bg-deep)", aspectRatio: "16/9", maxWidth: "100%", maxHeight: "100%", width: "100%" }}
+        onClick={() => onSelectLayer(null)}
       >
         <video
           ref={videoRef}
@@ -1241,14 +1408,17 @@ function PreviewCanvas({
             </span>
           </div>
         )}
-        {overlayCell && onCamLiveChange && onCamCommit && (
-          <CamOverlay
-            cell={overlayCell}
+        {visibleLayers.map((layer) => (
+          <LayerOverlay
+            key={layer.id}
+            layer={layer}
+            isSelected={selectedLayerId === layer.id}
             containerRef={containerRef as React.RefObject<HTMLDivElement>}
-            onLiveChange={onCamLiveChange}
-            onCommit={onCamCommit}
+            onSelect={() => onSelectLayer(layer.id)}
+            onTransformLive={(patch) => onLayerTransformLive(layer.id, patch)}
+            onTransformCommit={(patch) => onLayerTransformCommit(layer.id, patch)}
           />
-        )}
+        ))}
       </div>
     </div>
   );
@@ -2352,6 +2522,7 @@ export default function Studio({
     scenes, activeSceneId,
     isTransitioning, transitionKey,
     updateLayer: updateLayerRoot,
+    selectedLayerId, setSelectedLayerId,
     addToast,
   } = useStudioStore();
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
@@ -2603,14 +2774,6 @@ export default function Studio({
     addToast("Clip saved", "success");
   }
 
-  // Overlay cell for the drag handle — derived from the camera layer's transform.
-  const overlayCell = (cameraVisible && cameraLayer) ? {
-    x: cameraLayer.transform.x / 1280,
-    y: cameraLayer.transform.y / 720,
-    w: cameraLayer.transform.width / 1280,
-    h: cameraLayer.transform.height / 720,
-  } : null;
-
   function togglePanel(id: RightPanelId) {
     setActivePanel((prev) => (prev === id ? null : id));
   }
@@ -2649,16 +2812,16 @@ export default function Studio({
         >
           <PreviewCanvas
             stream={compositeStream}
-            overlayCell={overlayCell}
-            onCamLiveChange={(cell) => {
-              setCamTransformLive({ x: cell.x * 1280, y: cell.y * 720, width: cell.w * 1280, height: cell.h * 720 });
+            layers={activeScene.layers}
+            selectedLayerId={selectedLayerId}
+            onSelectLayer={setSelectedLayerId}
+            onLayerTransformLive={(id, patch) => {
+              const layer = activeScene.layers.find((l) => l.id === id);
+              if (layer?.type === "camera") setCamTransformLive(patch);
             }}
-            onCamCommit={(cell) => {
-              if (cameraLayer) {
-                updateLayerRoot(activeScene.id, cameraLayer.id, {
-                  transform: { ...cameraLayer.transform, x: cell.x * 1280, y: cell.y * 720, width: cell.w * 1280, height: cell.h * 720 },
-                });
-              }
+            onLayerTransformCommit={(id, patch) => {
+              const layer = activeScene.layers.find((l) => l.id === id);
+              if (layer) updateLayerRoot(activeScene.id, id, { transform: { ...layer.transform, ...patch } });
             }}
           />
         </div>
