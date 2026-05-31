@@ -954,3 +954,63 @@ Step 8 — `goLiveAsHost`: complete iOS Safari fix (`commit bc4d7e9`)
 - Supabase types in sync with live schema
 
 **Next logical step (Day 17):** Relay JWT optimization (local `jsonwebtoken.verify()` replacing HTTP `getUser()` call — saves 100–500ms on stream start). Then viewer count tracking via realtime server → explore page cards.
+
+---
+
+### Day 17 — 2026-05-31
+
+**Studio spec complete — all 6 remaining sections shipped.**
+
+**Agora token endpoint (committed from previous session, pushed today):**
+- `GET /agora/token?session_id=&uid=` on Fastify API — issues Agora RTC tokens with UID-based auth rules: uid 0 → subscriber (no auth), uid 1–4 → publisher (must be live participant in matching slot), uid 998–999 → publisher (must own channel). Uses `agora-token` package. Returns `null` in testing mode when `AGORA_APP_CERTIFICATE` is unset.
+- `authToken` wired into `useAgoraRoom` in Studio
+
+**Phase 5 — Audio Mixer (VU meters):**
+- `useCompositor` extended: `AnalyserNode` inserted post-fader in audio graph (`src → gain → analyser → dest`) per source. `getAnalyser(sourceId)` exported.
+- `VUMeter` component: canvas-based, 20-segment bar, RMS from time-domain data (×5 scale for speech), 1.5s peak-hold tick. rAF loop writes directly to canvas — zero React re-renders at 60fps. Muted → flat dimmed bar. Renders inside each mixer channel card.
+
+**Phase 6 — Canvas layer DOM:**
+- `LayerOverlay` component: replaces camera-only `CamOverlay` with a per-layer overlay for every visible layer. Camera layers get full 8-handle resize + drag (shift to lock AR); screenshare gets click-to-select only (full-screen); locked layers are no-op. Hover shows dim white border, selected shows purple border + layer name.
+- `PreviewCanvas` updated: accepts `layers/selectedLayerId/onSelectLayer/onLayerTransformLive/onLayerTransformCommit`. Renders one overlay per visible layer in z-order. Click on canvas background deselects.
+- Live camera drags route through `setCamTransformLive` (skips React reconciler); commit writes to store.
+
+**Phase 7 — Scenes polish:**
+- `SceneCard` component: 40×24px thumbnail (bgColor placeholder → JPEG canvas snapshot 1.5s after switching), three-dot `⋮` menu on hover (Rename inline, Duplicate with deep layer copy, Delete disabled when only 1 scene). Click-outside closes menu.
+- Rename on create: new scene immediately enters inline rename mode (input focuses + selects all). Enter commits, Escape cancels.
+- `PreviewCanvas` converted to `forwardRef` exposing `capture()`. Studio runs a 1.5s delayed capture on `activeSceneId` change.
+- Store: `removeScene`, `duplicateScene` added.
+
+**Phase 8 — UX details:**
+- Keyboard shortcuts and scene transitions were already done (Days 12–13). Remaining gap: file drop.
+- File drop onto canvas: `PreviewCanvas` handles `dragover`/`dragleave`/`drop`. Accepts image files only. Drop shows purple dashed overlay with upload icon. On drop: `FileReader` → data URL → `Image` element measures dimensions → fits to 80% of canvas (never upscale) → centered → added as image layer named from filename.
+- Image compositor rendering: `useCompositor` now accepts `imageLayers: Layer[]`. `HTMLImageElement` cache (keyed by layer ID) lazy-loads from `sourceConfig.src`, composites on top of video at layer transform + opacity. Cache clears on teardown.
+
+**Phase 9 — Settings modal:**
+- Full modal accessible via gear button in TopBar. Three sections: Output (resolution 720p/1080p-soon, frame rate 30/60), Video (bitrate slider 1–8 Mbps, encoder preset quality/balanced/performance), Audio (bitrate 96/128/192/320 kbps). Backdrop click or Escape closes. All settings persisted via Zustand.
+- `StudioSettings` expanded: `videoBitrateKbps` (4000), `audioBitrateKbps` (128), `encoderPreset` ("balanced"), `outputResolution` ("720p").
+
+**Phase 10 — Design token alignment:**
+- `--status-offline: #3F3F46` added to globals.css.
+- VU meter segments, bitrate sparkline: `#22c55e/#eab308/#ef4444` → `#00D4AA/#FFAA00/#FF4444` (token values for `--vu-low/mid/high`).
+- StreamPulse status dot: hex → `var(--status-live/connecting/offline)`.
+- Source-unavailable warning: `#FFAA00` → `var(--status-connecting)`.
+- `--bg-deep` fallback corrected `#0A0A18` → `#0D0D1A`.
+
+**Commits this session:** `b31c51c`, `cda4568`, `87ecd4f`, `2d167ba`, `b6f483d`, `4252eab`, `f34c16d`
+
+**State at end of Day 17:**
+
+| Studio Section | Status |
+|---|---|
+| Layout | ✅ |
+| State architecture | ✅ |
+| Audio Mixer (VU meters) | ✅ |
+| Canvas layer DOM (overlays, resize, click-select) | ✅ |
+| Scenes (thumbnails, three-dot menu, rename on create) | ✅ |
+| UX Details (shortcuts, transitions, file drop) | ✅ |
+| Settings modal | ✅ |
+| Design system tokens | ✅ |
+| Top Bar viewer count | partial — needs realtime data |
+| Inspector live drag sync | partial — cosmetic gap |
+
+**Next logical step (Day 18):** Relay JWT optimization (replace `supabaseAdmin.auth.getUser()` HTTP call with local `jsonwebtoken.verify()` — saves 100–500ms on stream start). Then viewer count tracking via realtime server.
