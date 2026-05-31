@@ -2908,9 +2908,41 @@ export default function Studio({
     addLayer: addLayerRoot,
     selectedLayerId, setSelectedLayerId,
     addToast,
+    resetForNewSession,
   } = useStudioStore();
 
   const previewRef = useRef<PreviewCanvasHandle>(null);
+
+  // ── Reset scene/layer state when a new session starts ──────────────────────
+  // The Zustand store is persisted to localStorage. Without this, opening a new
+  // session would show scenes and layers from the previous one.
+  useEffect(() => {
+    const stored = useStudioStore.getState().lastSessionId;
+    if (stored !== sessionId) {
+      resetForNewSession(sessionId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally only on mount
+
+  // ── End session in DB on unmount or tab close ───────────────────────────────
+  // Covers: SPA navigation away, tab close, and force-leaving without going live.
+  // The DELETE endpoint is idempotent — calling it on an already-ended session is safe.
+  useEffect(() => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+    function endSession() {
+      fetch(`${apiBase}/sessions/${sessionId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+        keepalive: true, // survives tab close / page navigation
+      }).catch(() => {});
+    }
+    window.addEventListener("pagehide", endSession);
+    return () => {
+      window.removeEventListener("pagehide", endSession);
+      endSession(); // fires on SPA navigation away from studio
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // stable — sessionId and token don't change during a studio session
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
   const cameraLayer = activeScene?.layers.find((l) => l.type === "camera");
   const cameraVisible = cameraLayer?.visible ?? false;

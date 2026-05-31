@@ -127,6 +127,7 @@ interface StudioStore {
   activeSceneId: string;
   selectedLayerId: string | null;
   isTransitioning: boolean;
+  lastSessionId: string | null;
   transitionKey: number;
   addScene: () => void;
   switchScene: (id: string) => void;
@@ -142,6 +143,7 @@ interface StudioStore {
   updateScene: (sceneId: string, patch: Partial<Omit<Scene, "id" | "layers">>) => void;
   removeScene: (sceneId: string) => void;
   duplicateScene: (sceneId: string) => void;
+  resetForNewSession: (sessionId: string) => void;
 
   // Layer actions
   addLayer: (sceneId: string, layer: Layer) => void;
@@ -212,6 +214,7 @@ export const useStudioStore = create<StudioStore>()(
   selectedLayerId: null,
   isTransitioning: false,
   transitionKey: 0,
+  lastSessionId: null,
   addScene: () =>
     set((s) => {
       const id = `scene-${Date.now()}`;
@@ -238,6 +241,13 @@ export const useStudioStore = create<StudioStore>()(
       return { activeSceneId: id, isTransitioning: true, transitionKey: s.transitionKey + 1 };
     }),
   setSelectedLayerId: (id) => set({ selectedLayerId: id }),
+
+  resetForNewSession: (sessionId) => set({
+    scenes: [makeScene(INITIAL_SCENE_ID, "Scene 1")],
+    activeSceneId: INITIAL_SCENE_ID,
+    selectedLayerId: null,
+    lastSessionId: sessionId,
+  }),
 
   // Settings
   settings: {
@@ -335,6 +345,7 @@ export const useStudioStore = create<StudioStore>()(
       activeSceneId: state.activeSceneId,
       targetFps: state.targetFps,
       snapToGrid: state.snapToGrid,
+      lastSessionId: state.lastSessionId,
     }),
   }
 ));
