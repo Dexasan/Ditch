@@ -107,6 +107,7 @@ export function useCompositor({
   stream: MediaStream | null;
   setCamTransformLive: (patch: Partial<Layer["transform"]>) => void;
   setTrackGain: (sourceId: string, volume: number, muted: boolean) => void;
+  getAnalyser: (sourceId: string) => AnalyserNode | null;
 } {
   const [stream, setStream] = useState<MediaStream | null>(null);
 
@@ -135,8 +136,9 @@ export function useCompositor({
   const audioCtxRef       = useRef<AudioContext | null>(null);
   const audioDestRef      = useRef<MediaStreamAudioDestinationNode | null>(null);
   // keyed by sourceId ("mic" | "participant-N")
-  const connectedAudioRef = useRef<Set<string>>(new Set());
-  const gainNodesRef      = useRef<Map<string, GainNode>>(new Map());
+  const connectedAudioRef  = useRef<Set<string>>(new Set());
+  const gainNodesRef       = useRef<Map<string, GainNode>>(new Map());
+  const analyserNodesRef   = useRef<Map<string, AnalyserNode>>(new Map());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const frameWriterRef    = useRef<WritableStreamDefaultWriter<any> | null>(null);
 
@@ -200,6 +202,7 @@ export function useCompositor({
       audioDestRef.current = null;
       connectedAudioRef.current.clear();
       gainNodesRef.current.clear();
+      analyserNodesRef.current.clear();
       videoElemsRef.current.forEach((el) => { el.srcObject = null; });
       videoElemsRef.current.clear();
       processorCleanupsRef.current.forEach((fn) => fn());
@@ -416,12 +419,18 @@ export function useCompositor({
     function ensureConnected(sourceId: string, nativeTrack: MediaStreamTrack) {
       if (connectedAudioRef.current.has(sourceId)) return;
       try {
-        const src  = audioCtxRef.current!.createMediaStreamSource(new MediaStream([nativeTrack]));
-        const gain = audioCtxRef.current!.createGain();
+        const ctx     = audioCtxRef.current!;
+        const src     = ctx.createMediaStreamSource(new MediaStream([nativeTrack]));
+        const gain    = ctx.createGain();
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0.8;
         gain.gain.value = 1.0;
         src.connect(gain);
-        gain.connect(audioDestRef.current!);
+        gain.connect(analyser);
+        analyser.connect(audioDestRef.current!);
         gainNodesRef.current.set(sourceId, gain);
+        analyserNodesRef.current.set(sourceId, analyser);
         connectedAudioRef.current.add(sourceId);
       } catch {}
     }
@@ -453,5 +462,9 @@ export function useCompositor({
     gn.gain.setTargetAtTime(muted ? 0 : volume, ctx.currentTime, 0.015);
   }
 
-  return { stream, setCamTransformLive, setTrackGain };
+  function getAnalyser(sourceId: string): AnalyserNode | null {
+    return analyserNodesRef.current.get(sourceId) ?? null;
+  }
+
+  return { stream, setCamTransformLive, setTrackGain, getAnalyser };
 }

@@ -1985,18 +1985,99 @@ function BitrateSparkline({ data }: { data: number[] }) {
 
 // ── Audio mixer ───────────────────────────────────────────────────────────────
 
+function VUMeter({ analyser, muted }: { analyser: AnalyserNode | null; muted: boolean }) {
+  const canvasRef      = useRef<HTMLCanvasElement>(null);
+  const rafRef         = useRef<number>(0);
+  const peakRef        = useRef(0);
+  const peakHoldTimeRef = useRef(0);
+  const dataRef        = useRef<Uint8Array<ArrayBuffer> | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx2d = canvas.getContext("2d")!;
+
+    function draw() {
+      rafRef.current = requestAnimationFrame(draw);
+      const { width, height } = canvas!;
+      ctx2d.clearRect(0, 0, width, height);
+
+      if (!analyser || muted) {
+        ctx2d.fillStyle = "rgba(255,255,255,0.06)";
+        ctx2d.fillRect(0, 0, width, height);
+        return;
+      }
+
+      if (!dataRef.current || dataRef.current.length !== analyser.fftSize) {
+        dataRef.current = new Uint8Array(analyser.fftSize) as Uint8Array<ArrayBuffer>;
+      }
+      analyser.getByteTimeDomainData(dataRef.current);
+
+      // RMS → level 0–1
+      let sum = 0;
+      for (let i = 0; i < dataRef.current.length; i++) {
+        const v = (dataRef.current[i] - 128) / 128;
+        sum += v * v;
+      }
+      // ×5 so normal speech fills the meter; clamp to 1
+      const level = Math.min(1, Math.sqrt(sum / dataRef.current.length) * 5);
+
+      // Peak hold: reset timer on new peak, decay after 1.5 s
+      const now = performance.now();
+      if (level > peakRef.current) {
+        peakRef.current = level;
+        peakHoldTimeRef.current = now;
+      } else if (now - peakHoldTimeRef.current > 1500) {
+        peakRef.current = Math.max(0, peakRef.current - 0.004);
+      }
+
+      // Background
+      ctx2d.fillStyle = "rgba(0,0,0,0.35)";
+      ctx2d.fillRect(0, 0, width, height);
+
+      // Segmented bar (20 segments)
+      const SEGS = 20;
+      const segW = width / SEGS;
+      const gap  = 1;
+      const active = Math.round(level * SEGS);
+      for (let i = 0; i < SEGS; i++) {
+        const t = i / SEGS;
+        const lit = i < active;
+        if (t < 0.65)       ctx2d.fillStyle = lit ? "#22c55e" : "#0f2110";
+        else if (t < 0.85)  ctx2d.fillStyle = lit ? "#eab308" : "#1f1a05";
+        else                ctx2d.fillStyle = lit ? "#ef4444" : "#200a0a";
+        ctx2d.fillRect(i * segW, 0, segW - gap, height);
+      }
+
+      // Peak hold tick
+      if (peakRef.current > 0.02) {
+        const px = Math.min(Math.floor(peakRef.current * width), width - 2);
+        ctx2d.fillStyle = "rgba(255,255,255,0.85)";
+        ctx2d.fillRect(px, 0, 2, height);
+      }
+    }
+
+    draw();
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [analyser, muted]);
+
+  return <canvas ref={canvasRef} width={88} height={6} className="w-full rounded-sm" />;
+}
+
 type MixerChannel = { volume: number; muted: boolean };
 
 function AudioMixer({
   localAudioTrack,
   liveParticipants,
   setTrackGain,
+  getAnalyser,
   audioInputs,
   switchMicDevice,
 }: {
   localAudioTrack: ILocalAudioTrack | null;
   liveParticipants: Participant[];
   setTrackGain: (sourceId: string, volume: number, muted: boolean) => void;
+  getAnalyser: (sourceId: string) => AnalyserNode | null;
   audioInputs: MediaDeviceInfo[];
   switchMicDevice: (deviceId: string) => Promise<void>;
 }) {
@@ -2069,6 +2150,7 @@ function AudioMixer({
                 M
               </button>
             </div>
+            <VUMeter analyser={getAnalyser(src.id)} muted={ch.muted} />
             <div className="flex items-center gap-1">
               <input
                 type="range" min={0} max={1} step={0.01}
@@ -2109,6 +2191,7 @@ function StreamPulse({
   localAudioTrack,
   liveParticipants,
   setTrackGain,
+  getAnalyser,
   audioInputs,
   switchMicDevice,
   onClipClick,
@@ -2116,6 +2199,7 @@ function StreamPulse({
   localAudioTrack: ILocalAudioTrack | null;
   liveParticipants: Participant[];
   setTrackGain: (sourceId: string, volume: number, muted: boolean) => void;
+  getAnalyser: (sourceId: string) => AnalyserNode | null;
   audioInputs: MediaDeviceInfo[];
   switchMicDevice: (deviceId: string) => Promise<void>;
   onClipClick: () => void;
@@ -2179,6 +2263,7 @@ function StreamPulse({
           localAudioTrack={localAudioTrack}
           liveParticipants={liveParticipants}
           setTrackGain={setTrackGain}
+          getAnalyser={getAnalyser}
           audioInputs={audioInputs}
           switchMicDevice={switchMicDevice}
         />
@@ -2433,7 +2518,7 @@ export default function Studio({
   }, [localAudioTrack]);
 
   // Compositor always runs so the preview canvas is live regardless of stream state.
-  const { stream: compositeStream, setCamTransformLive, setTrackGain } = useCompositor({
+  const { stream: compositeStream, setCamTransformLive, setTrackGain, getAnalyser } = useCompositor({
     localVideoTrack,
     localScreenTrack,
     localAudioTrack,
@@ -2585,6 +2670,7 @@ export default function Studio({
           localAudioTrack={localAudioTrack}
           liveParticipants={liveParticipants}
           setTrackGain={setTrackGain}
+          getAnalyser={getAnalyser}
           audioInputs={audioInputs}
           switchMicDevice={switchMicDevice}
           onClipClick={handleClipClick}
