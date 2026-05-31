@@ -133,6 +133,8 @@ interface StudioStore {
 
   // Scene actions
   updateScene: (sceneId: string, patch: Partial<Omit<Scene, "id" | "layers">>) => void;
+  removeScene: (sceneId: string) => void;
+  duplicateScene: (sceneId: string) => void;
 
   // Layer actions
   addLayer: (sceneId: string, layer: Layer) => void;
@@ -243,10 +245,35 @@ export const useStudioStore = create<StudioStore>()(
   // Scene actions
   updateScene: (sceneId, patch) =>
     set((s) => ({
-      scenes: s.scenes.map((sc) =>
-        sc.id === sceneId ? { ...sc, ...patch } : sc,
-      ),
+      scenes: s.scenes.map((sc) => sc.id === sceneId ? { ...sc, ...patch } : sc),
     })),
+
+  removeScene: (sceneId) =>
+    set((s) => {
+      if (s.scenes.length <= 1) return s;
+      const newScenes = s.scenes.filter((sc) => sc.id !== sceneId);
+      const newActiveId = s.activeSceneId === sceneId ? newScenes[0].id : s.activeSceneId;
+      return { scenes: newScenes, activeSceneId: newActiveId };
+    }),
+
+  duplicateScene: (sceneId) =>
+    set((s) => {
+      const src = s.scenes.find((sc) => sc.id === sceneId);
+      if (!src) return s;
+      const newId = `scene-${Date.now()}`;
+      const copy: Scene = {
+        ...src,
+        id: newId,
+        name: `${src.name} (copy)`,
+        thumbnail: null,
+        layers: src.layers.map((l) => ({ ...l, id: crypto.randomUUID() })),
+      };
+      const idx = s.scenes.findIndex((sc) => sc.id === sceneId);
+      return {
+        scenes: [...s.scenes.slice(0, idx + 1), copy, ...s.scenes.slice(idx + 1)],
+        activeSceneId: newId,
+      };
+    }),
 
   // Layer actions
   addLayer: (sceneId, layer) =>

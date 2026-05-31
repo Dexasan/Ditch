@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useAgoraRoom } from "@/hooks/useAgoraRoom";
 import { useClipBuffer } from "@/hooks/useClipBuffer";
 import { useCompositor } from "@/hooks/useCompositor";
@@ -949,8 +949,170 @@ function LayersPanel({
   );
 }
 
+function SceneCard({
+  scene, isActive, isRenaming, renameValue,
+  onSelect, onRenameChange, onRenameCommit, onRenameCancel,
+  menuOpen, onMenuToggle, onMenuClose,
+  onRename, onDuplicate, onDelete, canDelete,
+}: {
+  scene: Scene; isActive: boolean;
+  isRenaming: boolean; renameValue: string;
+  onSelect: () => void;
+  onRenameChange: (v: string) => void;
+  onRenameCommit: () => void;
+  onRenameCancel: () => void;
+  menuOpen: boolean; onMenuToggle: () => void; onMenuClose: () => void;
+  onRename: () => void; onDuplicate: () => void; onDelete: () => void; canDelete: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const menuRef  = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isRenaming) { inputRef.current?.focus(); inputRef.current?.select(); }
+  }, [isRenaming]);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onDown(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onMenuClose();
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [menuOpen, onMenuClose]);
+
+  const menuItemCls = "w-full text-left px-3 py-1.5 text-[11px] hover:bg-[var(--bg-mid)] transition-colors";
+
+  return (
+    <div
+      className={`group relative flex items-center gap-2 px-2 py-1.5 cursor-pointer border-l-2 transition-colors ${
+        isActive
+          ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
+          : "border-transparent hover:bg-[var(--bg-mid)]"
+      }`}
+      onClick={() => { if (!isRenaming) onSelect(); }}
+    >
+      {/* Thumbnail 40×24 */}
+      <div
+        className="shrink-0 rounded-sm overflow-hidden border border-[var(--border)]"
+        style={{ width: 40, height: 24 }}
+      >
+        {scene.thumbnail
+          ? <img src={scene.thumbnail} alt="" className="w-full h-full object-cover" />
+          : <div className="w-full h-full" style={{ background: scene.bgColor }} />
+        }
+      </div>
+
+      {/* Name / rename input */}
+      {isRenaming ? (
+        <input
+          ref={inputRef}
+          className="flex-1 text-[11px] bg-[var(--bg-mid)] border border-[var(--accent-primary)] rounded px-1 py-0.5 outline-none text-[var(--text-primary)] min-w-0"
+          value={renameValue}
+          onChange={(e) => onRenameChange(e.target.value)}
+          onBlur={onRenameCommit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); onRenameCommit(); }
+            if (e.key === "Escape") { e.preventDefault(); onRenameCancel(); }
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <span className={`flex-1 truncate text-[11px] min-w-0 ${
+          isActive ? "text-[var(--text-primary)] font-semibold" : "text-[var(--text-muted)]"
+        }`}>
+          {scene.name}
+        </span>
+      )}
+
+      {/* Three-dot menu */}
+      {!isRenaming && (
+        <div ref={menuRef} className="relative shrink-0">
+          <button
+            className="w-5 h-5 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[var(--bg-deep)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            title="Scene options"
+            onClick={(e) => { e.stopPropagation(); onMenuToggle(); }}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+              <circle cx="6" cy="2"  r="1.2" />
+              <circle cx="6" cy="6"  r="1.2" />
+              <circle cx="6" cy="10" r="1.2" />
+            </svg>
+          </button>
+          {menuOpen && (
+            <div
+              className="absolute right-0 top-full z-50 mt-0.5 py-1 rounded border border-[var(--border)] bg-[var(--bg-base)] shadow-xl"
+              style={{ minWidth: 128 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button className={menuItemCls + " text-[var(--text-primary)]"} onClick={() => { onRename(); }}>
+                Rename
+              </button>
+              <button className={menuItemCls + " text-[var(--text-primary)]"} onClick={() => { onDuplicate(); }}>
+                Duplicate
+              </button>
+              <button
+                className={menuItemCls + (canDelete ? " text-red-400 hover:text-red-300" : " text-[var(--text-muted)] cursor-not-allowed")}
+                disabled={!canDelete}
+                onClick={() => { if (canDelete) onDelete(); }}
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ScenesPanel() {
-  const { scenes, activeSceneId, addScene, switchScene } = useStudioStore();
+  const { scenes, activeSceneId, addScene, switchScene, updateScene, removeScene, duplicateScene } = useStudioStore();
+  const [renamingId,   setRenamingId]   = useState<string | null>(null);
+  const [renameValue,  setRenameValue]  = useState("");
+  const [menuId,       setMenuId]       = useState<string | null>(null);
+  const prevCountRef = useRef(scenes.length);
+
+  // Auto-enter rename mode when a new scene is added
+  useEffect(() => {
+    if (scenes.length > prevCountRef.current) {
+      const newId    = useStudioStore.getState().activeSceneId;
+      const newScene = useStudioStore.getState().scenes.find((s) => s.id === newId);
+      setRenamingId(newId);
+      setRenameValue(newScene?.name ?? "");
+    }
+    prevCountRef.current = scenes.length;
+  }, [scenes.length]);
+
+  function startRename(sceneId: string) {
+    const scene = scenes.find((s) => s.id === sceneId);
+    if (!scene) return;
+    setRenameValue(scene.name);
+    setRenamingId(sceneId);
+    setMenuId(null);
+  }
+
+  function commitRename() {
+    if (renamingId && renameValue.trim()) {
+      updateScene(renamingId, { name: renameValue.trim() });
+    }
+    setRenamingId(null);
+  }
+
+  function cancelRename() {
+    setRenamingId(null);
+  }
+
+  function handleAddScene() {
+    addScene();
+    // addScene() updates the store synchronously; read new state immediately after
+    setTimeout(() => {
+      const newId    = useStudioStore.getState().activeSceneId;
+      const newScene = useStudioStore.getState().scenes.find((s) => s.id === newId);
+      setRenamingId(newId);
+      setRenameValue(newScene?.name ?? "");
+    }, 0);
+  }
 
   return (
     <div
@@ -966,7 +1128,7 @@ function ScenesPanel() {
           Scenes
         </span>
         <button
-          onClick={addScene}
+          onClick={handleAddScene}
           className="w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--bg-mid)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           title="Add scene"
         >
@@ -976,17 +1138,24 @@ function ScenesPanel() {
 
       <div className="flex-1 overflow-y-auto">
         {scenes.map((scene) => (
-          <button
+          <SceneCard
             key={scene.id}
-            onClick={() => switchScene(scene.id)}
-            className={`w-full text-left px-3 py-2.5 text-[11px] transition-colors border-l-2 flex items-center gap-2 ${
-              scene.id === activeSceneId
-                ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--text-primary)] font-semibold"
-                : "border-transparent text-[var(--text-muted)] hover:bg-[var(--bg-mid)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            <span className="flex-1 truncate">{scene.name}</span>
-          </button>
+            scene={scene}
+            isActive={scene.id === activeSceneId}
+            isRenaming={renamingId === scene.id}
+            renameValue={renameValue}
+            onSelect={() => { setMenuId(null); switchScene(scene.id); }}
+            onRenameChange={setRenameValue}
+            onRenameCommit={commitRename}
+            onRenameCancel={cancelRename}
+            menuOpen={menuId === scene.id}
+            onMenuToggle={() => setMenuId(menuId === scene.id ? null : scene.id)}
+            onMenuClose={() => setMenuId(null)}
+            onRename={() => startRename(scene.id)}
+            onDuplicate={() => { duplicateScene(scene.id); setMenuId(null); }}
+            onDelete={() => { removeScene(scene.id); setMenuId(null); }}
+            canDelete={scenes.length > 1}
+          />
         ))}
       </div>
     </div>
@@ -1352,23 +1521,36 @@ function LayerOverlay({
 
 // ── Preview canvas ────────────────────────────────────────────────────────────
 
-function PreviewCanvas({
-  stream,
-  layers,
-  selectedLayerId,
-  onSelectLayer,
-  onLayerTransformLive,
-  onLayerTransformCommit,
-}: {
+type PreviewCanvasHandle = { capture: () => string | null };
+
+const PreviewCanvas = forwardRef<PreviewCanvasHandle, {
   stream: MediaStream | null;
   layers: Layer[];
   selectedLayerId: string | null;
   onSelectLayer: (id: string | null) => void;
   onLayerTransformLive: (id: string, patch: Partial<Layer["transform"]>) => void;
   onLayerTransformCommit: (id: string, patch: Partial<Layer["transform"]>) => void;
-}) {
+}>(function PreviewCanvas({
+  stream,
+  layers,
+  selectedLayerId,
+  onSelectLayer,
+  onLayerTransformLive,
+  onLayerTransformCommit,
+}, ref) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    capture(): string | null {
+      const v = videoRef.current;
+      if (!v || v.readyState < 2 || v.videoWidth === 0) return null;
+      const c = document.createElement("canvas");
+      c.width = 40; c.height = 24;
+      c.getContext("2d")!.drawImage(v, 0, 0, 40, 24);
+      return c.toDataURL("image/jpeg", 0.7);
+    },
+  }));
 
   useEffect(() => {
     const v = videoRef.current;
@@ -1422,7 +1604,7 @@ function PreviewCanvas({
       </div>
     </div>
   );
-}
+});
 
 // ── Right icon strip ──────────────────────────────────────────────────────────
 
@@ -2522,12 +2704,24 @@ export default function Studio({
     scenes, activeSceneId,
     isTransitioning, transitionKey,
     updateLayer: updateLayerRoot,
+    updateScene,
     selectedLayerId, setSelectedLayerId,
     addToast,
   } = useStudioStore();
+
+  const previewRef = useRef<PreviewCanvasHandle>(null);
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
   const cameraLayer = activeScene?.layers.find((l) => l.type === "camera");
   const cameraVisible = cameraLayer?.visible ?? false;
+
+  // Capture scene thumbnail 1.5 s after switching to a scene (lets video settle)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const thumb = previewRef.current?.capture();
+      if (thumb) updateScene(activeSceneId, { thumbnail: thumb });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [activeSceneId]);
 
   // Stable ref so the relay sync effect can read current streamStatus without a stale closure
   const streamStatusRef = useRef(streamStatus);
@@ -2811,6 +3005,7 @@ export default function Studio({
           }}
         >
           <PreviewCanvas
+            ref={previewRef}
             stream={compositeStream}
             layers={activeScene.layers}
             selectedLayerId={selectedLayerId}
