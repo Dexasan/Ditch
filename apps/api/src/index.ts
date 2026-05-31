@@ -8,6 +8,7 @@ import { sessionRoutes } from "./routes/sessions";
 import { destinationRoutes } from "./routes/destinations";
 import { participantRoutes } from "./routes/participants";
 import { communityRoutes } from "./routes/community";
+import { agoraRoutes } from "./routes/agora";
 
 validateEnv();
 
@@ -56,6 +57,7 @@ async function start() {
   await server.register(destinationRoutes);
   await server.register(participantRoutes);
   await server.register(communityRoutes);
+  await server.register(agoraRoutes);
 
   // ── Start ─────────────────────────────────────────────────────────────────
 

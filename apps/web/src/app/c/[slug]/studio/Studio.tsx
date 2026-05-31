@@ -2398,6 +2398,7 @@ export default function Studio({
     publish: !!cameraLayer,
     enabled: true,
     screenShareUid: CREATOR_SCREEN_UID,
+    authToken: token,
   });
 
   useStudioShortcuts({ localAudioTrack });
