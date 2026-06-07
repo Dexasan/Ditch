@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
+import { supabaseAdmin } from "@ditch/db";
 import { validateEnv } from "./lib/env";
 import { authRoutes } from "./routes/auth";
 import { channelRoutes } from "./routes/channels";
@@ -49,7 +50,11 @@ async function start() {
 
   // ── Routes ───────────────────────────────────────────────────────────────
 
-  server.get("/health", async () => ({ status: "ok" }));
+  server.get("/health", async () => {
+    const { error } = await supabaseAdmin!.from("channels").select("id").limit(1);
+    if (error) return { status: "degraded" };
+    return { status: "ok" };
+  });
 
   await server.register(authRoutes);
   await server.register(channelRoutes);
