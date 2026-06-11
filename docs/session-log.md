@@ -1014,3 +1014,35 @@ Step 8 — `goLiveAsHost`: complete iOS Safari fix (`commit bc4d7e9`)
 | Inspector live drag sync | partial — cosmetic gap |
 
 **Next logical step (Day 18):** Relay JWT optimization (replace `supabaseAdmin.auth.getUser()` HTTP call with local `jsonwebtoken.verify()` — saves 100–500ms on stream start). Then viewer count tracking via realtime server.
+
+---
+
+### Day 18 — 2026-06-11
+
+**Full studio QA audit → every finding fixed, and the first runtime-verified session against real Agora.**
+
+**Audit scope:** 8 sections — state layer, media pipeline, destinations sync, stream pulse bar, recording, keyboard shortcuts, grid layout, color tokens. Verdict: 3 FAILs, 7 warnings. All 10 fixed.
+
+**FAILs fixed:**
+- *Image layer opacity dead:* opacity stored 0–100 but passed raw to `ctx.globalAlpha` (clamps at 1 → slider did nothing). Compositor now divides by 100, image drop inits at 100, and a persist `migrate` (v0→v1) rescales image layers already saved in localStorage on the old 0–1 scale.
+- *Clip buffer stale footage:* `saveClip()` restarted the rolling recorder without clearing `chunksRef` — the next clip contained up to 60 chunks of already-saved footage. Buffer now resets after the blob is built.
+- *"Go Live without destinations" removed:* the relay hard-rejects zero-destination sessions, so the button could never work — it burned all 5 reconnect attempts into a misleading "check your connection" error. The Go Live modal now requires a destination.
+
+**Warnings fixed:**
+- **`useAgoraRoom` restructured** — `publish` removed from the join-effect deps; a dedicated effect publishes/unpublishes mic+camera on the already-joined client. Adding/removing the camera layer no longer drops the channel (previously: full leave+rejoin, brief gap for all remote users). An `effectOwnsTracksRef` guard ensures `goLiveAsHost` tracks (participant promotion in ChannelView) are never auto-unpublished; a busy flag prevents double-publish. Bonus fix: the mic track is now closed on cleanup — it previously leaked the capture (mic indicator stayed on after leaving).
+- `useCompositor`: `remoteUsers`/`liveParticipants` moved into refs read by `draw()` — participant joins/leaves no longer restart the Worker (each restart cost a frame). `imageLayersRef` declared before first use.
+- `useRecorder`: new `onSaved` callback — the "Recording saved to downloads" toast now fires after the file is actually handed to the browser, not before.
+- `resetForNewSession` clears `settings.destinations` (stale entries survived a failed mount fetch).
+- Dead code deleted: `RightIconStrip`, `RightPanel`, `SettingsPanel`, `RightPanelId`, `activePanel`/`togglePanel` + 3 orphaned icons (~190 lines, superseded by Inspector tabs).
+- Token migration completed: End Stream button → `--status-live`; sparkline strokes → `--vu-low/mid/high`; VU meter unlit fills → new `--vu-low/mid/high-dim` tokens (resolved via `getComputedStyle` once per effect — canvas can't read `var()`); layer-selection chrome + drop overlay `rgba(139,92,246)` purple → `--accent-primary`; LiveRoom `#111113`/`#2a2a2e` → `--bg-deep`/`--border`. Scene default `bgColor` stays hex (feeds `<input type="color">`).
+- **Brand color:** `PLATFORM_COLOR.ditch` and `DEST_PLATFORM_COLOR.ditch` were `#7c3aed` purple — now `var(--accent-primary)`. DITCH chat names, platform dots, and destination chips render in brand pink.
+
+**Runtime verification (first for this project):** booted web+api+realtime locally against prod Supabase and real Agora, drove the studio via scripted browser with `getUserMedia`/`enumerateDevices` patched to a fake animated canvas camera + silent mic. Result for add → remove → re-add camera layer: exactly **one** channel join (`client-9f7ba`) for the entire cycle — `Publish success` / `Unpublish success` / `Publish success` all on the same client, both tracks closed on remove, compositor steady at 29–30fps throughout, preview rendered the fake cam at 1280×720, Delete-key shortcut worked, all new tokens resolved at runtime. The old code would have done leave+rejoin on every toggle. QA user/channel/session rows deleted from Supabase afterward.
+
+**Found along the way:** dashboard "Go live →" routes to `/c/[slug]/live`, which renders the same `Studio` component as `/c/[slug]/studio` — two routes, one studio. Consider consolidating.
+
+**Not yet runtime-tested:** participant promotion (`goLiveAsHost` from a second browser) and relay RTMP fan-out with real destinations.
+
+**Commits this session:** `0265265`
+
+**Next logical step (Day 19):** Relay JWT optimization (still pending from Day 17). Participant-promotion runtime test. Decide on `/live` vs `/studio` route consolidation.
