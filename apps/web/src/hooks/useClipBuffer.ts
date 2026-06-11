@@ -49,7 +49,9 @@ export function useClipBuffer(stream: MediaStream | null): { saveClip: () => voi
       a.click();
       URL.revokeObjectURL(url);
 
-      // Restart the rolling buffer
+      // Restart the rolling buffer from empty — otherwise the next clip
+      // would still contain the chunks that were just saved
+      chunksRef.current = [];
       const next = new MediaRecorder(currentStream, { mimeType });
       next.ondataavailable = (e: BlobEvent) => {
         if (e.data.size > 0) {

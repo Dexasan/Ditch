@@ -72,6 +72,10 @@ export function useAgoraRoom(options: {
   const joinedRef = useRef(false);
   const camTrackRef = useRef<ILocalVideoTrack | null>(null);
   const localAudioTrackRef = useRef<IMicrophoneAudioTrack | null>(null);
+  // True only while the publish-toggle effect owns camTrackRef/localAudioTrackRef.
+  // goLiveAsHost never sets it, so its tracks are never auto-unpublished.
+  const effectOwnsTracksRef = useRef(false);
+  const publishBusyRef = useRef(false);
   // Second client + track used exclusively for screen share
   const screenClientRef = useRef<IAgoraRTCClient | null>(null);
   const screenTrackRef = useRef<ILocalVideoTrack | null>(null);
@@ -121,15 +125,6 @@ export function useAgoraRoom(options: {
 
       joinedRef.current = true;
       setState((prev) => ({ ...prev, joined: true, remoteUsers: [...client.remoteUsers] }));
-
-      if (publish) {
-        const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-        if (!mounted) return;
-        await client.publish([audioTrack, videoTrack]);
-        camTrackRef.current = videoTrack;
-        localAudioTrackRef.current = audioTrack;
-        setState((prev) => ({ ...prev, localVideoTrack: videoTrack, localAudioTrack: audioTrack }));
-      }
     }
 
     setup().catch((err) => {
@@ -141,7 +136,9 @@ export function useAgoraRoom(options: {
       joinedRef.current = false;
       camTrackRef.current?.close();
       camTrackRef.current = null;
+      localAudioTrackRef.current?.close();
       localAudioTrackRef.current = null;
+      effectOwnsTracksRef.current = false;
       // Clean up screen client if still active
       screenTrackRef.current?.close();
       screenTrackRef.current = null;
@@ -159,9 +156,53 @@ export function useAgoraRoom(options: {
       });
       setLocalScreenTrack(null);
     };
-  // Role/publish/uid changes cause a full leave+rejoin — intentional.
+  // Role/uid changes cause a full leave+rejoin — intentional. publish is handled
+  // by the dedicated effect below so toggling it does NOT drop the channel.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, channelName, uid, role, publish]);
+  }, [enabled, channelName, uid, role]);
+
+  // ── Publish toggle ────────────────────────────────────────────────────────────
+  // Publishes/unpublishes mic+camera on the already-joined client. Owns only the
+  // tracks it creates: goLiveAsHost manages its own (effectOwnsTracksRef stays
+  // false there), so a publish=false render can never tear down a promoted
+  // participant's tracks.
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!enabled || !client || !state.joined) return;
+    let cancelled = false;
+
+    if (publish && !camTrackRef.current && !publishBusyRef.current) {
+      publishBusyRef.current = true;
+      (async () => {
+        const AgoraRTC = await getAgoraRTC();
+        const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+        if (cancelled || clientRef.current !== client) {
+          audioTrack.close();
+          videoTrack.close();
+          return;
+        }
+        await client.publish([audioTrack, videoTrack]);
+        camTrackRef.current = videoTrack;
+        localAudioTrackRef.current = audioTrack;
+        effectOwnsTracksRef.current = true;
+        setState((prev) => ({ ...prev, localVideoTrack: videoTrack, localAudioTrack: audioTrack }));
+      })()
+        .catch((err) => { if (!cancelled) setState((prev) => ({ ...prev, error: String(err) })); })
+        .finally(() => { publishBusyRef.current = false; });
+    } else if (!publish && camTrackRef.current && effectOwnsTracksRef.current) {
+      const audioTrack = localAudioTrackRef.current;
+      const camTrack = camTrackRef.current;
+      client.unpublish(audioTrack ? [audioTrack, camTrack] : [camTrack]).catch(() => {});
+      camTrack.close();
+      audioTrack?.close();
+      camTrackRef.current = null;
+      localAudioTrackRef.current = null;
+      effectOwnsTracksRef.current = false;
+      setState((prev) => ({ ...prev, localVideoTrack: null, localAudioTrack: null }));
+    }
+
+    return () => { cancelled = true; };
+  }, [enabled, publish, state.joined]);
 
   const toggleScreenShare = useCallback(async () => {
     if (!AGORA_APP_ID || screenShareUid === undefined) return;

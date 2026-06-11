@@ -19,7 +19,7 @@ const PLATFORM_COLOR: Record<string, string> = {
   youtube: "#ff0000",
   tiktok: "#ff0050",
   kick: "#53fc18",
-  ditch: "#7c3aed",
+  ditch: "var(--accent-primary)",
 };
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -367,14 +367,14 @@ export default function LiveRoom({
             return (
               <div
                 key={i}
-                className="relative rounded-xl overflow-hidden border border-[var(--color-surface-border)] bg-[#111113] flex items-center justify-center"
+                className="relative rounded-xl overflow-hidden border border-[var(--color-surface-border)] bg-[var(--bg-deep)] flex items-center justify-center"
               >
                 {participant ? (
                   <>
                     {videoTrack ? (
                       <AgoraVideoTile track={videoTrack} />
                     ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#111113]">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[var(--bg-deep)]">
                         <div
                           className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold"
                           style={{ backgroundColor: "var(--color-brand)" }}
@@ -473,7 +473,7 @@ export default function LiveRoom({
             <div
               key={m.id}
               className="flex gap-2 items-start py-0.5 pl-2 rounded"
-              style={{ borderLeft: `2px solid ${PLATFORM_COLOR[m.platform] ?? "#2a2a2e"}` }}
+              style={{ borderLeft: `2px solid ${PLATFORM_COLOR[m.platform] ?? "var(--border)"}` }}
             >
               <div className="min-w-0">
                 <span

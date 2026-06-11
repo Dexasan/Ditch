@@ -9,12 +9,19 @@ interface RecorderResult {
   stopRecording: () => void;
 }
 
-export function useRecorder(stream: MediaStream | null): RecorderResult {
+export function useRecorder(
+  stream: MediaStream | null,
+  /** Called after the recording file has actually been handed to the browser for download. */
+  onSaved?: () => void,
+): RecorderResult {
   const [isRecording, setIsRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Stable ref so onstop (registered at start time) never calls a stale callback
+  const onSavedRef = useRef(onSaved);
+  onSavedRef.current = onSaved;
 
   function startRecording() {
     if (!stream || isRecording) return;
@@ -39,6 +46,7 @@ export function useRecorder(stream: MediaStream | null): RecorderResult {
       a.click();
       URL.revokeObjectURL(url);
       chunksRef.current = [];
+      onSavedRef.current?.();
     };
 
     recorder.start(1000);

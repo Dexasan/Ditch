@@ -26,7 +26,7 @@ const PLATFORM_COLOR: Record<string, string> = {
   youtube: "#ff0000",
   tiktok:  "#ff0050",
   kick:    "#53fc18",
-  ditch:   "#7c3aed",
+  ditch:   "var(--accent-primary)",
 };
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -52,16 +52,6 @@ function IconScenes() {
   );
 }
 
-function IconTransitions() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12h14" />
-      <path d="M15 6l6 6-6 6" />
-      <path d="M9 18l-6-6 6-6" />
-    </svg>
-  );
-}
-
 function IconProperties() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -69,24 +59,6 @@ function IconProperties() {
       <line x1="8" y1="12" x2="20" y2="12" />
       <line x1="4" y1="18" x2="20" y2="18" />
       <circle cx="4" cy="12" r="2" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function IconChat() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
-
-function IconStreamInfo() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="20" x2="18" y2="10" />
-      <line x1="12" y1="20" x2="12" y2="4" />
-      <line x1="6" y1="20" x2="6" y2="14" />
     </svg>
   );
 }
@@ -229,7 +201,7 @@ const DEST_PLATFORM_COLOR: Record<StreamPlatform, string> = {
   youtube: "#ff0000",
   tiktok:  "#ff0050",
   kick:    "#53fc18",
-  ditch:   "#7c3aed",
+  ditch:   "var(--accent-primary)",
 };
 
 const PLATFORM_RTMP_URL: Partial<Record<StreamPlatform, string>> = {
@@ -243,13 +215,11 @@ const ALL_DEST_PLATFORMS: StreamPlatform[] = ["twitch", "youtube", "tiktok", "ki
 function GoLiveModal({
   onClose,
   onGoLive,
-  onGoLiveAnyway,
   sessionId,
   token,
 }: {
   onClose: () => void;
   onGoLive: () => void;
-  onGoLiveAnyway: () => void;
   sessionId: string;
   token: string;
 }) {
@@ -462,12 +432,8 @@ function GoLiveModal({
         >
           Go Live
         </button>
-        <button
-          onClick={onGoLiveAnyway}
-          className="w-full py-1 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-        >
-          Go Live without destinations
-        </button>
+        {/* The relay refuses to start a session with zero destinations, so there
+            is deliberately no "go live anyway" escape hatch here. */}
       </div>
     </div>
   );
@@ -581,7 +547,7 @@ function EndStreamModal({
           <button
             onClick={onConfirm}
             className="flex-1 py-2 rounded text-[12px] font-semibold text-white transition-colors"
-            style={{ background: "#FF4444" }}
+            style={{ background: "var(--status-live)" }}
           >
             End Stream
           </button>
@@ -636,7 +602,6 @@ function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessi
         <GoLiveModal
           onClose={() => setShowGoLiveModal(false)}
           onGoLive={beginGoLive}
-          onGoLiveAnyway={beginGoLive}
           sessionId={sessionId}
           token={token}
         />
@@ -1481,7 +1446,7 @@ function LayerOverlay({
   const pct = (v: number) => `${(v * 100).toFixed(2)}%`;
   const showHandles = isSelected && !isFullScreen && !layer.locked;
   const borderColor = isSelected
-    ? "rgba(139, 92, 246, 0.9)"
+    ? "var(--accent-primary)"
     : hovered ? "rgba(255,255,255,0.35)" : "transparent";
 
   return (
@@ -1519,7 +1484,7 @@ function LayerOverlay({
           >
             <div
               className="pointer-events-none rounded-sm"
-              style={{ width: VIS_PX, height: VIS_PX, backgroundColor: "rgba(139, 92, 246, 1)", boxShadow: "0 1px 4px rgba(0,0,0,0.6)" }}
+              style={{ width: VIS_PX, height: VIS_PX, backgroundColor: "var(--accent-primary)", boxShadow: "0 1px 4px rgba(0,0,0,0.6)" }}
             />
           </div>
         ))}
@@ -1641,75 +1606,19 @@ const PreviewCanvas = forwardRef<PreviewCanvasHandle, {
         ))}
         {dragOver && (
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 pointer-events-none"
-            style={{ background: "rgba(0,0,0,0.55)", border: "2px dashed rgba(139,92,246,0.8)" }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(139,92,246,0.9)" strokeWidth="1.5">
+            style={{ background: "rgba(0,0,0,0.55)", border: "2px dashed var(--accent-primary)" }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="1.5">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />
               <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
-            <span className="text-[12px] font-semibold" style={{ color: "rgba(139,92,246,0.9)" }}>Drop image</span>
+            <span className="text-[12px] font-semibold" style={{ color: "var(--accent-primary)" }}>Drop image</span>
           </div>
         )}
       </div>
     </div>
   );
 });
-
-// ── Right icon strip ──────────────────────────────────────────────────────────
-
-type RightPanelId = "transitions" | "source-props" | "chat" | "stream-info" | "settings";
-
-function RightIconStrip({
-  active,
-  onSelect,
-}: {
-  active: RightPanelId | null;
-  onSelect: (id: RightPanelId) => void;
-}) {
-  const topButtons: { id: RightPanelId; icon: React.ReactNode; label: string }[] = [
-    { id: "transitions",  icon: <IconTransitions />,  label: "Transitions" },
-    { id: "source-props", icon: <IconProperties />,   label: "Source properties" },
-    { id: "chat",         icon: <IconChat />,          label: "Chat" },
-    { id: "stream-info",  icon: <IconStreamInfo />,    label: "Stream info" },
-  ];
-
-  return (
-    <div
-      className="flex flex-col shrink-0 border-l border-[var(--border)] bg-[var(--bg-base)]"
-      style={{ width: 44 }}
-    >
-      <div className="flex flex-col flex-1 items-center pt-1 gap-0.5">
-        {topButtons.map(({ id, icon, label }) => (
-          <button
-            key={id}
-            onClick={() => onSelect(id)}
-            title={label}
-            className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
-              active === id
-                ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
-            }`}
-          >
-            {icon}
-          </button>
-        ))}
-      </div>
-      <div className="flex flex-col items-center pb-1">
-        <button
-          onClick={() => onSelect("settings")}
-          title="Settings"
-          className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
-            active === "settings"
-              ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]"
-              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
-          }`}
-        >
-          <IconSettings />
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ── Chat panel ────────────────────────────────────────────────────────────────
 
@@ -2042,114 +1951,6 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
     </div>
   );
 }
-
-// ── Settings panel (legacy, used in right panel stub) ─────────────────────────
-
-function SettingsPanel({
-  targetFps,
-  onSetTargetFps,
-}: {
-  targetFps: 30 | 60;
-  onSetTargetFps: (v: 30 | 60) => void;
-}) {
-  return (
-    <div className="p-4 space-y-5">
-      <div>
-        <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
-          Frame Rate
-        </p>
-        <div className="flex gap-1">
-          {([30, 60] as const).map((fps) => (
-            <button
-              key={fps}
-              onClick={() => onSetTargetFps(fps)}
-              className={`flex-1 py-1.5 rounded text-[11px] font-semibold border transition-colors ${
-                targetFps === fps
-                  ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
-                  : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]"
-              }`}
-            >
-              {fps} fps
-            </button>
-          ))}
-        </div>
-        <p className="text-[10px] text-[var(--text-muted)] mt-1.5">
-          60 fps uses more CPU and bandwidth
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ── Right panel ───────────────────────────────────────────────────────────────
-
-function RightPanel({
-  panel,
-  chatProps,
-  queueProps,
-  settingsProps,
-}: {
-  panel: RightPanelId | null;
-  chatProps: {
-    messages: ChatMessage[];
-    chatBody: string;
-    onChange: (v: string) => void;
-    onSend: (e: React.FormEvent) => void;
-  };
-  queueProps: {
-    waiting: Participant[];
-    approved: Participant[];
-    nextSlot: number;
-    onChangeStatus: (id: string, status: ParticipantStatus, slot?: number) => void;
-  };
-  settingsProps: {
-    targetFps: 30 | 60;
-    onSetTargetFps: (v: 30 | 60) => void;
-  };
-}) {
-  if (!panel) return null;
-
-  const labels: Record<RightPanelId, string> = {
-    "transitions":  "Transitions",
-    "source-props": "Source Properties",
-    "chat":         "Chat",
-    "stream-info":  "Queue",
-    "settings":     "Settings",
-  };
-
-  return (
-    <div
-      className="flex flex-col shrink-0 border-l border-[var(--border)] bg-[var(--bg-mid)] overflow-hidden"
-      style={{ width: 280 }}
-    >
-      <div
-        className="flex items-center px-4 border-b border-[var(--border)] shrink-0"
-        style={{ height: 36 }}
-      >
-        <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex-1">
-          {labels[panel]}
-        </span>
-        {panel === "stream-info" && queueProps.waiting.length + queueProps.approved.length > 0 && (
-          <span className="text-[10px] font-bold bg-[var(--accent-primary)] text-white rounded-full px-1.5 py-0.5 leading-none">
-            {queueProps.waiting.length + queueProps.approved.length}
-          </span>
-        )}
-      </div>
-      {panel === "chat" ? (
-        <ChatPanel {...chatProps} />
-      ) : panel === "stream-info" ? (
-        <QueuePanel {...queueProps} />
-      ) : panel === "settings" ? (
-        <SettingsPanel {...settingsProps} />
-      ) : (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-[11px] text-[var(--text-muted)] select-none">{labels[panel]} panel</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
 
 // ── Inspector panel ──────────────────────────────────────────────────────────
 
@@ -2527,7 +2328,7 @@ function BitrateSparkline({ data }: { data: number[] }) {
     .map((v, i) => `${((i / (data.length - 1)) * W).toFixed(1)},${(H - (v / peak) * H).toFixed(1)}`)
     .join(" ");
   const latest = data[data.length - 1] ?? 0;
-  const stroke = latest > 2000 ? "#00D4AA" : latest > 500 ? "#FFAA00" : "#FF4444";
+  const stroke = latest > 2000 ? "var(--vu-low)" : latest > 500 ? "var(--vu-mid)" : "var(--vu-high)";
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
       <polyline points={pts} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -2548,6 +2349,18 @@ function VUMeter({ analyser, muted }: { analyser: AnalyserNode | null; muted: bo
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx2d = canvas.getContext("2d")!;
+
+    // Canvas fillStyle can't read CSS variables — resolve the VU tokens once per effect
+    const css = getComputedStyle(document.documentElement);
+    const tok = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+    const VU = {
+      low:     tok("--vu-low",      "#00D4AA"),
+      mid:     tok("--vu-mid",      "#FFAA00"),
+      high:    tok("--vu-high",     "#FF4444"),
+      lowDim:  tok("--vu-low-dim",  "#051a17"),
+      midDim:  tok("--vu-mid-dim",  "#1a1000"),
+      highDim: tok("--vu-high-dim", "#200a0a"),
+    };
 
     function draw() {
       rafRef.current = requestAnimationFrame(draw);
@@ -2595,9 +2408,9 @@ function VUMeter({ analyser, muted }: { analyser: AnalyserNode | null; muted: bo
       for (let i = 0; i < SEGS; i++) {
         const t = i / SEGS;
         const lit = i < active;
-        if (t < 0.65)       ctx2d.fillStyle = lit ? "#00D4AA" : "#051a17";
-        else if (t < 0.85)  ctx2d.fillStyle = lit ? "#FFAA00" : "#1a1000";
-        else                ctx2d.fillStyle = lit ? "#FF4444" : "#200a0a";
+        if (t < 0.65)       ctx2d.fillStyle = lit ? VU.low  : VU.lowDim;
+        else if (t < 0.85)  ctx2d.fillStyle = lit ? VU.mid  : VU.midDim;
+        else                ctx2d.fillStyle = lit ? VU.high : VU.highDim;
         ctx2d.fillRect(i * segW, 0, segW - gap, height);
       }
 
@@ -2889,7 +2702,6 @@ export default function Studio({
   channelName: string;
   slug: string;
 }) {
-  const [activePanel, setActivePanel] = useState<RightPanelId | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatBody, setChatBody] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -2897,7 +2709,7 @@ export default function Studio({
 
   const {
     streamStatus, setStreamStatus, setStreamError, setFps,
-    targetFps, setTargetFps,
+    targetFps,
     setBitrateKbps,
     setIsRecording: storeSetIsRecording,
     setStreamDuration,
@@ -3157,7 +2969,10 @@ export default function Studio({
   useEffect(() => { setStreamError(relayError); }, [relayError, setStreamError]);
 
   // Recording + clip buffer
-  const { isRecording: localIsRecording, elapsed, startRecording, stopRecording } = useRecorder(compositeStream);
+  const { isRecording: localIsRecording, elapsed, startRecording, stopRecording } = useRecorder(
+    compositeStream,
+    () => addToast("Recording saved to downloads", "success"),
+  );
   const { saveClip } = useClipBuffer(compositeStream);
 
   // Sync recording state into store so TopBar can read it
@@ -3194,8 +3009,7 @@ export default function Studio({
 
   function handleRecordClick() {
     if (localIsRecording) {
-      stopRecording();
-      addToast("Recording saved to downloads", "success");
+      stopRecording(); // "saved" toast fires from useRecorder once the download is handed off
     } else {
       startRecording();
       addToast("Recording started", "success");
@@ -3229,7 +3043,7 @@ export default function Studio({
           name,
           visible: true,
           locked: false,
-          opacity: 1,
+          opacity: 100,
           transform: { x, y, width: w, height: h, rotation: 0 },
           sourceConfig: { src },
           effects: [],
@@ -3239,10 +3053,6 @@ export default function Studio({
     };
     reader.readAsDataURL(file);
   }, [activeSceneId, addLayerRoot]);
-
-  function togglePanel(id: RightPanelId) {
-    setActivePanel((prev) => (prev === id ? null : id));
-  }
 
   return (
     <>

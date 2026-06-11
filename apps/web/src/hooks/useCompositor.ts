@@ -117,11 +117,17 @@ export function useCompositor({
   const canvasRef    = useRef<HTMLCanvasElement | null>(null);
   const workerRef    = useRef<Worker | null>(null);
   const fpsRef       = useRef({ frames: 0, lastLog: Date.now() });
-  // cameraLayer lives in a ref so Inspector transform updates don't restart the worker.
-  // Synced from the prop on each render via effect.
+  // cameraLayer, imageLayers, remoteUsers, and liveParticipants live in refs so
+  // Inspector updates and participant churn don't restart the worker (a restart
+  // costs a frame gap). Synced from the props on each render via effects.
   const cameraLayerRef = useRef<Layer | null>(cameraLayer ?? null);
+  const imageLayersRef = useRef<Layer[]>([]);
+  const remoteUsersRef = useRef<IAgoraRTCRemoteUser[]>(remoteUsers);
+  const liveParticipantsRef = useRef<Participant[]>(liveParticipants);
   useEffect(() => { cameraLayerRef.current = cameraLayer ?? null; }, [cameraLayer]);
   useEffect(() => { imageLayersRef.current = imageLayers.filter((l) => l.visible); }, [imageLayers]);
+  useEffect(() => { remoteUsersRef.current = remoteUsers; }, [remoteUsers]);
+  useEffect(() => { liveParticipantsRef.current = liveParticipants; }, [liveParticipants]);
 
   const chromaKeyRef = useRef<ChromaKeyProcessor | null>(null);
 
@@ -143,7 +149,6 @@ export function useCompositor({
   const connectedAudioRef  = useRef<Set<string>>(new Set());
   const gainNodesRef       = useRef<Map<string, GainNode>>(new Map());
   const analyserNodesRef   = useRef<Map<string, AnalyserNode>>(new Map());
-  const imageLayersRef     = useRef<Layer[]>([]);
   const imageCacheRef      = useRef<Map<string, HTMLImageElement>>(new Map());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const frameWriterRef    = useRef<WritableStreamDefaultWriter<any> | null>(null);
@@ -316,12 +321,12 @@ export function useCompositor({
     }
 
     function drawParticipants(layout: Array<Rect | null>) {
-      for (const p of liveParticipants) {
+      for (const p of liveParticipantsRef.current) {
         const gridIdx = (p.slot_index ?? 0) + 1;
         const cell = layout[gridIdx];
         if (!cell) continue;
         const uid = (p.slot_index ?? 0) + 1;
-        const remoteUser = remoteUsers.find((u) => u.uid === uid);
+        const remoteUser = remoteUsersRef.current.find((u) => u.uid === uid);
         if (!remoteUser?.videoTrack) continue;
         try {
           const native = remoteUser.videoTrack.getMediaStreamTrack();
@@ -349,7 +354,7 @@ export function useCompositor({
       const camTransform = camL?.transform ?? null;
 
       // Participants use auto-grid (camera position comes from its layer transform)
-      drawParticipants(getLayout(false, liveParticipants.length));
+      drawParticipants(getLayout(false, liveParticipantsRef.current.length));
 
       // Camera drawn at its layer transform position
       if (camVisible && camTransform && localVideoTrack) {
@@ -389,7 +394,8 @@ export function useCompositor({
         if (img.complete && img.naturalWidth > 0) {
           const { x, y, width, height } = layer.transform;
           ctx!.save();
-          ctx!.globalAlpha = layer.opacity;
+          // layer.opacity is stored 0–100; globalAlpha expects 0–1
+          ctx!.globalAlpha = layer.opacity / 100;
           ctx!.drawImage(img, x, y, width, height);
           ctx!.restore();
         }
@@ -436,7 +442,10 @@ export function useCompositor({
       worker.postMessage({ type: "stop" });
       worker.terminate();
     };
-  }, [enabled, targetFps, localVideoTrack, localScreenTrack, remoteUsers, liveParticipants]);
+  // remoteUsers/liveParticipants are read via refs inside draw() — listing them
+  // here would restart the worker (and drop a frame) on every participant event.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, targetFps, localVideoTrack, localScreenTrack]);
 
   // ── Audio graph ───────────────────────────────────────────────────────────────
   useEffect(() => {

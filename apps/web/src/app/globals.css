@@ -18,6 +18,9 @@
   --vu-low:            #00D4AA;
   --vu-mid:            #FFAA00;
   --vu-high:           #FF4444;
+  --vu-low-dim:        #051a17;
+  --vu-mid-dim:        #1a1000;
+  --vu-high-dim:       #200a0a;
 
   /* ── Kept in @theme so Tailwind generates hover variants ────────── */
   --color-brand-light: #FF54C8;

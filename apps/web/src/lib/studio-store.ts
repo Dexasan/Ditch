@@ -242,12 +242,15 @@ export const useStudioStore = create<StudioStore>()(
     }),
   setSelectedLayerId: (id) => set({ selectedLayerId: id }),
 
-  resetForNewSession: (sessionId) => set({
+  resetForNewSession: (sessionId) => set((s) => ({
     scenes: [makeScene(INITIAL_SCENE_ID, "Scene 1")],
     activeSceneId: INITIAL_SCENE_ID,
     selectedLayerId: null,
     lastSessionId: sessionId,
-  }),
+    // Destinations are per-session rows in the DB — drop the previous session's
+    // entries so a failed mount fetch can't leave stale ones in the UI.
+    settings: { ...s.settings, destinations: [] },
+  })),
 
   // Settings
   settings: {
@@ -336,7 +339,24 @@ export const useStudioStore = create<StudioStore>()(
   }),
   {
     name: "ditch-studio-v1",
+    version: 1,
     storage: createJSONStorage(() => localStorage),
+    // v0 → v1: image layers were created with opacity on a 0–1 scale while every
+    // other layer type used 0–100. Normalize persisted image layers to 0–100.
+    migrate: (persisted, version) => {
+      const state = persisted as { scenes?: Scene[] };
+      if (version < 1 && state?.scenes) {
+        state.scenes = state.scenes.map((sc) => ({
+          ...sc,
+          layers: sc.layers.map((l) =>
+            l.type === "image" && l.opacity <= 1
+              ? { ...l, opacity: Math.round(l.opacity * 100) }
+              : l,
+          ),
+        }));
+      }
+      return state;
+    },
     // Only persist layout state. Stream status, bitrate, recording, toasts,
     // and undo history are ephemeral — they reset correctly on reload.
     // settings (destinations) intentionally excluded to keep stream keys out of localStorage.
