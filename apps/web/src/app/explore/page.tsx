@@ -24,7 +24,7 @@ const PLATFORM_CONFIG: Record<StreamPlatform, { label: string; color: string; bg
   kick:    { label: "Kick",    color: "#53FC18", bg: "rgba(83,252,24,0.18)" },
 };
 
-// Deterministic gradient from channel slug — unique per creator, consistent across renders
+// Deterministic gradient from channel slug - unique per creator, consistent across renders
 function channelGradient(slug: string): string {
   let hash = 0;
   for (let i = 0; i < slug.length; i++) {

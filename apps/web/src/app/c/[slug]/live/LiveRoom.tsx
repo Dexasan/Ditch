@@ -438,7 +438,7 @@ export default function LiveRoom({
             activeColor="text-blue-400"
           />
 
-          {/* Go Live — center piece */}
+          {/* Go Live - center piece */}
           <button
             onClick={() => setStreamingEnabled((v) => !v)}
             className={`mx-4 flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all ${

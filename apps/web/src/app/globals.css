@@ -24,9 +24,21 @@
 
   /* ── Kept in @theme so Tailwind generates hover variants ────────── */
   --color-brand-light: #FF54C8;
+
+  /* ── Master Control tokens (marketing site only) ─────────────────
+     Retro-broadcast palette: warm paper, charcoal screens, one pink
+     tally accent. Never used inside the studio app.                  */
+  --color-paper:  #F2F0EA;
+  --color-panel:  #FDFCFA;
+  --color-screen: #26261F;
+  --color-line:   #D3D1C7;
+  --color-ink:    #2C2C2A;
+  --color-label:  #5F5E5A;
+  --color-faint:  #888780;
+  --color-tally:  #FF2D92;
 }
 
-/* ── Legacy aliases — non-studio files still use old names ──────────
+/* ── Legacy aliases - non-studio files still use old names ──────────
    Remove once page.tsx / dashboard / auth / live are migrated.       */
 :root {
   --border:               #1A1A3E;
@@ -43,4 +55,95 @@ body {
   background-color: var(--bg-base);
   color: var(--text-primary);
   font-family: system-ui, sans-serif;
+}
+
+/* ── Master Control scope (marketing pages only) ────────────────────
+   Applied on the page wrapper of /, /terms, /privacy. The studio and
+   the rest of the app never get this class. The tiled SVG turbulence
+   keeps the paper surface from reading as flat vector.               */
+.marketing {
+  background-color: var(--color-paper);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  color: var(--color-ink);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* The silkscreen voice: mono, lowercase, letterspaced. Size and color
+   come from Tailwind utilities at the call site.                     */
+.mc-mono {
+  font-family: var(--font-jbmono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+}
+
+/* ── Tune-in sequence ───────────────────────────────────────────────
+   Defaults are the FINAL state (test card gone, tallies lit), so
+   users with reduced motion, no JS, or old browsers land there
+   directly. Motion-tolerant users get the calm power-on: test card
+   fades off the master screen, channel tallies light one by one,
+   the on-air lamp comes on last. Opacity only: zero layout shift.   */
+@keyframes mc-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes mc-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Lamp idle: a slow breath, like a real tally bulb under load. */
+@keyframes mc-breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+/* Headline tune-in: starts transparent and over-tracked, settles to the
+   element's own computed values (no "to" frame on purpose).            */
+@keyframes mc-tune-in {
+  from {
+    opacity: 0;
+    letter-spacing: 0.5em;
+  }
+}
+
+.mc-test-card { opacity: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .mc-test-card {
+    animation: mc-fade-out 1.5s ease 0.4s both;
+  }
+  .mc-tally {
+    animation: mc-fade-in 0.3s ease both;
+    animation-delay: var(--mc-delay, 2s);
+  }
+  /* Must come after .mc-tally: the lamp carries both classes and these
+     longhands win, adding the idle breath after power-on. Longhand form
+     because the animation shorthand drops the whole declaration when a
+     calc() delay appears inside it.                                    */
+  .mc-lamp {
+    animation-name: mc-fade-in, mc-breathe;
+    animation-duration: 0.3s, 4s;
+    animation-timing-function: ease, ease-in-out;
+    animation-delay: var(--mc-delay, 2s), calc(var(--mc-delay, 2s) + 1.2s);
+    animation-iteration-count: 1, infinite;
+    animation-fill-mode: both, none;
+  }
+  .mc-headline { animation: mc-tune-in 1.6s ease 0.5s both; }
+  .mc-subline  { animation: mc-fade-in 0.9s ease 1.4s both; }
+}
+
+/* Scroll reveal. The base class is added by Reveal.tsx AFTER mount and
+   only when the user accepts motion, so no-JS and reduced-motion users
+   never see hidden content.                                            */
+.mc-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  transition-delay: var(--mc-reveal-delay, 0s);
+}
+
+.mc-reveal-visible {
+  opacity: 1;
+  transform: none;
 }

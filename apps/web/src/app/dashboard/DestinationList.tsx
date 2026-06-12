@@ -78,7 +78,7 @@ export default function DestinationList({
       await api.delete(`/destinations/${id}`, { token: token! });
       setDestinations((prev) => prev.filter((d) => d.id !== id));
     } catch {
-      // silent — destination may already be gone
+      // silent - destination may already be gone
     }
   }
 

@@ -68,10 +68,10 @@ function supportsBreakoutBox(): boolean {
   );
 }
 
-// Inline worker source — drives the draw tick from a separate thread.
+// Inline worker source - drives the draw tick from a separate thread.
 // Workers are not subject to the main thread's background-tab CPU budget throttling,
 // so the timer fires reliably even when the streaming tab loses focus.
-// Start message: { type: "start", interval: number } — interval in ms between ticks.
+// Start message: { type: "start", interval: number } - interval in ms between ticks.
 const WORKER_SRC = `
   let timer = null;
   self.onmessage = (e) => {
@@ -87,7 +87,7 @@ interface CompositorOptions {
   remoteUsers: IAgoraRTCRemoteUser[];
   liveParticipants: Participant[];
   enabled: boolean;
-  /** Active camera layer — position, visibility, and transform come from here. */
+  /** Active camera layer - position, visibility, and transform come from here. */
   cameraLayer?: Layer | null;
   /** Image layers to composite on top of video (logos, overlays, etc.) */
   imageLayers?: Layer[];
@@ -179,7 +179,7 @@ export function useCompositor({
     } else {
       // captureStream(0) = manual rate: Chrome only captures a frame when we call
       // requestFrame(), so we control exactly when captures happen regardless of
-      // tab visibility — Chrome can't throttle what it doesn't schedule itself.
+      // tab visibility - Chrome can't throttle what it doesn't schedule itself.
       const captureStream = canvas.captureStream(0);
       captureTrackRef.current = captureStream.getVideoTracks()[0];
       videoTrack = captureTrackRef.current;
@@ -187,8 +187,8 @@ export function useCompositor({
 
     setStream(new MediaStream([videoTrack, ...audioDest.stream.getAudioTracks()]));
 
-    try { chromaKeyRef.current = new ChromaKeyProcessor(); } catch {
-      console.warn("[compositor] WebGL unavailable — chroma key disabled");
+    try { chromaKeyRef.current = new ChromaKeyProcessor(); } catch (err) {
+      console.warn("[compositor] chroma key disabled:", err);
     }
 
     // Resume AudioContext when tab regains focus (Chrome suspends it on hide)
@@ -282,7 +282,7 @@ export function useCompositor({
     }
   }, [enabled, localVideoTrack, localScreenTrack, remoteUsers, liveParticipants]);
 
-  // ── Draw loop — driven by Worker timer ───────────────────────────────────────
+  // ── Draw loop - driven by Worker timer ───────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!enabled || !canvas) return;
@@ -365,23 +365,30 @@ export function useCompositor({
             const ckCfg = (cameraLayerRef.current?.effects ?? [])
               .find((e) => (e as Record<string, unknown>)["type"] === "chromaKey" &&
                            (e as Record<string, unknown>)["enabled"]) as ChromaKeyConfig | undefined;
-            if (ckCfg && chromaKeyRef.current) {
-              const nw = (source.displayWidth ?? source.videoWidth) || W;
-              const nh = (source.displayHeight ?? source.videoHeight) || H;
-              const keyed  = chromaKeyRef.current.process(source, nw, nh, ckCfg);
-              const { x: dx, y: dy, width: dw, height: dh } = camTransform;
-              const scale  = Math.max(dw / nw, dh / nh);
-              const sw = dw / scale, sh = dh / scale;
-              const sx = (nw - sw) / 2, sy = (nh - sh) / 2;
-              ctx!.drawImage(keyed, sx, sy, sw, sh, dx, dy, dw, dh);
-            } else {
-              drawCover(source, camTransform.x, camTransform.y, camTransform.width, camTransform.height);
+            ctx!.save();
+            // layer.opacity is stored 0-100; globalAlpha expects 0-1
+            ctx!.globalAlpha = (camL?.opacity ?? 100) / 100;
+            try {
+              if (ckCfg && chromaKeyRef.current) {
+                const nw = (source.displayWidth ?? source.videoWidth) || W;
+                const nh = (source.displayHeight ?? source.videoHeight) || H;
+                const keyed  = chromaKeyRef.current.process(source, nw, nh, ckCfg);
+                const { x: dx, y: dy, width: dw, height: dh } = camTransform;
+                const scale  = Math.max(dw / nw, dh / nh);
+                const sw = dw / scale, sh = dh / scale;
+                const sx = (nw - sw) / 2, sy = (nh - sh) / 2;
+                ctx!.drawImage(keyed, sx, sy, sw, sh, dx, dy, dw, dh);
+              } else {
+                drawCover(source, camTransform.x, camTransform.y, camTransform.width, camTransform.height);
+              }
+            } finally {
+              ctx!.restore();
             }
           }
         } catch {}
       }
 
-      // Image layers (overlays: logos, lower-thirds, etc.) — drawn on top of video
+      // Image layers (overlays: logos, lower-thirds, etc.) - drawn on top of video
       for (const layer of imageLayersRef.current) {
         const src = layer.sourceConfig.src as string | undefined;
         if (!src) continue;
@@ -394,7 +401,7 @@ export function useCompositor({
         if (img.complete && img.naturalWidth > 0) {
           const { x, y, width, height } = layer.transform;
           ctx!.save();
-          // layer.opacity is stored 0–100; globalAlpha expects 0–1
+          // layer.opacity is stored 0-100; globalAlpha expects 0-1
           ctx!.globalAlpha = layer.opacity / 100;
           ctx!.drawImage(img, x, y, width, height);
           ctx!.restore();
@@ -442,7 +449,7 @@ export function useCompositor({
       worker.postMessage({ type: "stop" });
       worker.terminate();
     };
-  // remoteUsers/liveParticipants are read via refs inside draw() — listing them
+  // remoteUsers/liveParticipants are read via refs inside draw() - listing them
   // here would restart the worker (and drop a frame) on every participant event.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, targetFps, localVideoTrack, localScreenTrack]);

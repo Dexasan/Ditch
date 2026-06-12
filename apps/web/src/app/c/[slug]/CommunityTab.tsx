@@ -61,7 +61,7 @@ function VoteButton({
       );
       onToggle(postId, res.voted, res.vote_count);
     } catch {
-      // silent — vote failed, state unchanged
+      // silent - vote failed, state unchanged
     } finally {
       setLoading(false);
     }

@@ -28,7 +28,7 @@ export function useStudioShortcuts({
       const meta = e.metaKey || e.ctrlKey;
       const s = useStudioStore.getState();
 
-      // ── Scene switch: 1–9 ────────────────────────────────────────────────────
+      // ── Scene switch: 1-9 ────────────────────────────────────────────────────
       if (!meta && !e.shiftKey && !e.altKey && e.key >= "1" && e.key <= "9") {
         const idx = parseInt(e.key) - 1;
         if (s.scenes[idx]) {

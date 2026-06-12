@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/check-dashes.mjs && next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "node scripts/check-dashes.mjs && next lint",
+    "check-dashes": "node scripts/check-dashes.mjs",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

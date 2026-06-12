@@ -8,7 +8,7 @@ type Mode = "signin" | "signup";
 interface SignInModalProps {
   onSuccess: (token: string, displayName: string) => void;
   onClose: () => void;
-  /** Current draft message — shown in the input so the user remembers what they were typing. */
+  /** Current draft message - shown in the input so the user remembers what they were typing. */
   initialDraft: string;
   onDraftChange: (value: string) => void;
 }
@@ -82,12 +82,12 @@ export default function SignInModal({
   }
 
   return (
-    // Backdrop — click outside to dismiss.
+    // Backdrop - click outside to dismiss.
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
-      {/* Card — stop propagation so clicks inside don't close the modal. */}
+      {/* Card - stop propagation so clicks inside don't close the modal. */}
       <div
         className="w-full max-w-sm rounded-xl bg-[var(--color-surface)] border border-[var(--color-surface-border)] shadow-2xl"
         onClick={(e) => e.stopPropagation()}

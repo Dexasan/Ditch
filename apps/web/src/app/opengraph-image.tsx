@@ -1,119 +1,142 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "DITCH — One stream. Every platform. Anyone can join.";
+export const alt =
+  "ditch master control: one stream to every platform, anyone can join";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+
+// Master Control palette (kept inline: the OG renderer cannot read CSS vars)
+const PAPER = "#F2F0EA";
+const PANEL = "#FDFCFA";
+const SCREEN = "#26261F";
+const LINE = "#D3D1C7";
+const INK = "#2C2C2A";
+const LABEL = "#5F5E5A";
+const FAINT = "#888780";
+const TALLY = "#FF2D92";
+const SMPTE = ["#9A9A8E", "#A8A85E", "#6EA8A8", "#6EA86E", "#A86EA8", "#A86E6E", "#6E6EA8"];
 
 export default function Image() {
   return new ImageResponse(
     (
       <div
         style={{
-          background: "#0A0A14",
+          background: PAPER,
           width: "100%",
           height: "100%",
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: "sans-serif",
-          position: "relative",
+          fontFamily: "monospace",
         }}
       >
-        {/* Radial glow */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background:
-              "radial-gradient(ellipse at 50% 50%, rgba(255,29,180,0.18) 0%, transparent 65%)",
-          }}
-        />
-
-        {/* DITCH wordmark */}
-        <div
-          style={{
-            fontSize: 128,
-            fontWeight: 900,
-            color: "white",
-            letterSpacing: "-6px",
-            lineHeight: 1,
-            zIndex: 1,
-          }}
-        >
-          DITCH
-        </div>
-
-        {/* Tagline */}
+        {/* the panel */}
         <div
           style={{
             display: "flex",
-            fontSize: 34,
-            color: "rgba(255,255,255,0.55)",
-            marginTop: 20,
-            zIndex: 1,
-            gap: 10,
+            flexDirection: "column",
+            width: 1040,
+            background: PANEL,
+            border: `1px solid ${LINE}`,
+            borderRadius: 24,
+            padding: 36,
           }}
         >
-          <span>One stream.</span>
-          <span style={{ color: "#FF1DB4" }}>Every platform.</span>
-          <span>Anyone can join.</span>
-        </div>
-
-        {/* Platform pills */}
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            marginTop: 52,
-            zIndex: 1,
-          }}
-        >
-          {["Twitch", "YouTube", "TikTok", "Kick"].map((platform) => (
-            <div
-              key={platform}
-              style={{
-                padding: "10px 22px",
-                borderRadius: 999,
-                border: "1px solid rgba(255,255,255,0.12)",
-                color: "rgba(255,255,255,0.45)",
-                fontSize: 20,
-                background: "rgba(255,255,255,0.04)",
-              }}
-            >
-              {platform}
-            </div>
-          ))}
+          {/* header row */}
           <div
             style={{
-              padding: "10px 22px",
-              borderRadius: 999,
-              border: "1px solid rgba(255,29,180,0.35)",
-              color: "#FF1DB4",
-              fontSize: 20,
-              background: "rgba(255,29,180,0.07)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 28,
             }}
           >
-            + more
+            <div style={{ display: "flex", color: LABEL, fontSize: 22, letterSpacing: 3 }}>
+              ditch · master control
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                style={{
+                  display: "flex",
+                  width: 16,
+                  height: 16,
+                  borderRadius: 999,
+                  background: TALLY,
+                }}
+              />
+              <div style={{ display: "flex", color: INK, fontSize: 22, letterSpacing: 3 }}>
+                on air
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Domain */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 44,
-            color: "rgba(255,255,255,0.25)",
-            fontSize: 22,
-            letterSpacing: "3px",
-            zIndex: 1,
-          }}
-        >
-          ditchlive.app
+          {/* master screen */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              borderRadius: 12,
+              overflow: "hidden",
+              border: `1px solid ${LINE}`,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                background: SCREEN,
+                height: 320,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  color: PAPER,
+                  fontSize: 76,
+                  letterSpacing: 22,
+                }}
+              >
+                one stream
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  color: "#B5B3A8",
+                  fontSize: 26,
+                  letterSpacing: 6,
+                  marginTop: 26,
+                }}
+              >
+                every platform · anyone can join
+              </div>
+            </div>
+            {/* smpte strip */}
+            <div style={{ display: "flex", height: 8, width: "100%" }}>
+              {SMPTE.map((color) => (
+                <div key={color} style={{ display: "flex", flex: 1, background: color }} />
+              ))}
+            </div>
+          </div>
+
+          {/* footer row */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 28,
+            }}
+          >
+            <div style={{ display: "flex", color: FAINT, fontSize: 20, letterSpacing: 3 }}>
+              twitch · youtube · tiktok · kick
+            </div>
+            <div style={{ display: "flex", color: FAINT, fontSize: 20, letterSpacing: 3 }}>
+              ditchlive.app
+            </div>
+          </div>
         </div>
       </div>
     ),

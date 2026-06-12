@@ -17,7 +17,7 @@ export default async function OnboardingPage() {
     });
     if (channel) redirect("/dashboard");
   } catch {
-    // No channel found — continue to onboarding form
+    // No channel found - continue to onboarding form
   }
 
   const displayName =

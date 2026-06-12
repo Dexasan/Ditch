@@ -1,14 +1,14 @@
 // WebGL-based chroma key processor.
-// Uses YCbCr colour space for the distance check — luminance-independent so
+// Uses YCbCr colour space for the distance check - luminance-independent so
 // any brightness of the key colour is removed, not just the exact shade.
 
 export interface ChromaKeyConfig {
   type: "chromaKey";
   enabled: boolean;
-  color: string;       // hex #rrggbb — the colour to remove
-  similarity: number;  // 0..1 — threshold; higher = remove more of the key colour
-  smoothness: number;  // 0..1 — feather width around the threshold edge
-  spill: number;       // 0..1 — spill suppression (desaturates subject edges)
+  color: string;       // hex #rrggbb - the colour to remove
+  similarity: number;  // 0..1 - threshold; higher = remove more of the key colour
+  smoothness: number;  // 0..1 - feather width around the threshold edge
+  spill: number;       // 0..1 - spill suppression (desaturates subject edges)
 }
 
 export const DEFAULT_CHROMA_KEY: ChromaKeyConfig = {
@@ -77,7 +77,9 @@ void main() {
     float gray = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
     rgb = mix(rgb, vec3(gray), (1.0 - mask) * uSpill);
   }
-  gl_FragColor = vec4(rgb, mask);
+  // Premultiplied output - the 2D compositor canvas blends with source-over,
+  // which expects premultiplied alpha
+  gl_FragColor = vec4(rgb * mask, mask);
 }`;
 
 // ── Processor ─────────────────────────────────────────────────────────────────
@@ -86,6 +88,9 @@ function mkShader(gl: WebGLRenderingContext, type: number, src: string): WebGLSh
   const s = gl.createShader(type)!;
   gl.shaderSource(s, src);
   gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    throw new Error(`Shader compile failed: ${gl.getShaderInfoLog(s) ?? "no info log"}`);
+  }
   return s;
 }
 
@@ -107,7 +112,9 @@ export class ChromaKeyProcessor {
 
   constructor() {
     this.canvas = document.createElement("canvas");
-    const gl = this.canvas.getContext("webgl", { alpha: true, premultipliedAlpha: false });
+    // premultipliedAlpha: true (WebGL default) - drawImage into a 2D canvas
+    // assumes premultiplied pixels; the shader multiplies rgb by mask to match.
+    const gl = this.canvas.getContext("webgl", { alpha: true, premultipliedAlpha: true });
     if (!gl) throw new Error("WebGL unavailable");
     this.gl = gl;
 
@@ -115,6 +122,9 @@ export class ChromaKeyProcessor {
     gl.attachShader(prog, mkShader(gl, gl.VERTEX_SHADER,   VERT_SRC));
     gl.attachShader(prog, mkShader(gl, gl.FRAGMENT_SHADER, FRAG_SRC));
     gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      throw new Error(`Program link failed: ${gl.getProgramInfoLog(prog) ?? "no info log"}`);
+    }
     gl.useProgram(prog);
 
     // Full-screen quad

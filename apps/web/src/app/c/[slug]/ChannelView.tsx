@@ -100,7 +100,7 @@ function ParticipantTile({
   );
 }
 
-// ── Join panel — full state machine ───────────────────────────────────────────
+// ── Join panel - full state machine ───────────────────────────────────────────
 
 function JoinPanel({
   isOwner,
@@ -166,7 +166,7 @@ function JoinPanel({
         <div>
           <h3 className="text-[15px] font-bold text-white leading-tight">Join this stream</h3>
           <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
-            Go live on screen — no download needed.
+            Go live on screen. No download needed.
           </p>
         </div>
         <input
@@ -714,7 +714,7 @@ export default function ChannelView({
             )}
           </div>
 
-          {/* Secondary strip — screenshare + live participants */}
+          {/* Secondary strip - screenshare + live participants */}
           {hasStrip && (
             <div
               className="flex items-center gap-2 px-3 py-2 overflow-x-auto flex-shrink-0"
@@ -752,7 +752,7 @@ export default function ChannelView({
             </div>
           )}
 
-          {/* Chat — desktop only, fills remaining height */}
+          {/* Chat - desktop only, fills remaining height */}
           <div className="hidden md:flex flex-col flex-1 min-h-0">
             <ChatPanel
               messages={messages}
@@ -900,7 +900,7 @@ export default function ChannelView({
             </div>
           )}
 
-          {/* Chat — fills rest of sidebar */}
+          {/* Chat - fills rest of sidebar */}
           <div
             className="flex-1 flex flex-col min-h-0 border-t"
             style={{ borderColor: "var(--color-surface-border)" }}

@@ -38,7 +38,7 @@ export interface AgoraRoomState {
   /** Hot-switch the active microphone without dropping the channel. */
   switchMicDevice: (deviceId: string) => Promise<void>;
   /** Leaves the current audience client and re-joins as host, then creates and
-   *  publishes mic+camera tracks — all in one call meant to be invoked directly
+   *  publishes mic+camera tracks - all in one call meant to be invoked directly
    *  from an onClick handler. iOS Safari requires getUserMedia (and setClientRole)
    *  to be triggered within a user gesture; this keeps the entire promotion flow
    *  inside that gesture context. */
@@ -156,7 +156,7 @@ export function useAgoraRoom(options: {
       });
       setLocalScreenTrack(null);
     };
-  // Role/uid changes cause a full leave+rejoin — intentional. publish is handled
+  // Role/uid changes cause a full leave+rejoin - intentional. publish is handled
   // by the dedicated effect below so toggling it does NOT drop the channel.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, channelName, uid, role]);

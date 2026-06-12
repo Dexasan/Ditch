@@ -65,12 +65,12 @@ export function useRelayStream({
     function scheduleReconnect() {
       if (cancelled) return;
       if (attempts >= MAX_RETRIES) {
-        setError("Stream dropped and could not reconnect — check your connection");
+        setError("Stream dropped and could not reconnect. Check your connection");
         setStreaming(false);
         return;
       }
       attempts++;
-      setError(`Stream dropped — reconnecting (${attempts}/${MAX_RETRIES})…`);
+      setError(`Stream dropped, reconnecting (${attempts}/${MAX_RETRIES})…`);
       setStreaming(false);
       retryTimer = setTimeout(connect, RETRY_DELAY_MS);
     }
@@ -114,7 +114,7 @@ export function useRelayStream({
           };
 
           recorder.onerror = () => {
-            setError("Encoder error — restarting stream…");
+            setError("Encoder error, restarting stream…");
             stopRecorder();
             closeSocket();
             scheduleReconnect();
@@ -138,7 +138,7 @@ export function useRelayStream({
         }
 
         if (msg.type === "stopped") {
-          // ffmpeg exited server-side; recorder is still running — stop it then reconnect
+          // ffmpeg exited server-side; recorder is still running - stop it then reconnect
           stopRecorder();
           scheduleReconnect();
         }
@@ -146,7 +146,7 @@ export function useRelayStream({
 
       // onerror always fires before onclose; set the message here, let onclose drive reconnect
       ws.onerror = () => {
-        setError(`Relay connection error — reconnecting (${attempts + 1}/${MAX_RETRIES})…`);
+        setError(`Relay connection error, reconnecting (${attempts + 1}/${MAX_RETRIES})…`);
       };
 
       ws.onclose = () => {

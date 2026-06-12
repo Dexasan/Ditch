@@ -15,7 +15,7 @@ const EQ_BARS: [number, number, number, number][] = [
 
 /* ─── Explore: large blurred orbs wandering like an aurora ───────────── */
 
-// Pure light — no text. Four platform colors drifting slowly.
+// Pure light - no text. Four platform colors drifting slowly.
 const ORBS = [
   { color: "#9146FF", w: 200, h: 180, blur: 80, top: "2%",  left: "0%",  anim: "wander1", dur: "16s" },
   { color: "#FF3333", w: 170, h: 160, blur: 70, top: "5%",  left: "52%", anim: "wander2", dur: "20s" },
@@ -112,7 +112,7 @@ function ExploreCard() {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Wandering aurora orbs — always running */}
+      {/* Wandering aurora orbs - always running */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {ORBS.map((orb, i) => (
           <div
@@ -142,7 +142,7 @@ function ExploreCard() {
         />
       </div>
 
-      {/* Broadcast ripples — center, on hover */}
+      {/* Broadcast ripples - center, on hover */}
       {hovered && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           {[0, 0.8, 1.6].map((delay, i) => (
@@ -160,7 +160,7 @@ function ExploreCard() {
         </div>
       )}
 
-      {/* Content — sits above the orbs */}
+      {/* Content - sits above the orbs */}
       <div className="relative z-10 flex flex-col h-full">
         <div
           className="mb-6 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-400"

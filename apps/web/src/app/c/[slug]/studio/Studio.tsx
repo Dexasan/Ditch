@@ -306,7 +306,7 @@ function GoLiveModal({
           </button>
         </div>
 
-        {/* Section 1 — Destinations */}
+        {/* Section 1 - Destinations */}
         <div className="space-y-2">
           <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
             Destinations
@@ -410,7 +410,7 @@ function GoLiveModal({
           )}
         </div>
 
-        {/* Section 2 — Stream info */}
+        {/* Section 2 - Stream info */}
         <div className="space-y-2">
           <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
             Stream Info
@@ -576,7 +576,7 @@ function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessi
         setStreamStatus("connecting");
       }
     }
-    // "connecting" — button is pointer-events-none, never fires
+    // "connecting" - button is pointer-events-none, never fires
   }
 
   function beginGoLive() {
@@ -648,7 +648,7 @@ function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessi
                 </div>
               )}
               <span className="text-[10px] font-mono text-[var(--text-muted)] tabular-nums">
-                FPS <span className="text-[var(--text-primary)]">{fps ?? "—"}</span>
+                FPS <span className="text-[var(--text-primary)]">{fps ?? "--"}</span>
               </span>
             </>
           )}
@@ -812,7 +812,7 @@ function LayersPanel({
       removeLayer(sceneId, layerId);
       screenshareLayerRef.current = null;
     }
-  // addLayer/removeLayer/activeSceneId intentionally omitted — only fire on share state change
+  // addLayer/removeLayer/activeSceneId intentionally omitted - only fire on share state change
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScreenSharing]);
 
@@ -906,7 +906,7 @@ function LayersPanel({
         </div>
       </div>
 
-      {/* Layer list — reversed so index 0 (bottom of stack) appears at bottom of list */}
+      {/* Layer list - reversed so index 0 (bottom of stack) appears at bottom of list */}
       <div className="flex-1 overflow-y-auto">
         {[...activeScene.layers].reverse().map((layer) => (
           <div key={layer.id}>
@@ -2197,7 +2197,7 @@ function Inspector({
         {tab === "properties" && (
           <div className="flex-1 overflow-y-auto">
             {!selectedLayer ? (
-              /* No selection — scene properties */
+              /* No selection - scene properties */
               <div className="px-3 py-3 space-y-4">
                 <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Scene</p>
 
@@ -2266,7 +2266,7 @@ function Inspector({
                 </div>
               </div>
             ) : (
-              /* Layer selected — source header + transform */
+              /* Layer selected - source header + transform */
               <>
                 <div className="px-3 py-3">
                   <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
@@ -2293,7 +2293,7 @@ function Inspector({
                     }}
                   >
                     <span style={{ fontSize: 13 }}>⚠</span>
-                    Source unavailable — check device connection
+                    Source unavailable - check device connection
                   </div>
                 )}
                 <TransformSection
@@ -2350,7 +2350,7 @@ function VUMeter({ analyser, muted }: { analyser: AnalyserNode | null; muted: bo
     if (!canvas) return;
     const ctx2d = canvas.getContext("2d")!;
 
-    // Canvas fillStyle can't read CSS variables — resolve the VU tokens once per effect
+    // Canvas fillStyle can't read CSS variables - resolve the VU tokens once per effect
     const css = getComputedStyle(document.documentElement);
     const tok = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
     const VU = {
@@ -2378,7 +2378,7 @@ function VUMeter({ analyser, muted }: { analyser: AnalyserNode | null; muted: bo
       }
       analyser.getByteTimeDomainData(dataRef.current);
 
-      // RMS → level 0–1
+      // RMS → level 0-1
       let sum = 0;
       for (let i = 0; i < dataRef.current.length; i++) {
         const v = (dataRef.current[i] - 128) / 128;
@@ -2525,7 +2525,7 @@ function AudioMixer({
               />
               <span className="text-[9px] font-mono w-6 text-right shrink-0 tabular-nums"
                 style={{ color: ch.muted ? "var(--text-muted)" : "var(--text-primary)" }}>
-                {ch.muted ? "—" : `${Math.round(ch.volume * 100)}`}
+                {ch.muted ? "--" : `${Math.round(ch.volume * 100)}`}
               </span>
             </div>
             {isMic && audioInputs.length > 1 && (
@@ -2648,11 +2648,11 @@ function StreamPulse({
           </span>
         </div>
         <span className="text-[10px] font-mono text-[var(--text-muted)] tabular-nums">
-          <span className="text-[var(--text-primary)]">{fps ?? "—"}</span> fps
+          <span className="text-[var(--text-primary)]">{fps ?? "--"}</span> fps
         </span>
         <BitrateSparkline data={bitrateHistory} />
         <span className="text-[10px] font-mono text-[var(--text-muted)] tabular-nums">
-          {streamStatus === "live" && bitrateKbps > 0 ? `${bitrateKbps.toLocaleString()} kbps` : "— kbps"}
+          {streamStatus === "live" && bitrateKbps > 0 ? `${bitrateKbps.toLocaleString()} kbps` : "-- kbps"}
         </span>
       </div>
 
@@ -2738,7 +2738,7 @@ export default function Studio({
 
   // ── End session in DB on unmount or tab close ───────────────────────────────
   // Covers: SPA navigation away, tab close, and force-leaving without going live.
-  // The DELETE endpoint is idempotent — calling it on an already-ended session is safe.
+  // The DELETE endpoint is idempotent - calling it on an already-ended session is safe.
   useEffect(() => {
     const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
     function endSession() {
@@ -2754,7 +2754,7 @@ export default function Studio({
       endSession(); // fires on SPA navigation away from studio
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // stable — sessionId and token don't change during a studio session
+  }, []); // stable - sessionId and token don't change during a studio session
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
   const cameraLayer = activeScene?.layers.find((l) => l.type === "camera");
   const cameraVisible = cameraLayer?.visible ?? false;
@@ -2772,7 +2772,7 @@ export default function Studio({
   const streamStatusRef = useRef(streamStatus);
   streamStatusRef.current = streamStatus;
 
-  // FIX 1 — Populate destinations from DB on mount so the studio reflects what
+  // FIX 1 - Populate destinations from DB on mount so the studio reflects what
   // the dashboard already configured. Non-fatal: studio still works if this fails.
   const { updateSettings } = useStudioStore();
   useEffect(() => {
@@ -2793,7 +2793,7 @@ export default function Studio({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Session recovery — if the DB shows this session is live (e.g. the creator
+  // Session recovery - if the DB shows this session is live (e.g. the creator
   // closed the tab mid-stream and re-opened it), set streamStatus to "live" so
   // useRelayStream evaluates enabled=true and attempts to reconnect.
   const recoveryChecked = useRef(false);
@@ -2946,7 +2946,7 @@ export default function Studio({
     onFps: setFps,
   });
 
-  // Relay stream — only active when streamStatus !== 'offline'.
+  // Relay stream - only active when streamStatus !== 'offline'.
   const { streaming: relayStreaming, error: relayError } = useRelayStream({
     stream: compositeStream,
     sessionId,
