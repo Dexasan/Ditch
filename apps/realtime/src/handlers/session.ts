@@ -73,6 +73,36 @@ export function registerSessionHandlers(io: AppServer, socket: AppSocket) {
   });
 
   /**
+   * session:end
+   *
+   * Creator-only. Emitted by the creator when they end the broadcast. Verifies
+   * channel ownership, then tells everyone in the room the session ended so
+   * viewers stop watching instead of hanging on a frozen "live" stream.
+   */
+  socket.on("session:end", async ({ session_id }) => {
+    try {
+      const userId = socket.data.user_id;
+      if (!userId) return;
+
+      const { data: session } = await supabaseAdmin!
+        .from("live_sessions")
+        .select("id, channels!inner(owner_id)")
+        .eq("id", session_id)
+        .single();
+
+      if (!session) return;
+
+      const rawChannel = session.channels as { owner_id: string } | { owner_id: string }[];
+      const channel = Array.isArray(rawChannel) ? rawChannel[0] : rawChannel;
+      if (channel?.owner_id !== userId) return;
+
+      io.to(session_id).emit("session:ended", { session_id });
+    } catch (err) {
+      console.error("[realtime] session:end failed:", err);
+    }
+  });
+
+  /**
    * disconnect
    *
    * Socket.io automatically removes the socket from all rooms on disconnect.

@@ -612,6 +612,9 @@ function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessi
           onConfirm={async () => {
             setShowEndModal(false);
             setStreamStatus("offline");
+            // Tell everyone in the room the broadcast is over so viewers stop
+            // watching a frozen stream instead of waiting indefinitely.
+            try { getSocket(token).emit("session:end", { session_id: sessionId }); } catch {}
             try {
               await api.delete(`/sessions/${sessionId}`, { token });
             } catch {
@@ -2438,6 +2441,7 @@ function AudioMixer({
   getAnalyser,
   audioInputs,
   switchMicDevice,
+  onRemoveParticipant,
 }: {
   localAudioTrack: ILocalAudioTrack | null;
   liveParticipants: Participant[];
@@ -2445,6 +2449,7 @@ function AudioMixer({
   getAnalyser: (sourceId: string) => AnalyserNode | null;
   audioInputs: MediaDeviceInfo[];
   switchMicDevice: (deviceId: string) => Promise<void>;
+  onRemoveParticipant: (participantId: string) => void;
 }) {
   const [channels, setChannels] = useState<Record<string, MixerChannel>>({
     mic: { volume: 1.0, muted: false },
@@ -2461,12 +2466,13 @@ function AudioMixer({
   }, [localAudioTrack]);
 
   const sources = useMemo(() => {
-    const list: { id: string; label: string }[] = [];
+    const list: { id: string; label: string; participantId?: string }[] = [];
     if (localAudioTrack) list.push({ id: "mic", label: "Mic" });
     for (const p of liveParticipants) {
       list.push({
         id: `participant-${p.slot_index ?? 0}`,
         label: (p.display_name ?? "Guest").split(" ")[0],
+        participantId: p.id,
       });
     }
     return list;
@@ -2503,17 +2509,28 @@ function AudioMixer({
                 style={{ color: ch.muted ? "var(--text-muted)" : "var(--text-primary)" }}>
                 {src.label}
               </span>
-              <button
-                onClick={() => update(src.id, { muted: !ch.muted })}
-                title={ch.muted ? "Unmute" : "Mute"}
-                className={`shrink-0 w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold transition-colors ${
-                  ch.muted
-                    ? "bg-red-500/20 text-red-400"
-                    : "bg-[var(--bg-mid)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                M
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                {src.participantId && (
+                  <button
+                    onClick={() => onRemoveParticipant(src.participantId!)}
+                    title="Remove from stream"
+                    className="w-4 h-4 flex items-center justify-center rounded text-[9px] font-bold bg-[var(--bg-mid)] text-[var(--text-muted)] hover:bg-red-500/20 hover:text-red-400 transition-colors"
+                  >
+                    ✕
+                  </button>
+                )}
+                <button
+                  onClick={() => update(src.id, { muted: !ch.muted })}
+                  title={ch.muted ? "Unmute" : "Mute"}
+                  className={`w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold transition-colors ${
+                    ch.muted
+                      ? "bg-red-500/20 text-red-400"
+                      : "bg-[var(--bg-mid)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  M
+                </button>
+              </div>
             </div>
             <VUMeter analyser={getAnalyser(src.id)} muted={ch.muted} />
             <div className="flex items-center gap-1">
@@ -2560,6 +2577,7 @@ function StreamPulse({
   audioInputs,
   switchMicDevice,
   onClipClick,
+  onRemoveParticipant,
 }: {
   localAudioTrack: ILocalAudioTrack | null;
   liveParticipants: Participant[];
@@ -2568,6 +2586,7 @@ function StreamPulse({
   audioInputs: MediaDeviceInfo[];
   switchMicDevice: (deviceId: string) => Promise<void>;
   onClipClick: () => void;
+  onRemoveParticipant: (participantId: string) => void;
 }) {
   const { scenes, activeSceneId, switchScene, streamStatus, fps, bitrateKbps, updateLayer } = useStudioStore();
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
@@ -2631,6 +2650,7 @@ function StreamPulse({
           getAnalyser={getAnalyser}
           audioInputs={audioInputs}
           switchMicDevice={switchMicDevice}
+          onRemoveParticipant={onRemoveParticipant}
         />
       </div>
 
@@ -3115,6 +3135,7 @@ export default function Studio({
           audioInputs={audioInputs}
           switchMicDevice={switchMicDevice}
           onClipClick={handleClipClick}
+          onRemoveParticipant={(id) => changeParticipantStatus(id, "removed")}
         />
       </div>
       <style>{`

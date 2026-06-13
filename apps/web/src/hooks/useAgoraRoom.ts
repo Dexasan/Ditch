@@ -43,6 +43,9 @@ export interface AgoraRoomState {
    *  to be triggered within a user gesture; this keeps the entire promotion flow
    *  inside that gesture context. */
   goLiveAsHost: (hostUid: number) => Promise<void>;
+  /** Inverse of goLiveAsHost — drops published tracks and rejoins as audience.
+   *  Called when a live participant is removed from the stream by the creator. */
+  demoteToAudience: () => Promise<void>;
 }
 
 export function useAgoraRoom(options: {
@@ -58,7 +61,7 @@ export function useAgoraRoom(options: {
 }): AgoraRoomState {
   const { channelName, uid, role, publish, enabled, screenShareUid, authToken } = options;
 
-  const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "toggleScreenShare" | "switchMicDevice" | "goLiveAsHost">>({
+  const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "toggleScreenShare" | "switchMicDevice" | "goLiveAsHost" | "demoteToAudience">>({
     localVideoTrack: null,
     localAudioTrack: null,
     remoteUsers: [],
@@ -263,6 +266,14 @@ export function useAgoraRoom(options: {
     try {
       const AgoraRTC = await getAgoraRTC();
 
+      // iOS Safari only grants getUserMedia inside the user gesture that started
+      // this call, and that activation is consumed by the leave()/token-fetch/
+      // join() awaits below. Create the camera+mic tracks FIRST, while the gesture
+      // is still valid — otherwise the prompt never resolves and the button hangs
+      // on "Starting…". If this throws (permission denied) we bail before leaving
+      // the audience client, so the user keeps watching.
+      const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+
       // Leave the current audience client before re-joining as host.
       if (clientRef.current) {
         await clientRef.current.leave().catch(() => {});
@@ -299,7 +310,6 @@ export function useAgoraRoom(options: {
       joinedRef.current = true;
       setState((prev) => ({ ...prev, joined: true, remoteUsers: [...client.remoteUsers] }));
 
-      const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
       camTrackRef.current = videoTrack;
       localAudioTrackRef.current = audioTrack;
       await client.publish([audioTrack, videoTrack]);
@@ -309,5 +319,57 @@ export function useAgoraRoom(options: {
     }
   }, []);
 
-  return { ...state, localScreenTrack, toggleScreenShare, switchMicDevice, goLiveAsHost };
+  // Inverse of goLiveAsHost: drop the published camera/mic, leave the host client,
+  // and re-join as a plain audience member so a removed guest keeps watching.
+  const demoteToAudience = useCallback(async () => {
+    if (!AGORA_APP_ID) return;
+    try {
+      const AgoraRTC = await getAgoraRTC();
+
+      camTrackRef.current?.close();
+      camTrackRef.current = null;
+      localAudioTrackRef.current?.close();
+      localAudioTrackRef.current = null;
+      effectOwnsTracksRef.current = false;
+      setState((prev) => ({ ...prev, localVideoTrack: null, localAudioTrack: null }));
+
+      if (clientRef.current) {
+        await clientRef.current.leave().catch(() => {});
+        clientRef.current = null;
+      }
+      joinedRef.current = false;
+
+      const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+
+      const syncRemote = () =>
+        setState((prev) => ({ ...prev, remoteUsers: [...client.remoteUsers] }));
+
+      client.on("user-published", async (user, mediaType) => {
+        await client.subscribe(user, mediaType);
+        if (mediaType === "audio" && user.audioTrack) user.audioTrack.play();
+        syncRemote();
+      });
+      client.on("user-unpublished", (user, mediaType) => {
+        if (mediaType === "audio") user.audioTrack?.stop();
+        syncRemote();
+      });
+      client.on("user-left", syncRemote);
+
+      await client.setClientRole("audience");
+      const agoraToken = await fetchAgoraToken(channelNameRef.current, 0, authTokenRef.current);
+      await client.join(AGORA_APP_ID, channelNameRef.current, agoraToken, 0);
+      client.on("token-privilege-will-expire", async () => {
+        const newToken = await fetchAgoraToken(channelNameRef.current, 0, authTokenRef.current);
+        if (newToken) await client.renewToken(newToken);
+      });
+
+      clientRef.current = client;
+      joinedRef.current = true;
+      setState((prev) => ({ ...prev, joined: true, remoteUsers: [...client.remoteUsers], error: null }));
+    } catch (err) {
+      setState((prev) => ({ ...prev, error: String(err) }));
+    }
+  }, []);
+
+  return { ...state, localScreenTrack, toggleScreenShare, switchMicDevice, goLiveAsHost, demoteToAudience };
 }

@@ -336,6 +336,39 @@ export function useCompositor({
       }
     }
 
+    // Draws the creator camera into a given cell, honoring opacity + chroma key.
+    // Used both for the free-positioned solo layout and the auto-grid slot 0.
+    function drawCreator(cell: Rect) {
+      if (!localVideoTrack) return;
+      const camL = cameraLayerRef.current;
+      try {
+        const native = localVideoTrack.getMediaStreamTrack();
+        const source = useBreakout ? frameCacheRef.current.get(native.id) : getVideoElem(native.id, native);
+        if (!source) return;
+        const ckCfg = (camL?.effects ?? [])
+          .find((e) => (e as Record<string, unknown>)["type"] === "chromaKey" &&
+                       (e as Record<string, unknown>)["enabled"]) as ChromaKeyConfig | undefined;
+        ctx!.save();
+        // layer.opacity is stored 0-100; globalAlpha expects 0-1
+        ctx!.globalAlpha = (camL?.opacity ?? 100) / 100;
+        try {
+          if (ckCfg && chromaKeyRef.current) {
+            const nw = (source.displayWidth ?? source.videoWidth) || W;
+            const nh = (source.displayHeight ?? source.videoHeight) || H;
+            const keyed = chromaKeyRef.current.process(source, nw, nh, ckCfg);
+            const scale = Math.max(cell.w / nw, cell.h / nh);
+            const sw = cell.w / scale, sh = cell.h / scale;
+            const sx = (nw - sw) / 2, sy = (nh - sh) / 2;
+            ctx!.drawImage(keyed, sx, sy, sw, sh, cell.x, cell.y, cell.w, cell.h);
+          } else {
+            drawCover(source, cell.x, cell.y, cell.w, cell.h);
+          }
+        } finally {
+          ctx!.restore();
+        }
+      } catch {}
+    }
+
     function draw() {
       ctx!.fillStyle = "#000";
       ctx!.fillRect(0, 0, W, H);
@@ -351,41 +384,21 @@ export function useCompositor({
 
       const camL = cameraLayerRef.current;
       const camVisible = camL?.visible ?? false;
-      const camTransform = camL?.transform ?? null;
+      const participantCount = liveParticipantsRef.current.length;
 
-      // Participants use auto-grid (camera position comes from its layer transform)
-      drawParticipants(getLayout(false, liveParticipantsRef.current.length));
-
-      // Camera drawn at its layer transform position
-      if (camVisible && camTransform && localVideoTrack) {
-        try {
-          const native = localVideoTrack.getMediaStreamTrack();
-          const source = useBreakout ? frameCacheRef.current.get(native.id) : getVideoElem(native.id, native);
-          if (source) {
-            const ckCfg = (cameraLayerRef.current?.effects ?? [])
-              .find((e) => (e as Record<string, unknown>)["type"] === "chromaKey" &&
-                           (e as Record<string, unknown>)["enabled"]) as ChromaKeyConfig | undefined;
-            ctx!.save();
-            // layer.opacity is stored 0-100; globalAlpha expects 0-1
-            ctx!.globalAlpha = (camL?.opacity ?? 100) / 100;
-            try {
-              if (ckCfg && chromaKeyRef.current) {
-                const nw = (source.displayWidth ?? source.videoWidth) || W;
-                const nh = (source.displayHeight ?? source.videoHeight) || H;
-                const keyed  = chromaKeyRef.current.process(source, nw, nh, ckCfg);
-                const { x: dx, y: dy, width: dw, height: dh } = camTransform;
-                const scale  = Math.max(dw / nw, dh / nh);
-                const sw = dw / scale, sh = dh / scale;
-                const sx = (nw - sw) / 2, sy = (nh - sh) / 2;
-                ctx!.drawImage(keyed, sx, sy, sw, sh, dx, dy, dw, dh);
-              } else {
-                drawCover(source, camTransform.x, camTransform.y, camTransform.width, camTransform.height);
-              }
-            } finally {
-              ctx!.restore();
-            }
-          }
-        } catch {}
+      if (participantCount === 0) {
+        // Solo: the creator camera is positioned freely via its layer transform.
+        const t = camL?.transform;
+        if (camVisible && t && localVideoTrack) {
+          drawCreator({ x: t.x, y: t.y, w: t.width, h: t.height });
+        }
+      } else {
+        // Guests on stage: auto-tile creator + participants into one grid so a
+        // single guest can no longer swallow the whole canvas. Creator = slot 0.
+        const layout = getLayout(camVisible && !!localVideoTrack, participantCount);
+        drawParticipants(layout);
+        const creatorCell = layout[0];
+        if (camVisible && creatorCell) drawCreator(creatorCell);
       }
 
       // Image layers (overlays: logos, lower-thirds, etc.) - drawn on top of video

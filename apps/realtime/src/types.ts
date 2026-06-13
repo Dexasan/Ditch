@@ -10,6 +10,8 @@ export interface ClientToServerEvents {
 
   "session:leave": (data: { session_id: string }) => void;
 
+  "session:end": (data: { session_id: string }) => void;
+
   "participant:status_change": (data: {
     session_id: string;
     participant_id: string;
@@ -33,6 +35,7 @@ export interface ClientToServerEvents {
 
 export interface ServerToClientEvents {
   "session:state": (data: { session_id: string; participants: Participant[] }) => void;
+  "session:ended": (data: { session_id: string }) => void;
   "participant:status_change": (data: { participant: Participant }) => void;
   "participant:queue_update": (data: { session_id: string; participants: Participant[] }) => void;
   "chat:message": (data: { message: ChatMessage }) => void;

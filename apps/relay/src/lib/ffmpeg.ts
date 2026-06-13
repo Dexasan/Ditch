@@ -50,12 +50,27 @@ export function spawnFfmpeg(rtmpTargets: string[], sessionId: string): FfmpegSes
     console.log(tag, chunk.toString().trimEnd());
   });
 
+  let stopped = false;
+
   return {
     write(chunk: Buffer) {
       if (proc.stdin && !proc.stdin.destroyed) proc.stdin.write(chunk);
     },
     stop() {
+      if (stopped) return;
+      stopped = true;
+      // Closing stdin signals EOF: ffmpeg flushes, ends the RTMP stream cleanly,
+      // and the destination (YouTube/Twitch) stops "waiting for encoder".
       if (proc.stdin && !proc.stdin.destroyed) proc.stdin.end();
+      // ffmpeg can hang on a live pipe instead of exiting on EOF — force-kill so
+      // the RTMP socket is released and the destination's stream actually ends.
+      const killTimer = setTimeout(() => {
+        if (proc.exitCode === null && proc.signalCode === null) {
+          console.warn(tag, "did not exit on stdin EOF — sending SIGKILL");
+          proc.kill("SIGKILL");
+        }
+      }, 3000);
+      proc.once("exit", () => clearTimeout(killTimer));
     },
     onExit(cb) {
       proc.on("exit", (code, signal) => {

@@ -544,6 +544,9 @@ export default function ChannelView({
       setParticipants((prev) => prev.map((p) => (p.id === participant.id ? participant : p)));
       setMyParticipant((prev) => (prev?.id === participant.id ? participant : prev));
     });
+    socket.on("session:ended", () => {
+      setSessionError("Session has ended");
+    });
 
     return () => {
       socket.emit("session:leave", { session_id: sessionId });
@@ -552,6 +555,7 @@ export default function ChannelView({
       socket.off("chat:message");
       socket.off("participant:queue_update");
       socket.off("participant:status_change");
+      socket.off("session:ended");
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, tokenState]);
@@ -563,14 +567,30 @@ export default function ChannelView({
   const isLiveParticipant = myParticipant?.status === "live";
   const mySlotUid = isLiveParticipant ? slotToUid(myParticipant!.slot_index ?? 0) : 0;
 
-  const { localVideoTrack, localAudioTrack, remoteUsers, error: agoraError, goLiveAsHost } = useAgoraRoom({
+  const { localVideoTrack, localAudioTrack, remoteUsers, error: agoraError, goLiveAsHost, demoteToAudience } = useAgoraRoom({
     channelName: sessionId,
     uid: 0,
     role: "audience",
     publish: false,
-    enabled: true,
+    // Tear down the Agora connection once the session ends so viewers don't sit
+    // on a frozen "live" stream.
+    enabled: !sessionError,
     authToken: tokenState ?? undefined,
   });
+
+  // When the creator removes a live participant, drop their published camera and
+  // return them to audience so they keep watching instead of hanging on screen.
+  const wasLiveHostRef = useRef(false);
+  useEffect(() => {
+    if (myParticipant?.status === "live") wasLiveHostRef.current = true;
+    if (myParticipant?.status === "removed") {
+      if (wasLiveHostRef.current) {
+        wasLiveHostRef.current = false;
+        demoteToAudience();
+      }
+      setMyParticipant(null);
+    }
+  }, [myParticipant?.status, demoteToAudience]);
 
   function toggleMic() {
     if (!localAudioTrack) return;
