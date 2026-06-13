@@ -10,7 +10,7 @@ const PLATFORM_DOTS = ["#9146FF", "#FF0000", "#2C2C2A", "#00C853"];
 
 function Fanout() {
   return (
-    <svg viewBox="0 0 132 64" className="h-16 w-full" aria-hidden="true">
+    <svg viewBox="0 0 132 64" className="h-16 w-[150px]" aria-hidden="true">
       <g className="mc-flow" stroke="#FF2D92" strokeWidth="1.4" fill="none" strokeDasharray="3 6" opacity="0.5">
         <line x1="20" y1="32" x2="112" y2="12" />
         <line x1="20" y1="32" x2="112" y2="28" />

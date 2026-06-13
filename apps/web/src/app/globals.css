@@ -180,19 +180,6 @@ body {
   88%  { opacity: 0.6; }
   100% { transform: translateY(100vh); opacity: 0; }
 }
-@keyframes mc-roam-a {
-  0%, 100% { transform: translate(0, 0) rotate(-5deg); }
-  50%      { transform: translate(6px, -16px) rotate(4deg); }
-}
-@keyframes mc-roam-b {
-  0%, 100% { transform: translate(0, 0) rotate(4deg); }
-  50%      { transform: translate(-8px, 14px) rotate(-4deg); }
-}
-@keyframes mc-roam-c {
-  0%, 100% { transform: translate(0, 0) rotate(-3deg); }
-  50%      { transform: translate(10px, 12px) rotate(5deg); }
-}
-
 @media (prefers-reduced-motion: no-preference) {
   .mc-bg-dots     { animation: mc-bg-drift 26s linear infinite alternate; }
   .mc-bg-sweep    { animation: mc-bg-sweep-move 9s linear infinite; }
@@ -238,9 +225,8 @@ body {
 }
 @keyframes mc-bus-flow { to { background-position-x: 15px; } }
 
-/* Phase 5: news-crawl ticker and the faq open sweep. */
+/* Phase 5: news-crawl ticker. */
 @keyframes mc-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-@keyframes mc-faq-sweep { from { transform: translateY(-110%); opacity: 0.6; } to { transform: translateY(420%); opacity: 0; } }
 
 @media (prefers-reduced-motion: no-preference) {
   .mc-screen-scan { animation: mc-screen-scan-move 1s linear infinite; }
@@ -252,7 +238,6 @@ body {
   .mc-slot-tile   { animation: mc-slot-in 4s ease-in-out infinite; }
   .mc-bus         { animation: mc-bus-flow 1.2s linear infinite; }
   .mc-marquee     { animation: mc-marquee 32s linear infinite; }
-  .mc-faq-sweep   { animation: mc-faq-sweep 0.7s ease-out 1; }
   /* Channel LEDs: tune in once, then pulse in a running sequence so the
      signal looks like it sweeps across the platforms. Longhand because a
      var() delay inside the animation shorthand drops the declaration. */

@@ -7,7 +7,6 @@ import FeatureDiagram, { type DiagramKind } from "@/components/marketing/Feature
 import NewsTicker from "@/components/marketing/NewsTicker";
 import Reveal from "@/components/marketing/Reveal";
 import LiveBackground from "@/components/marketing/LiveBackground";
-import RoamingCreatures from "@/components/marketing/RoamingCreatures";
 import SiteHeader from "@/components/marketing/SiteHeader";
 import SiteFooter from "@/components/marketing/SiteFooter";
 
@@ -70,7 +69,6 @@ function HomePageContent() {
   return (
     <div className="marketing relative min-h-screen">
       <LiveBackground />
-      <RoamingCreatures />
       <SiteHeader />
 
       <main className="relative z-10">
@@ -94,7 +92,7 @@ function HomePageContent() {
               {FEATURES.map((feature, index) => (
                 <Reveal key={feature.label} delay={index * 90}>
                   <div className="h-full rounded-xl border border-line bg-panel p-6 sm:p-7">
-                    <div className="mb-5">
+                    <div className="mb-5 flex justify-center">
                       <FeatureDiagram kind={feature.kind} />
                     </div>
                     <p className="mc-mono mb-4 text-[11px] text-faint">

@@ -9,7 +9,6 @@
 // Twitch simulcasting and TikTok LIVE access items. Platform policies move;
 // verify against the current published terms rather than this copy.
 import { useState } from "react";
-import { useAmbientMotion } from "@/hooks/useAmbientMotion";
 
 const FAQ_ITEMS: { q: string; a: string }[] = [
   {
@@ -52,7 +51,6 @@ const faqJsonLd = {
 
 export default function Faq() {
   const [open, setOpen] = useState<number | null>(0);
-  const ambient = useAmbientMotion();
 
   return (
     <section id="faq" className="mx-auto w-full max-w-3xl px-6 py-20 sm:py-24">
@@ -90,14 +88,7 @@ export default function Faq() {
               <div
                 className={`grid transition-[grid-template-rows] duration-300 ease motion-reduce:transition-none ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
               >
-                <div className="relative overflow-hidden">
-                  {isOpen && ambient && (
-                    <span
-                      key={`sweep-${index}`}
-                      aria-hidden="true"
-                      className="mc-faq-sweep pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-transparent via-[rgba(255,45,146,0.12)] to-transparent"
-                    />
-                  )}
+                <div className="overflow-hidden">
                   <p className="pb-5 pl-5 pr-6 text-[15px] leading-relaxed text-label">
                     {item.a}
                   </p>
