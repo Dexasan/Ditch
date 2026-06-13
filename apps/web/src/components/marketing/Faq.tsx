@@ -1,8 +1,15 @@
+"use client";
+
+// Accordion FAQ. Each row is a channel that "powers on" when opened: its
+// tally lights pink and a quick scanline sweeps the answer. Built on real
+// buttons so it is keyboard accessible; the JSON-LD still ships every
+// answer for search engines regardless of open state.
 // Answers stay deliberately careful where they depend on platform policy.
 // TODO(founder): review every answer below before launch, especially the
 // Twitch simulcasting and TikTok LIVE access items. Platform policies move;
 // verify against the current published terms rather than this copy.
-import Reveal from "./Reveal";
+import { useState } from "react";
+import { useAmbientMotion } from "@/hooks/useAmbientMotion";
 
 const FAQ_ITEMS: { q: string; a: string }[] = [
   {
@@ -44,8 +51,11 @@ const faqJsonLd = {
 };
 
 export default function Faq() {
+  const [open, setOpen] = useState<number | null>(0);
+  const ambient = useAmbientMotion();
+
   return (
-    <section id="faq" className="mx-auto w-full max-w-5xl px-6 py-20 sm:py-24">
+    <section id="faq" className="mx-auto w-full max-w-3xl px-6 py-20 sm:py-24">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
@@ -54,17 +64,48 @@ export default function Faq() {
       <h2 className="mb-10 text-2xl font-medium text-ink sm:text-3xl">
         Straight answers.
       </h2>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {FAQ_ITEMS.map((item, index) => (
-          <Reveal key={item.q} delay={(index % 2) * 90}>
-            <div className="h-full rounded-xl border border-line bg-panel p-5 sm:p-6">
-              <h3 className="mc-mono mb-3 text-[12px] text-label">{item.q}</h3>
-              <p className="text-[15px] leading-relaxed text-label">
-                {item.a}
-              </p>
+      <div className="flex flex-col">
+        {FAQ_ITEMS.map((item, index) => {
+          const isOpen = open === index;
+          return (
+            <div key={item.q} className="border-t border-line last:border-b">
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : index)}
+                aria-expanded={isOpen}
+                className="flex w-full items-center gap-3 py-5 text-left"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`h-2 w-2 shrink-0 rounded-full transition-colors ${isOpen ? "bg-tally" : "bg-line"}`}
+                />
+                <span className="mc-mono flex-1 text-[12px] text-ink">{item.q}</span>
+                <span
+                  aria-hidden="true"
+                  className={`text-label transition-transform duration-300 motion-reduce:transition-none ${isOpen ? "rotate-45" : ""}`}
+                >
+                  +
+                </span>
+              </button>
+              <div
+                className={`grid transition-[grid-template-rows] duration-300 ease motion-reduce:transition-none ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+              >
+                <div className="relative overflow-hidden">
+                  {isOpen && ambient && (
+                    <span
+                      key={`sweep-${index}`}
+                      aria-hidden="true"
+                      className="mc-faq-sweep pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-transparent via-[rgba(255,45,146,0.12)] to-transparent"
+                    />
+                  )}
+                  <p className="pb-5 pl-5 pr-6 text-[15px] leading-relaxed text-label">
+                    {item.a}
+                  </p>
+                </div>
+              </div>
             </div>
-          </Reveal>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

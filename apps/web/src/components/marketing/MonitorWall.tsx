@@ -2,29 +2,43 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import CueTicker from "./CueTicker";
 import HeroVideo from "./HeroVideo";
+import MasterScreenFx from "./MasterScreenFx";
 import WatchingCounter from "./WatchingCounter";
 import { SMPTE_GRADIENT } from "./palette";
 
 // Tune-in choreography (CSS-driven, see globals.css): test card fades off
 // the master screen, then the channel tallies light in order, lamp last.
+// Each channel also gets a seq offset so that, after tune-in, the tallies
+// pulse in a running sequence and the signal looks like it sweeps across
+// the platforms.
 const CHANNELS = [
-  { id: "ch 01", platform: "twitch", delay: "2s" },
-  { id: "ch 02", platform: "youtube", delay: "2.15s" },
-  { id: "ch 03", platform: "tiktok", delay: "2.3s" },
-  { id: "ch 04", platform: "kick", delay: "2.45s" },
+  { id: "ch 01", platform: "twitch", delay: "2s", seq: "3s" },
+  { id: "ch 02", platform: "youtube", delay: "2.15s", seq: "3.6s" },
+  { id: "ch 03", platform: "tiktok", delay: "2.3s", seq: "4.2s" },
+  { id: "ch 04", platform: "kick", delay: "2.45s", seq: "4.8s" },
 ];
 const LAMP_DELAY = "2.8s";
 
-function Tally({ delay, lamp = false }: { delay: string; lamp?: boolean }) {
+function Tally({
+  delay,
+  seq,
+  lamp = false,
+}: {
+  delay: string;
+  seq?: string;
+  lamp?: boolean;
+}) {
+  const mode = lamp ? "mc-lamp" : seq ? "mc-led" : "mc-tally";
+  const style = {
+    "--mc-delay": delay,
+    ...(seq ? { "--mc-seq": seq } : {}),
+  } as CSSProperties;
   return (
     <span
       className="relative inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-line"
       aria-hidden="true"
     >
-      <span
-        className={`mc-tally absolute inset-0 rounded-full bg-tally${lamp ? " mc-lamp" : ""}`}
-        style={{ "--mc-delay": delay } as CSSProperties}
-      />
+      <span className={`absolute inset-0 rounded-full bg-tally ${mode}`} style={style} />
     </span>
   );
 }
@@ -51,6 +65,7 @@ export default function MonitorWall() {
         <div className="overflow-hidden rounded-lg">
           <div className="relative bg-screen">
             <HeroVideo />
+            <MasterScreenFx />
             <div className="relative z-10 flex aspect-[4/3] flex-col items-center justify-center px-6 text-center sm:aspect-[21/9]">
               <h1>
                 <span className="mc-headline mc-mono block text-[clamp(1.6rem,5vw,3.25rem)] font-medium tracking-[0.3em] text-paper">
@@ -89,7 +104,7 @@ export default function MonitorWall() {
             className="rounded-xl border border-line bg-panel p-2 transition-all duration-300 hover:-translate-y-0.5 hover:border-faint sm:p-2.5"
           >
             <div className="flex aspect-[2/1] items-center justify-center rounded-lg bg-screen">
-              <Tally delay={channel.delay} />
+              <Tally delay={channel.delay} seq={channel.seq} />
             </div>
             <p className="mc-mono pb-1 pt-2.5 text-center text-[11px] text-label">
               {channel.id} · {channel.platform}

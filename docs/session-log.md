@@ -1090,3 +1090,33 @@ Audit → plan → implement. The old landing page was the studio's dark pink-on
 - Dexasan asked to preview a dark-background variant (current creamy paper reads a bit "ebook reader"). Note: a dark marketing site converges with the studio identity that was deliberately separated, so if pursued it should stay a warm near-black (never pure #000), not the studio pink-on-black.
 
 **Next logical step (Day 20):** Decide creamy-paper vs warm-dark for the marketing site. Then the still-pending relay JWT optimization and participant-promotion runtime test.
+
+---
+
+### Day 20 — 2026-06-13
+
+**Decided to keep the creamy paper, then made the whole marketing site feel alive.** A friend flagged the site as looking "AIsh" (font, spacing, uniform boxes), and a reference (strawberrybrowser.com) showed the fix: motion, distinct elements, and a non-plain background. Diagnosis: the concept was fine, the execution leaned on safe defaults and bare paper. Cure chosen was motion + on-concept character, not a palette change. Dexasan picked playful intensity and "build it all, then push."
+
+Everything below is on the marketing surface only. The studio app is untouched. No em/en dashes (enforced by `check-dashes.mjs`); all loops are transform/opacity, gated behind `prefers-reduced-motion`, and paused on a hidden tab.
+
+**Shared foundation (Phase 1):**
+- Hooks: `useReducedMotion`, `usePageVisible`, `useAmbientMotion` (one source of truth: animate only when motion is welcome and the tab is in front), plus `useInViewport` for one-shot reveals.
+- `LiveBackground`: fixed dot-grid that drifts, static scanlines, a slow pink signal sweep. Texture persists under reduced motion (texture is not motion); the drift/sweep do not.
+- `RoamingCreatures`: little participant tiles bobbing in the side gutters, shown only on xl screens, never over text.
+- Header heartbeat: a breathing on-air lamp and a running broadcast `Timecode` (12fps, pauses with the tab).
+
+**Section motion (Phases 2 to 6):**
+- Hero (`MasterScreenFx` in `MonitorWall`): the master screen powers on (moving scanlines + equalizer), a viewer tile keeps getting cued onto the screen with a ring pulse, and the four channel tallies pulse in a running sequence (`mc-led`) so the signal sweeps across the platforms.
+- Features (`FeatureDiagram`): each card leads with a tiny live diagram instead of a static icon: fanout (one source splitting to four platform dots), cuein (a viewer tile sliding into a slot), loop (a signal looping).
+- How it works: a flowing pink signal bus (`mc-bus`) runs under the heading, and each step number is a tally that lights in sequence.
+- Social proof (`NewsTicker`): a broadcast news-crawl of true brand statements (no invented stats); static centered line under reduced motion.
+- FAQ: rebuilt as a keyboard-accessible accordion; each row's tally lights pink on open with a quick scanline sweep. JSON-LD still ships every answer.
+- CTA: the button became a go-live control (breathing dot + expanding ring pulse). Footer gained an SMPTE sign-off strip and an "off air" lamp.
+
+**One fix found in QA:** off-canvas animation bleed caused a small horizontal scrollbar on mobile. Added `overflow-x: clip` to the `.marketing` wrapper (clip, not hidden, so the sticky header keeps working and the fixed background stays full-viewport).
+
+**Verification:** dash check clean, `tsc --noEmit` clean, production build green. Confirmed live in preview at 1440 and 390: all ten section animations present, no console errors, FAQ accordion toggles (single-open), mobile hides the creatures and has no horizontal overflow, header stays sticky.
+
+**Open / deferred:** real platform logo SVGs (Tabler brand icons are stand-ins); hero footage still not shot; founder review of legal + FAQ claims still pending.
+
+**Next logical step (Day 21):** Tune motion intensity if it reads busy (could drop the older turbulence texture now that the dot-grid is in), then the long-pending relay JWT optimization and participant-promotion runtime test.

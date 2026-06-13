@@ -1,3 +1,4 @@
+import LiveBackground from "./LiveBackground";
 import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 
@@ -16,9 +17,10 @@ export function LegalShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="marketing min-h-screen">
+    <div className="marketing relative min-h-screen">
+      <LiveBackground />
       <SiteHeader />
-      <main className="mx-auto w-full max-w-3xl px-6 py-14 sm:py-16">
+      <main className="relative z-10 mx-auto w-full max-w-3xl px-6 py-14 sm:py-16">
         {SHOW_DRAFT_NOTICE && (
           <p className="mc-mono mb-8 rounded-lg border border-line bg-panel p-4 text-[12px] leading-relaxed text-label">
             draft for founder review. this document is a sensible starting

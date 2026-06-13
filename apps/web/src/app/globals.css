@@ -62,6 +62,10 @@ body {
    the rest of the app never get this class. The tiled SVG turbulence
    keeps the paper surface from reading as flat vector.               */
 .marketing {
+  /* clip (not hidden) so off-canvas animation bleed never creates a
+     horizontal scrollbar, while keeping the sticky header working and
+     leaving the fixed background layers full-viewport. */
+  overflow-x: clip;
   background-color: var(--color-paper);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
   color: var(--color-ink);
@@ -146,4 +150,118 @@ body {
 .mc-reveal-visible {
   opacity: 1;
   transform: none;
+}
+
+/* Phase 1 ambient motion: the living background, roaming participant
+   tiles, and the header heartbeat, shared across the marketing pages.
+   The dot/scanline texture stays even under reduced motion (it is not
+   motion, just keeps the page from looking plain); the drift, sweep,
+   roam, and breathe loops only run when motion is welcome. Components
+   pause these on a hidden tab by flipping animation-play-state or by not
+   rendering. Transform/opacity only. */
+.mc-bg-dots {
+  background-image: radial-gradient(circle, rgba(44, 44, 42, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.mc-bg-scanlines {
+  background-image: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(44, 44, 42, 0.022) 3px 4px);
+}
+.mc-bg-sweep {
+  background-image: linear-gradient(to bottom, transparent, rgba(255, 45, 146, 0.05), transparent);
+}
+
+@keyframes mc-bg-drift {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(24px, 16px); }
+}
+@keyframes mc-bg-sweep-move {
+  0%   { transform: translateY(-120px); opacity: 0; }
+  12%  { opacity: 0.6; }
+  88%  { opacity: 0.6; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+@keyframes mc-roam-a {
+  0%, 100% { transform: translate(0, 0) rotate(-5deg); }
+  50%      { transform: translate(6px, -16px) rotate(4deg); }
+}
+@keyframes mc-roam-b {
+  0%, 100% { transform: translate(0, 0) rotate(4deg); }
+  50%      { transform: translate(-8px, 14px) rotate(-4deg); }
+}
+@keyframes mc-roam-c {
+  0%, 100% { transform: translate(0, 0) rotate(-3deg); }
+  50%      { transform: translate(10px, 12px) rotate(5deg); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mc-bg-dots     { animation: mc-bg-drift 26s linear infinite alternate; }
+  .mc-bg-sweep    { animation: mc-bg-sweep-move 9s linear infinite; }
+  .mc-breathe-dot { animation: mc-breathe 4s ease-in-out infinite; }
+}
+
+/* ===================================================================
+   Section motion (phases 2 to 6). All loops are transform/opacity and
+   gated behind prefers-reduced-motion. The few elements that would look
+   odd frozen (the cue-in tile, the faq sweep, the ticker) are only
+   rendered by their components when motion is welcome.
+   =================================================================== */
+
+/* Phase 2: the master screen feels powered on, the channels receive the
+   signal in sequence, and a viewer keeps getting cued onto the screen. */
+.mc-screen-scan {
+  background-image: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(0, 0, 0, 0.28) 3px 4px);
+}
+@keyframes mc-screen-scan-move { from { background-position-y: 0; } to { background-position-y: 8px; } }
+@keyframes mc-eq { 0%, 100% { transform: scaleY(0.25); } 50% { transform: scaleY(1); } }
+@keyframes mc-led-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@keyframes mc-cuein {
+  0%   { transform: translate(80px, 50px) scale(0.5); opacity: 0; }
+  30%  { opacity: 1; }
+  55%, 100% { transform: translate(0, 0) scale(1); opacity: 1; }
+}
+@keyframes mc-ring { 0% { opacity: 0.7; transform: scale(0.7); } 100% { opacity: 0; transform: scale(2); } }
+
+/* Phase 3: tiny feature diagrams. */
+@keyframes mc-flow { to { stroke-dashoffset: -60; } }
+@keyframes mc-orbit { to { transform: rotate(360deg); } }
+@keyframes mc-slot-in {
+  0%   { transform: translateX(24px); opacity: 0; }
+  18%  { transform: translateX(0); opacity: 1; }
+  82%  { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(24px); opacity: 0; }
+}
+
+/* Phase 4: the signal bus that runs through the how-it-works steps. */
+.mc-bus {
+  height: 2px;
+  background-image: repeating-linear-gradient(to right, rgba(255, 45, 146, 0.55) 0 6px, transparent 6px 15px);
+}
+@keyframes mc-bus-flow { to { background-position-x: 15px; } }
+
+/* Phase 5: news-crawl ticker and the faq open sweep. */
+@keyframes mc-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes mc-faq-sweep { from { transform: translateY(-110%); opacity: 0.6; } to { transform: translateY(420%); opacity: 0; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .mc-screen-scan { animation: mc-screen-scan-move 1s linear infinite; }
+  .mc-eq-bar      { transform-origin: bottom; animation: mc-eq 0.8s ease-in-out infinite; }
+  .mc-cuein-tile  { animation: mc-cuein 5s ease-in-out infinite; }
+  .mc-ring        { animation: mc-ring 5s ease-out infinite; }
+  .mc-flow        { animation: mc-flow 1.6s linear infinite; }
+  .mc-orbit       { animation: mc-orbit 7s linear infinite; }
+  .mc-slot-tile   { animation: mc-slot-in 4s ease-in-out infinite; }
+  .mc-bus         { animation: mc-bus-flow 1.2s linear infinite; }
+  .mc-marquee     { animation: mc-marquee 32s linear infinite; }
+  .mc-faq-sweep   { animation: mc-faq-sweep 0.7s ease-out 1; }
+  /* Channel LEDs: tune in once, then pulse in a running sequence so the
+     signal looks like it sweeps across the platforms. Longhand because a
+     var() delay inside the animation shorthand drops the declaration. */
+  .mc-led {
+    animation-name: mc-fade-in, mc-led-pulse;
+    animation-duration: 0.3s, 2.4s;
+    animation-timing-function: ease, ease-in-out;
+    animation-delay: var(--mc-delay, 2s), var(--mc-seq, 3s);
+    animation-iteration-count: 1, infinite;
+    animation-fill-mode: both, none;
+  }
 }
