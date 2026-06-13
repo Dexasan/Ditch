@@ -1046,3 +1046,47 @@ Step 8 — `goLiveAsHost`: complete iOS Safari fix (`commit bc4d7e9`)
 **Commits this session:** `0265265`
 
 **Next logical step (Day 19):** Relay JWT optimization (still pending from Day 17). Participant-promotion runtime test. Decide on `/live` vs `/studio` route consolidation.
+
+---
+
+### Day 19 — 2026-06-13
+
+**Marketing site redesigned to a retro-broadcast "Master Control" look. Studio app untouched.**
+
+Audit → plan → implement. The old landing page was the studio's dark pink-on-near-black identity with gradients, blur orbs, a fake hand-built "control room" UI mock, Title Case buttons, and a copy contradiction (OBS-first in one section, browser-first in another). Rebuilt the marketing surface only; the studio at `/c/[slug]/studio` and `/live` keeps its glowing-screen identity.
+
+**Design foundation (`apps/web/src/app/globals.css`, `layout.tsx`):**
+- Master Control tokens added alongside the studio tokens (never mixed): `--color-paper #F2F0EA`, `--color-panel #FDFCFA`, `--color-screen #26261F`, `--color-line #D3D1C7`, `--color-ink #2C2C2A`, `--color-label #5F5E5A`, `--color-faint #888780`, `--color-tally #FF2D92` (the only accent).
+- `.marketing` scope class: warm paper bg + ~2.5% SVG turbulence noise + Inter body. `.mc-mono` helper = JetBrains Mono, lowercase, letterspaced (the "silkscreen" voice). Fonts loaded via `next/font/google` (Inter + JetBrains Mono) as CSS variables.
+- Tune-in keyframes: test card fades off the master screen, channel tallies light sequentially, on-air lamp last + slow idle breathe. Headline tunes in (over-tracked → settled). Scroll-reveal class. Everything gated behind `prefers-reduced-motion`; final state is the default so no-JS / reduced-motion users land there directly.
+
+**Components (`apps/web/src/components/marketing/`):**
+- `MonitorWall` — the hero panel: master monitor, 5px muted SMPTE strip, `master · 1080p60 · signal good` caption, four channel monitors (`ch 01 · twitch` … `ch 04 · kick`) each with a tally LED, cue-in row, status line. Owns the tune-in choreography.
+- `HeroVideo` — `<video autoplay muted loop playsinline preload=none>` wrapper, currently null so the master screen honestly shows the headline over a test card. `TODO(founder)`: record a 20–30s studio capture (incl. a cue-in moment) → `/public/hero-capture.mp4` + poster, then set `FOOTAGE`.
+- `Faq` — six honest, hedged answers (multistreaming allowed, Twitch partner exclusivity, TikTok LIVE access, latency, unified chat, cost) + FAQPage JSON-LD. `TODO(founder)` to verify policy-dependent claims.
+- `SiteHeader` / `SiteFooter` — logo + mono wordmark; footer carries terms/privacy/contact links, `ditch · rome`, copyright.
+- `LegalShell` / `LegalSection` — shared frame for the legal pages with a visible "draft for founder review" notice.
+- `Reveal`, `CueTicker`, `WatchingCounter`, `palette.ts` — client-side calm animation helpers (scroll reveal, rotating cue-in handles, drifting watcher count, SMPTE gradient).
+
+**Page rebuild (`apps/web/src/app/page.tsx`):** browser-first everywhere. Headline kept ("one stream / every platform / anyone can join"). Features as quiet panels (`simulcast`, `studio floor`, `signal loop`). How-it-works 4 steps with OBS demoted to one secondary line ("prefer obs? point it at your ditch ingest…"). Social proof line "built in rome · selected for start cup lazio 2026" (no invented stats). CTA reads "free during public beta".
+
+**SEO + legal:**
+- Meta/OG/Twitter title → "DITCH | Multistream to Twitch, YouTube, TikTok and Kick from your browser"; description leads with "multistream" + "browser". `opengraph-image.tsx` redrawn in the paper/ink/tally palette.
+- Real `/terms` and `/privacy` pages (GDPR-aware, processors named: Supabase, Vercel, Railway, Agora; Italy/Rome controller), both marked draft-for-review. Added both to `sitemap.ts`.
+
+**No-dash rule enforced site-wide:** purged every em/en dash from `apps/web/src` (user-visible strings rewritten, comments mechanically fixed). `apps/web/scripts/check-dashes.mjs` added and wired into `prebuild` + `lint`, so a dash fails the Vercel build. Confirmed `check-dashes: clean` runs inside the production build.
+
+**Revision round (per Dexasan):** Ditch logo added to header + footer; "sign in" and "get started" made pink; more animation (lamp breathe, headline tune-in, scroll reveals, rotating cue-in ticker, drifting watch counter), all still reduced-motion-safe; contact email set to **sendmailtodex@gmail.com** everywhere (footer, terms, privacy); cue-in line changed from "@martina_rm wants to join from youtube" to just "@martina_rm wants to join" (viewers join through the DITCH channel, they are not pulled off another platform).
+
+**Verification:** dash check clean, `tsc --noEmit` clean, production build green (all 14 routes generate; `/`, `/terms`, `/privacy` static). Animations confirmed live in the dev preview (lamp runs fade-in + breathe, headline tune-in, reveals fire on scroll, counter drifted 2,418 → 2,426 on its own).
+
+**Brand memory updated:** marketing = warm-paper Master Control, studio/deck = pink-on-dark glitch, no em/en dashes site-wide.
+
+**Commit this session:** `2b634b5` (Update website and marketing pages).
+
+**Open / deferred:**
+- Hero footage not yet shot (placeholder test card shipped, not fake product UI).
+- Founder review pending on legal pages and the policy-dependent FAQ answers.
+- Dexasan asked to preview a dark-background variant (current creamy paper reads a bit "ebook reader"). Note: a dark marketing site converges with the studio identity that was deliberately separated, so if pursued it should stay a warm near-black (never pure #000), not the studio pink-on-black.
+
+**Next logical step (Day 20):** Decide creamy-paper vs warm-dark for the marketing site. Then the still-pending relay JWT optimization and participant-promotion runtime test.
