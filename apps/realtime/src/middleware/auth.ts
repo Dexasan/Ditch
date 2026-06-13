@@ -25,16 +25,24 @@ export async function authMiddleware(
     return next(new Error("Server misconfiguration"));
   }
 
-  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  // getUser() is a network call to Supabase Auth — if it rejects (transient
+  // outage / timeout) the rejection must not escape this async middleware, or it
+  // becomes an unhandled rejection that crashes the whole realtime process.
+  try {
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
 
-  if (error || !data.user) {
-    return next(new Error("Invalid or expired token"));
+    if (error || !data.user) {
+      return next(new Error("Invalid or expired token"));
+    }
+
+    socket.data.user_id = data.user.id;
+    socket.data.display_name =
+      (data.user.user_metadata?.display_name as string | undefined) ??
+      data.user.email?.split("@")[0] ??
+      null;
+    next();
+  } catch (err) {
+    console.error("[realtime] auth getUser failed:", err);
+    next(new Error("Authentication unavailable"));
   }
-
-  socket.data.user_id = data.user.id;
-  socket.data.display_name =
-    (data.user.user_metadata?.display_name as string | undefined) ??
-    data.user.email?.split("@")[0] ??
-    null;
-  next();
 }

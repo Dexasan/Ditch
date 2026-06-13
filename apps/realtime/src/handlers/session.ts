@@ -14,47 +14,53 @@ export function registerSessionHandlers(io: AppServer, socket: AppSocket) {
    * Responds with the current active (non-removed) participants via ack.
    */
   socket.on("session:join", async ({ session_id }, ack) => {
-    const { data: session } = await supabaseAdmin!
-      .from("live_sessions")
-      .select("id, status")
-      .eq("id", session_id)
-      .single();
+    try {
+      const { data: session } = await supabaseAdmin!
+        .from("live_sessions")
+        .select("id, status")
+        .eq("id", session_id)
+        .single();
 
-    if (!session) {
-      return ack("Session not found");
+      if (!session) {
+        return ack("Session not found");
+      }
+
+      if (session.status === "ended") {
+        return ack("Session has ended");
+      }
+
+      await socket.join(session_id);
+
+      const [{ data: participants }, { data: recentMessages }] = await Promise.all([
+        supabaseAdmin!
+          .from("participants")
+          .select("*")
+          .eq("session_id", session_id)
+          .neq("status", "removed")
+          .order("joined_at", { ascending: true }),
+        supabaseAdmin!
+          .from("chat_messages")
+          .select("*")
+          .eq("session_id", session_id)
+          .order("timestamp", { ascending: true })
+          .limit(50),
+      ]);
+
+      ack(null, {
+        participants: (participants ?? []) as Participant[],
+        recentMessages: (recentMessages ?? []) as ChatMessage[],
+      });
+
+      // Notify the rest of the room that someone joined
+      socket.to(session_id).emit("session:state", {
+        session_id,
+        participants: (participants ?? []) as Participant[],
+      });
+    } catch (err) {
+      // Always resolve the ack — otherwise the viewer hangs on a spinner forever.
+      console.error("[realtime] session:join failed:", err);
+      ack("Could not join right now — please retry");
     }
-
-    if (session.status === "ended") {
-      return ack("Session has ended");
-    }
-
-    await socket.join(session_id);
-
-    const [{ data: participants }, { data: recentMessages }] = await Promise.all([
-      supabaseAdmin!
-        .from("participants")
-        .select("*")
-        .eq("session_id", session_id)
-        .neq("status", "removed")
-        .order("joined_at", { ascending: true }),
-      supabaseAdmin!
-        .from("chat_messages")
-        .select("*")
-        .eq("session_id", session_id)
-        .order("timestamp", { ascending: true })
-        .limit(50),
-    ]);
-
-    ack(null, {
-      participants: (participants ?? []) as Participant[],
-      recentMessages: (recentMessages ?? []) as ChatMessage[],
-    });
-
-    // Notify the rest of the room that someone joined
-    socket.to(session_id).emit("session:state", {
-      session_id,
-      participants: (participants ?? []) as Participant[],
-    });
   });
 
   /**

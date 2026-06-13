@@ -33,72 +33,81 @@ export function registerParticipantHandlers(io: AppServer, socket: AppSocket) {
    * Payload: { session_id, participant_id, status, slot_index? }
    */
   socket.on("participant:status_change", async ({ session_id, participant_id, status: newStatus, slot_index }) => {
-    const userId = socket.data.user_id;
+    try {
+      const userId = socket.data.user_id;
 
-    if (!userId) {
-      return socket.emit("error", { message: "Authentication required" });
+      if (!userId) {
+        return socket.emit("error", { message: "Authentication required" });
+      }
+
+      // Verify caller owns the session (via channel ownership)
+      const { data: session } = await supabaseAdmin!
+        .from("live_sessions")
+        .select("id, channels!inner(owner_id)")
+        .eq("id", session_id)
+        .single();
+
+      if (!session) {
+        return socket.emit("error", { message: "Session not found" });
+      }
+
+      // channels!inner is a to-one embed, but supabase-js can surface it as an
+      // array if it can't resolve the relationship as singular — normalize so an
+      // unexpected shape becomes a clean "Forbidden", never a thrown crash.
+      const rawChannel = session.channels as { owner_id: string } | { owner_id: string }[];
+      const channel = Array.isArray(rawChannel) ? rawChannel[0] : rawChannel;
+      if (channel?.owner_id !== userId) {
+        return socket.emit("error", { message: "Forbidden" });
+      }
+
+      // Fetch the participant and validate the transition
+      const { data: participant } = await supabaseAdmin!
+        .from("participants")
+        .select("*")
+        .eq("id", participant_id)
+        .eq("session_id", session_id)
+        .single();
+
+      if (!participant) {
+        return socket.emit("error", { message: "Participant not found" });
+      }
+
+      const currentStatus = participant.status as ParticipantStatus;
+      if (!VALID_TRANSITIONS[currentStatus]?.includes(newStatus)) {
+        return socket.emit("error", {
+          message: `Invalid transition: ${currentStatus} → ${newStatus}`,
+        });
+      }
+
+      if (newStatus === "live" && slot_index == null) {
+        return socket.emit("error", { message: "slot_index required when setting status to live" });
+      }
+
+      const update: { status: ParticipantStatus; slot_index?: number | null } = { status: newStatus };
+      if (newStatus === "live")    update.slot_index = slot_index;
+      if (newStatus === "removed") update.slot_index = null;
+
+      const { data: updated, error } = await supabaseAdmin!
+        .from("participants")
+        .update(update)
+        .eq("id", participant_id)
+        .select()
+        .single();
+
+      if (error || !updated) {
+        return socket.emit("error", { message: "Failed to update participant" });
+      }
+
+      // Broadcast the individual change and the refreshed queue to the whole room
+      const updatedParticipant = updated as Participant;
+      io.to(session_id).emit("participant:status_change", { participant: updatedParticipant });
+
+      const participants = await fetchActiveParticipants(session_id);
+      io.to(session_id).emit("participant:queue_update", { session_id, participants });
+    } catch (err) {
+      console.error("[realtime] participant:status_change failed:", err);
+      socket.emit("error", { message: "Failed to update participant" });
     }
-
-    // Verify caller owns the session (via channel ownership)
-    const { data: session } = await supabaseAdmin!
-      .from("live_sessions")
-      .select("id, channels!inner(owner_id)")
-      .eq("id", session_id)
-      .single();
-
-    if (!session) {
-      return socket.emit("error", { message: "Session not found" });
-    }
-
-    const channel = session.channels as { owner_id: string };
-    if (channel.owner_id !== userId) {
-      return socket.emit("error", { message: "Forbidden" });
-    }
-
-    // Fetch the participant and validate the transition
-    const { data: participant } = await supabaseAdmin!
-      .from("participants")
-      .select("*")
-      .eq("id", participant_id)
-      .eq("session_id", session_id)
-      .single();
-
-    if (!participant) {
-      return socket.emit("error", { message: "Participant not found" });
-    }
-
-    const currentStatus = participant.status as ParticipantStatus;
-    if (!VALID_TRANSITIONS[currentStatus].includes(newStatus)) {
-      return socket.emit("error", {
-        message: `Invalid transition: ${currentStatus} → ${newStatus}`,
-      });
-    }
-
-    if (newStatus === "live" && slot_index == null) {
-      return socket.emit("error", { message: "slot_index required when setting status to live" });
-    }
-
-    const update: { status: ParticipantStatus; slot_index?: number | null } = { status: newStatus };
-    if (newStatus === "live")    update.slot_index = slot_index;
-    if (newStatus === "removed") update.slot_index = null;
-
-    const { data: updated, error } = await supabaseAdmin!
-      .from("participants")
-      .update(update)
-      .eq("id", participant_id)
-      .select()
-      .single();
-
-    if (error || !updated) {
-      return socket.emit("error", { message: "Failed to update participant" });
-    }
-
-    // Broadcast the individual change and the refreshed queue to the whole room
-    const updatedParticipant = updated as Participant;
-    io.to(session_id).emit("participant:status_change", { participant: updatedParticipant });
-
-    const participants = await fetchActiveParticipants(session_id);
-    io.to(session_id).emit("participant:queue_update", { session_id, participants });
   });
 
   /**
@@ -108,25 +117,31 @@ export function registerParticipantHandlers(io: AppServer, socket: AppSocket) {
    * it back to the requesting socket. Requires the caller to be the session owner.
    */
   socket.on("participant:queue_update", async ({ session_id }) => {
-    const userId = socket.data.user_id;
+    try {
+      const userId = socket.data.user_id;
 
-    if (!userId) {
-      return socket.emit("error", { message: "Authentication required" });
+      if (!userId) {
+        return socket.emit("error", { message: "Authentication required" });
+      }
+
+      const { data: session } = await supabaseAdmin!
+        .from("live_sessions")
+        .select("channels!inner(owner_id)")
+        .eq("id", session_id)
+        .single();
+
+      const rawChannel = session?.channels as { owner_id: string } | { owner_id: string }[] | null;
+      const channel = Array.isArray(rawChannel) ? rawChannel[0] : rawChannel;
+      if (!channel || channel.owner_id !== userId) {
+        return socket.emit("error", { message: "Forbidden" });
+      }
+
+      const participants = await fetchActiveParticipants(session_id);
+      socket.emit("participant:queue_update", { session_id, participants });
+    } catch (err) {
+      console.error("[realtime] participant:queue_update failed:", err);
+      socket.emit("error", { message: "Failed to load queue" });
     }
-
-    const { data: session } = await supabaseAdmin!
-      .from("live_sessions")
-      .select("channels!inner(owner_id)")
-      .eq("id", session_id)
-      .single();
-
-    const channel = session?.channels as { owner_id: string } | null;
-    if (!channel || channel.owner_id !== userId) {
-      return socket.emit("error", { message: "Forbidden" });
-    }
-
-    const participants = await fetchActiveParticipants(session_id);
-    socket.emit("participant:queue_update", { session_id, participants });
   });
 
   /**
@@ -137,7 +152,11 @@ export function registerParticipantHandlers(io: AppServer, socket: AppSocket) {
    * creator sees the new request without refreshing.
    */
   socket.on("participant:notify_new", async ({ session_id }) => {
-    const participants = await fetchActiveParticipants(session_id);
-    io.to(session_id).emit("participant:queue_update", { session_id, participants });
+    try {
+      const participants = await fetchActiveParticipants(session_id);
+      io.to(session_id).emit("participant:queue_update", { session_id, participants });
+    } catch (err) {
+      console.error("[realtime] participant:notify_new failed:", err);
+    }
   });
 }

@@ -7,6 +7,18 @@ import { validateEnv } from "./lib/env.js";
 
 validateEnv();
 
+// Last-resort crash guards. A single stray rejection in an async socket handler
+// (or in the auth middleware's getUser call) would otherwise terminate the whole
+// process in Node ≥15 — dropping EVERY connected viewer's join + chat at once.
+// Handlers try/catch their own bodies; reaching here means an error escaped that
+// net, so log it loudly but keep serving the other clients rather than exiting.
+process.on("unhandledRejection", (reason) => {
+  console.error("[realtime] unhandledRejection — surviving:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[realtime] uncaughtException — surviving:", err);
+});
+
 const PORT = Number(process.env.REALTIME_PORT) || 3001;
 
 function isOriginAllowed(origin: string | undefined): boolean {

@@ -17,33 +17,38 @@ export function registerChatHandlers(io: AppServer, socket: AppSocket) {
    * Payload: { session_id, body, display_name, platform_origin }
    */
   socket.on("chat:message", async ({ session_id, body, display_name }) => {
-    if (!socket.data.user_id) {
-      socket.emit("chat:error", { code: "auth_required", message: "Sign in to chat" });
-      return;
+    try {
+      if (!socket.data.user_id) {
+        socket.emit("chat:error", { code: "auth_required", message: "Sign in to chat" });
+        return;
+      }
+      if (!body?.trim()) return;
+      if (body.length > 500) return;
+
+      // Authenticated users: use verified display name stored at connect time.
+      // Anonymous users: use the client-provided name (unverifiable).
+      const rawName = socket.data.display_name ?? display_name ?? "Viewer";
+      const authorName = rawName.slice(0, 64);
+
+      const { data: message, error } = await supabaseAdmin!
+        .from("chat_messages")
+        .insert({
+          session_id,
+          platform: "ditch",
+          author_display_name: authorName,
+          body: body.trim(),
+        })
+        .select()
+        .single();
+
+      if (error || !message) {
+        return socket.emit("error", { message: "Failed to send message" });
+      }
+
+      io.to(session_id).emit("chat:message", { message: message as ChatMessage });
+    } catch (err) {
+      console.error("[realtime] chat:message failed:", err);
+      socket.emit("error", { message: "Failed to send message" });
     }
-    if (!body?.trim()) return;
-    if (body.length > 500) return;
-
-    // Authenticated users: use verified display name stored at connect time.
-    // Anonymous users: use the client-provided name (unverifiable).
-    const rawName = socket.data.display_name ?? display_name ?? "Viewer";
-    const authorName = rawName.slice(0, 64);
-
-    const { data: message, error } = await supabaseAdmin!
-      .from("chat_messages")
-      .insert({
-        session_id,
-        platform: "ditch",
-        author_display_name: authorName,
-        body: body.trim(),
-      })
-      .select()
-      .single();
-
-    if (error || !message) {
-      return socket.emit("error", { message: "Failed to send message" });
-    }
-
-    io.to(session_id).emit("chat:message", { message: message as ChatMessage });
   });
 }
