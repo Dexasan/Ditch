@@ -43,7 +43,7 @@ export interface AgoraRoomState {
    *  to be triggered within a user gesture; this keeps the entire promotion flow
    *  inside that gesture context. */
   goLiveAsHost: (hostUid: number) => Promise<void>;
-  /** Inverse of goLiveAsHost — drops published tracks and rejoins as audience.
+  /** Inverse of goLiveAsHost: drops published tracks and rejoins as audience.
    *  Called when a live participant is removed from the stream by the creator. */
   demoteToAudience: () => Promise<void>;
 }
@@ -269,7 +269,7 @@ export function useAgoraRoom(options: {
       // iOS Safari only grants getUserMedia inside the user gesture that started
       // this call, and that activation is consumed by the leave()/token-fetch/
       // join() awaits below. Create the camera+mic tracks FIRST, while the gesture
-      // is still valid — otherwise the prompt never resolves and the button hangs
+      // is still valid, otherwise the prompt never resolves and the button hangs
       // on "Starting…". If this throws (permission denied) we bail before leaving
       // the audience client, so the user keeps watching.
       const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
