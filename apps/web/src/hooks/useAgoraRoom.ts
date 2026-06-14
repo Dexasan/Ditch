@@ -119,6 +119,21 @@ export function useAgoraRoom(options: {
         setState((prev) => ({ ...prev, connectionState: reason ? `${cur} (${reason})` : cur }));
       });
 
+      // TEMP confirmation switch: ?proxy (or ?proxy=5) routes Agora through Cloud
+      // Proxy for restrictive networks where the default gateway is blocked but
+      // TLS/443 works (mode 3 = UDP relay, mode 5 = force TCP/443). Must be called
+      // before join(). Used to verify the iOS connection stall is a network block.
+      try {
+        const sp = new URLSearchParams(window.location.search);
+        if (sp.has("proxy")) {
+          const mode = sp.get("proxy") === "5" ? 5 : 3;
+          client.startProxyServer(mode);
+          setState((prev) => ({ ...prev, connectionState: `proxy:${mode} starting` }));
+        }
+      } catch (e) {
+        setState((prev) => ({ ...prev, connectionState: `proxy err: ${String(e)}` }));
+      }
+
       const syncRemote = () =>
         setState((prev) => ({ ...prev, remoteUsers: [...client.remoteUsers] }));
 
