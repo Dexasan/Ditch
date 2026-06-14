@@ -232,19 +232,16 @@ export function useCompositor({
   useEffect(() => {
     if (!enabled || !supportsBreakoutBox()) return;
 
+    // Only LOCAL tracks go through the Breakout Box. Remote (guest) tracks are
+    // drawn from played <video> elements instead (see drawParticipants): a
+    // MediaStreamTrackProcessor on an Agora remote track both fails to emit
+    // frames reliably and locks the track away from the video element.
     const activeTracks = new Map<string, MediaStreamTrack>();
     if (localVideoTrack) {
       try { const t = localVideoTrack.getMediaStreamTrack(); activeTracks.set(t.id, t); } catch {}
     }
     if (localScreenTrack) {
       try { const t = localScreenTrack.getMediaStreamTrack(); activeTracks.set(t.id, t); } catch {}
-    }
-    for (const p of liveParticipants) {
-      const uid = (p.slot_index ?? 0) + 1;
-      const ru = remoteUsers.find((u) => u.uid === uid);
-      if (ru?.videoTrack) {
-        try { const t = ru.videoTrack.getMediaStreamTrack(); activeTracks.set(t.id, t); } catch {}
-      }
     }
 
     for (const [id, cleanup] of processorCleanupsRef.current) {
@@ -280,7 +277,7 @@ export function useCompositor({
         reader.cancel().catch(() => {});
       });
     }
-  }, [enabled, localVideoTrack, localScreenTrack, remoteUsers, liveParticipants]);
+  }, [enabled, localVideoTrack, localScreenTrack]);
 
   // ── Draw loop - driven by Worker timer ───────────────────────────────────────
   useEffect(() => {
@@ -330,7 +327,12 @@ export function useCompositor({
         if (!remoteUser?.videoTrack) continue;
         try {
           const native = remoteUser.videoTrack.getMediaStreamTrack();
-          const source = useBreakout ? frameCacheRef.current.get(native.id) : getVideoElem(native.id, native);
+          // Remote (guest) tracks always render via a played <video> element, not
+          // the Breakout Box: Agora remote tracks don't reliably emit frames
+          // through MediaStreamTrackProcessor (they need a play() sink to drive
+          // decoding), which left guest tiles black on the composite. The
+          // creator's own local camera keeps the Breakout path (drawCreator).
+          const source = getVideoElem(native.id, native);
           if (source) drawCover(source, cell.x, cell.y, cell.w, cell.h);
         } catch {}
       }
