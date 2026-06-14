@@ -12,6 +12,11 @@ import { AGORA_APP_ID, getAgoraRTC } from "@/lib/agora";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
+// H.264 is decodable on every target browser including iOS Safari, where VP8
+// decode is unreliable (it left iPhone viewers on a frozen "STARTING STREAM").
+// All clients in a channel must agree on the codec, so this is used everywhere.
+const AGORA_CODEC = "h264" as const;
+
 async function fetchAgoraToken(sessionId: string, uid: number, authToken?: string): Promise<string | null> {
   try {
     const url = `${API_BASE}/agora/token?session_id=${encodeURIComponent(sessionId)}&uid=${uid}`;
@@ -97,7 +102,7 @@ export function useAgoraRoom(options: {
       const AgoraRTC = await getAgoraRTC();
       if (!mounted) return;
 
-      const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+      const client = AgoraRTC.createClient({ mode: "live", codec: AGORA_CODEC });
       clientRef.current = client;
 
       const syncRemote = () =>
@@ -215,7 +220,7 @@ export function useAgoraRoom(options: {
     if (!screenClientRef.current) {
       // ── Start screenshare ──────────────────────────────────────────────────
       // Create a dedicated second client so the camera client is untouched.
-      const screenClient = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+      const screenClient = AgoraRTC.createClient({ mode: "live", codec: AGORA_CODEC });
       await screenClient.setClientRole("host");
       const screenToken = await fetchAgoraToken(channelNameRef.current, screenShareUid, authTokenRef.current);
       await screenClient.join(AGORA_APP_ID, channelNameRef.current, screenToken, screenShareUid);
@@ -282,7 +287,7 @@ export function useAgoraRoom(options: {
       joinedRef.current = false;
       setState((prev) => ({ ...prev, joined: false, error: null }));
 
-      const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+      const client = AgoraRTC.createClient({ mode: "live", codec: AGORA_CODEC });
 
       const syncRemote = () =>
         setState((prev) => ({ ...prev, remoteUsers: [...client.remoteUsers] }));
@@ -339,7 +344,7 @@ export function useAgoraRoom(options: {
       }
       joinedRef.current = false;
 
-      const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+      const client = AgoraRTC.createClient({ mode: "live", codec: AGORA_CODEC });
 
       const syncRemote = () =>
         setState((prev) => ({ ...prev, remoteUsers: [...client.remoteUsers] }));
