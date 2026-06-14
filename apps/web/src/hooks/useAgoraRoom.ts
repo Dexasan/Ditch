@@ -17,6 +17,45 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 // All clients in a channel must agree on the codec, so this is used everywhere.
 const AGORA_CODEC = "h264" as const;
 
+// Cloud Proxy: some networks (seen on iOS over both cellular and Wi-Fi) block
+// Agora's default gateway path while TLS/443 still works. Once a direct join
+// stalls we flip this tab to Cloud Proxy and route every later client (go-live,
+// screen-share) through it too. ?proxy forces it on (?proxy=5 forces TCP/443).
+let agoraNeedsProxy = false;
+
+function readProxyMode(): 3 | 5 {
+  try { return new URLSearchParams(window.location.search).get("proxy") === "5" ? 5 : 3; }
+  catch { return 3; }
+}
+function proxyForced(): boolean {
+  try { return new URLSearchParams(window.location.search).has("proxy"); }
+  catch { return false; }
+}
+function applyProxyIfNeeded(client: IAgoraRTCClient) {
+  if (agoraNeedsProxy || proxyForced()) {
+    try { client.startProxyServer(readProxyMode()); } catch {}
+  }
+}
+// Joins, rejecting if the connection stalls past `ms` (iOS can hang in CONNECTING
+// forever with no error otherwise).
+function joinWithTimeout(
+  client: IAgoraRTCClient,
+  appId: string,
+  channel: string,
+  token: string | null,
+  uid: number,
+  ms: number,
+): Promise<void> {
+  const jp = client.join(appId, channel, token, uid).then(() => undefined);
+  jp.catch(() => {}); // swallow the late rejection if the timeout wins
+  return Promise.race([
+    jp,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`join stalled @ ${client.connectionState}`)), ms),
+    ),
+  ]);
+}
+
 async function fetchAgoraToken(sessionId: string, uid: number, authToken?: string): Promise<string | null> {
   try {
     const url = `${API_BASE}/agora/token?session_id=${encodeURIComponent(sessionId)}&uid=${uid}`;
@@ -119,21 +158,6 @@ export function useAgoraRoom(options: {
         setState((prev) => ({ ...prev, connectionState: reason ? `${cur} (${reason})` : cur }));
       });
 
-      // TEMP confirmation switch: ?proxy (or ?proxy=5) routes Agora through Cloud
-      // Proxy for restrictive networks where the default gateway is blocked but
-      // TLS/443 works (mode 3 = UDP relay, mode 5 = force TCP/443). Must be called
-      // before join(). Used to verify the iOS connection stall is a network block.
-      try {
-        const sp = new URLSearchParams(window.location.search);
-        if (sp.has("proxy")) {
-          const mode = sp.get("proxy") === "5" ? 5 : 3;
-          client.startProxyServer(mode);
-          setState((prev) => ({ ...prev, connectionState: `proxy:${mode} starting` }));
-        }
-      } catch (e) {
-        setState((prev) => ({ ...prev, connectionState: `proxy err: ${String(e)}` }));
-      }
-
       const syncRemote = () =>
         setState((prev) => ({ ...prev, remoteUsers: [...client.remoteUsers] }));
 
@@ -153,17 +177,26 @@ export function useAgoraRoom(options: {
       await client.setClientRole(role);
       const agoraToken = await fetchAgoraToken(channelName, uid, authTokenRef.current);
       if (!mounted) return;
-      // Race the join against a timeout: on iOS the join can hang forever with no
-      // error, which is invisible. If it stalls, surface the current connection
-      // state so ?debug shows why (e.g. "join stalled @ CONNECTING").
-      const joinPromise = client.join(AGORA_APP_ID, channelName, agoraToken, uid);
-      joinPromise.catch(() => {}); // prevent unhandled rejection if the timeout wins
-      await Promise.race([
-        joinPromise,
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error(`join stalled @ ${client.connectionState}`)), 12000),
-        ),
-      ]);
+      // Repeat visits on a known-restrictive network skip the ~8s direct-stall wait.
+      if (!agoraNeedsProxy) {
+        try { if (localStorage.getItem("ditch_agora_proxy") === "1") agoraNeedsProxy = true; } catch {}
+      }
+      applyProxyIfNeeded(client);
+      try {
+        // Good networks connect in 1-3s; 5s headroom. On iOS the join can hang in
+        // CONNECTING forever with no error, so the timeout is what catches it.
+        await joinWithTimeout(client, AGORA_APP_ID, channelName, agoraToken, uid, 5000);
+      } catch (stallErr) {
+        if (agoraNeedsProxy || proxyForced() || !mounted) throw stallErr;
+        // Direct connection stalled = restrictive network. Flip this tab to Cloud
+        // Proxy and retry; remembered so go-live/screen-share use it too.
+        agoraNeedsProxy = true;
+        try { localStorage.setItem("ditch_agora_proxy", "1"); } catch {}
+        setState((prev) => ({ ...prev, connectionState: "retry via proxy" }));
+        try { await client.leave(); } catch {}
+        try { client.startProxyServer(readProxyMode()); } catch {}
+        await client.join(AGORA_APP_ID, channelName, agoraToken, uid);
+      }
       if (!mounted) return;
       client.on("token-privilege-will-expire", async () => {
         const newToken = await fetchAgoraToken(channelNameRef.current, uid, authTokenRef.current);
@@ -263,6 +296,7 @@ export function useAgoraRoom(options: {
       const screenClient = AgoraRTC.createClient({ mode: "live", codec: AGORA_CODEC });
       await screenClient.setClientRole("host");
       const screenToken = await fetchAgoraToken(channelNameRef.current, screenShareUid, authTokenRef.current);
+      applyProxyIfNeeded(screenClient);
       await screenClient.join(AGORA_APP_ID, channelNameRef.current, screenToken, screenShareUid);
       screenClient.on("token-privilege-will-expire", async () => {
         const newToken = await fetchAgoraToken(channelNameRef.current, screenShareUid, authTokenRef.current);
@@ -345,6 +379,7 @@ export function useAgoraRoom(options: {
 
       await client.setClientRole("host");
       const agoraToken = await fetchAgoraToken(channelNameRef.current, hostUid, authTokenRef.current);
+      applyProxyIfNeeded(client);
       await client.join(AGORA_APP_ID, channelNameRef.current, agoraToken, hostUid);
       client.on("token-privilege-will-expire", async () => {
         const newToken = await fetchAgoraToken(channelNameRef.current, hostUid, authTokenRef.current);
@@ -402,6 +437,7 @@ export function useAgoraRoom(options: {
 
       await client.setClientRole("audience");
       const agoraToken = await fetchAgoraToken(channelNameRef.current, 0, authTokenRef.current);
+      applyProxyIfNeeded(client);
       await client.join(AGORA_APP_ID, channelNameRef.current, agoraToken, 0);
       client.on("token-privilege-will-expire", async () => {
         const newToken = await fetchAgoraToken(channelNameRef.current, 0, authTokenRef.current);
