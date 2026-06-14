@@ -8,8 +8,19 @@ export type {
 
 export const AGORA_APP_ID = process.env.NEXT_PUBLIC_AGORA_APP_ID ?? "";
 
+let _autoplayHandlerSet = false;
+
 export async function getAgoraRTC() {
   const { default: AgoraRTC } = await import("agora-rtc-sdk-ng");
+  if (!_autoplayHandlerSet) {
+    _autoplayHandlerSet = true;
+    // iOS Safari blocks media playback started outside a user gesture. Without a
+    // handler the SDK leaves remote video frozen/black; registering one lets the
+    // SDK resume playback on the next tap.
+    AgoraRTC.onAutoplayFailed = () => {
+      console.warn("[agora] autoplay blocked; will resume on next user interaction");
+    };
+  }
   return AgoraRTC;
 }
 

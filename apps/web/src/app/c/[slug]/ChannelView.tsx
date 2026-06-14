@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { getSocket, type SessionJoinAck } from "@/lib/socket";
 import { useAgoraRoom } from "@/hooks/useAgoraRoom";
-import { slotToUid, CREATOR_CAM_UID, CREATOR_SCREEN_UID } from "@/lib/agora";
+import { slotToUid, CREATOR_CAM_UID, CREATOR_SCREEN_UID, AGORA_APP_ID } from "@/lib/agora";
 import { api } from "@/lib/api";
 import type { ChatMessage, Participant } from "@ditch/types";
 import type { ILocalVideoTrack, IRemoteVideoTrack } from "agora-rtc-sdk-ng";
@@ -567,7 +567,7 @@ export default function ChannelView({
   const isLiveParticipant = myParticipant?.status === "live";
   const mySlotUid = isLiveParticipant ? slotToUid(myParticipant!.slot_index ?? 0) : 0;
 
-  const { localVideoTrack, localAudioTrack, remoteUsers, error: agoraError, goLiveAsHost, demoteToAudience } = useAgoraRoom({
+  const { localVideoTrack, localAudioTrack, remoteUsers, joined: agoraJoined, error: agoraError, goLiveAsHost, demoteToAudience } = useAgoraRoom({
     channelName: sessionId,
     uid: 0,
     role: "audience",
@@ -591,6 +591,14 @@ export default function ChannelView({
       setMyParticipant(null);
     }
   }, [myParticipant?.status, demoteToAudience]);
+
+  // Opt-in on-screen diagnostics: open the channel with ?debug to see Agora state
+  // on devices with no dev console (e.g. iPhone). Set in an effect to avoid SSR
+  // hydration mismatch.
+  const [showDebug, setShowDebug] = useState(false);
+  useEffect(() => {
+    try { setShowDebug(new URLSearchParams(window.location.search).has("debug")); } catch {}
+  }, []);
 
   function toggleMic() {
     if (!localAudioTrack) return;
@@ -687,6 +695,22 @@ export default function ChannelView({
   // ── Main render ───────────────────────────────────────────────────────────────
   return (
     <>
+      {showDebug && (
+        <div
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.85)", color: "#0f0", font: "11px/1.4 monospace",
+            padding: "6px 8px", whiteSpace: "pre-wrap", wordBreak: "break-all",
+          }}
+        >
+          {[
+            `appId:${AGORA_APP_ID ? "set" : "MISSING"} joined:${agoraJoined} err:${agoraError ?? "none"}`,
+            `creatorVideo(uid ${CREATOR_CAM_UID}):${remoteUsers.some((u) => u.uid === CREATOR_CAM_UID && u.videoTrack) ? "YES" : "no"}`,
+            `remoteUsers[${remoteUsers.length}]: ${remoteUsers.map((u) => `${u.uid}(v:${u.hasVideo ? 1 : 0}/${u.videoTrack ? "sub" : "x"} a:${u.hasAudio ? 1 : 0})`).join(" ") || "none"}`,
+            `ua:${typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 70) : ""}`,
+          ].join("\n")}
+        </div>
+      )}
       <div
         className="flex flex-col md:flex-row overflow-hidden"
         style={{ height: "calc(100dvh - 57px)", background: "#0A0A14" }}
