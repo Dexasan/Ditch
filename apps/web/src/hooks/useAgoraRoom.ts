@@ -12,10 +12,17 @@ import { AGORA_APP_ID, getAgoraRTC } from "@/lib/agora";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
-// H.264 is decodable on every target browser including iOS Safari, where VP8
-// decode is unreliable (it left iPhone viewers on a frozen "STARTING STREAM").
-// All clients in a channel must agree on the codec, so this is used everywhere.
-const AGORA_CODEC = "h264" as const;
+// Encode codec for this client's published stream. Default H.264 (iOS decodes it
+// fine, which fixed iPhone viewing). But iOS Safari's H.264 *encoder* is broken
+// and publishes a black stream, so iOS guests need to publish VP8 instead while
+// still decoding H.264 from others. ?codec=vp8 / ?codec=h264 forces it for testing.
+function chosenCodec(): "h264" | "vp8" {
+  try {
+    const c = new URLSearchParams(window.location.search).get("codec");
+    if (c === "vp8" || c === "h264") return c;
+  } catch {}
+  return "h264";
+}
 
 // Cloud Proxy: some networks (seen on iOS over both cellular and Wi-Fi) block
 // Agora's default gateway path while TLS/443 still works. Once a direct join
@@ -149,7 +156,7 @@ export function useAgoraRoom(options: {
       try { sysOk = AgoraRTC.checkSystemRequirements?.(); } catch {}
       setState((prev) => ({ ...prev, connectionState: `sysReq:${sysOk}` }));
 
-      const client = AgoraRTC.createClient({ mode: "live", codec: AGORA_CODEC });
+      const client = AgoraRTC.createClient({ mode: "live", codec: chosenCodec() });
       clientRef.current = client;
 
       // Surface every connection transition (and its reason) for the ?debug overlay.
@@ -293,7 +300,7 @@ export function useAgoraRoom(options: {
     if (!screenClientRef.current) {
       // ── Start screenshare ──────────────────────────────────────────────────
       // Create a dedicated second client so the camera client is untouched.
-      const screenClient = AgoraRTC.createClient({ mode: "live", codec: AGORA_CODEC });
+      const screenClient = AgoraRTC.createClient({ mode: "live", codec: chosenCodec() });
       await screenClient.setClientRole("host");
       const screenToken = await fetchAgoraToken(channelNameRef.current, screenShareUid, authTokenRef.current);
       applyProxyIfNeeded(screenClient);
@@ -361,7 +368,7 @@ export function useAgoraRoom(options: {
       joinedRef.current = false;
       setState((prev) => ({ ...prev, joined: false, error: null }));
 
-      const client = AgoraRTC.createClient({ mode: "live", codec: AGORA_CODEC });
+      const client = AgoraRTC.createClient({ mode: "live", codec: chosenCodec() });
 
       const syncRemote = () =>
         setState((prev) => ({ ...prev, remoteUsers: [...client.remoteUsers] }));
@@ -419,7 +426,7 @@ export function useAgoraRoom(options: {
       }
       joinedRef.current = false;
 
-      const client = AgoraRTC.createClient({ mode: "live", codec: AGORA_CODEC });
+      const client = AgoraRTC.createClient({ mode: "live", codec: chosenCodec() });
 
       const syncRemote = () =>
         setState((prev) => ({ ...prev, remoteUsers: [...client.remoteUsers] }));
