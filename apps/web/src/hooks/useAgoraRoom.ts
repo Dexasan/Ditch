@@ -38,6 +38,8 @@ export interface AgoraRoomState {
   remoteUsers: IAgoraRTCRemoteUser[];
   joined: boolean;
   error: string | null;
+  /** Diagnostic: Agora connection state + last reason (for the ?debug overlay). */
+  connectionState: string;
   isScreenSharing: boolean;
   toggleScreenShare: () => Promise<void>;
   /** Hot-switch the active microphone without dropping the channel. */
@@ -72,6 +74,7 @@ export function useAgoraRoom(options: {
     remoteUsers: [],
     joined: false,
     error: null,
+    connectionState: "init",
     isScreenSharing: false,
   });
   const [localScreenTrack, setLocalScreenTrack] = useState<ILocalVideoTrack | null>(null);
@@ -102,8 +105,19 @@ export function useAgoraRoom(options: {
       const AgoraRTC = await getAgoraRTC();
       if (!mounted) return;
 
+      // Diagnostic: does the SDK consider this browser supported at all?
+      let sysOk: boolean | undefined;
+      try { sysOk = AgoraRTC.checkSystemRequirements?.(); } catch {}
+      setState((prev) => ({ ...prev, connectionState: `sysReq:${sysOk}` }));
+
       const client = AgoraRTC.createClient({ mode: "live", codec: AGORA_CODEC });
       clientRef.current = client;
+
+      // Surface every connection transition (and its reason) for the ?debug overlay.
+      // A join that stalls in CONNECTING here = the gateway is unreachable.
+      client.on("connection-state-change", (cur, _prev, reason) => {
+        setState((prev) => ({ ...prev, connectionState: reason ? `${cur} (${reason})` : cur }));
+      });
 
       const syncRemote = () =>
         setState((prev) => ({ ...prev, remoteUsers: [...client.remoteUsers] }));
@@ -124,7 +138,17 @@ export function useAgoraRoom(options: {
       await client.setClientRole(role);
       const agoraToken = await fetchAgoraToken(channelName, uid, authTokenRef.current);
       if (!mounted) return;
-      await client.join(AGORA_APP_ID, channelName, agoraToken, uid);
+      // Race the join against a timeout: on iOS the join can hang forever with no
+      // error, which is invisible. If it stalls, surface the current connection
+      // state so ?debug shows why (e.g. "join stalled @ CONNECTING").
+      const joinPromise = client.join(AGORA_APP_ID, channelName, agoraToken, uid);
+      joinPromise.catch(() => {}); // prevent unhandled rejection if the timeout wins
+      await Promise.race([
+        joinPromise,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`join stalled @ ${client.connectionState}`)), 12000),
+        ),
+      ]);
       if (!mounted) return;
       client.on("token-privilege-will-expire", async () => {
         const newToken = await fetchAgoraToken(channelNameRef.current, uid, authTokenRef.current);
@@ -160,6 +184,7 @@ export function useAgoraRoom(options: {
         remoteUsers: [],
         joined: false,
         error: null,
+        connectionState: "init",
         isScreenSharing: false,
       });
       setLocalScreenTrack(null);

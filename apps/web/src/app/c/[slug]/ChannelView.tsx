@@ -567,7 +567,7 @@ export default function ChannelView({
   const isLiveParticipant = myParticipant?.status === "live";
   const mySlotUid = isLiveParticipant ? slotToUid(myParticipant!.slot_index ?? 0) : 0;
 
-  const { localVideoTrack, localAudioTrack, remoteUsers, joined: agoraJoined, error: agoraError, goLiveAsHost, demoteToAudience } = useAgoraRoom({
+  const { localVideoTrack, localAudioTrack, remoteUsers, joined: agoraJoined, connectionState: agoraConn, error: agoraError, goLiveAsHost, demoteToAudience } = useAgoraRoom({
     channelName: sessionId,
     uid: 0,
     role: "audience",
@@ -704,7 +704,8 @@ export default function ChannelView({
           }}
         >
           {[
-            `appId:${AGORA_APP_ID ? "set" : "MISSING"} joined:${agoraJoined} err:${agoraError ?? "none"}`,
+            `appId:${AGORA_APP_ID ? "set" : "MISSING"} joined:${agoraJoined} conn:${agoraConn}`,
+            `err:${agoraError ?? "none"}`,
             `creatorVideo(uid ${CREATOR_CAM_UID}):${remoteUsers.some((u) => u.uid === CREATOR_CAM_UID && u.videoTrack) ? "YES" : "no"}`,
             `remoteUsers[${remoteUsers.length}]: ${remoteUsers.map((u) => `${u.uid}(v:${u.hasVideo ? 1 : 0}/${u.videoTrack ? "sub" : "x"} a:${u.hasAudio ? 1 : 0})`).join(" ") || "none"}`,
             `ua:${typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 70) : ""}`,
