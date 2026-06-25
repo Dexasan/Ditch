@@ -55,7 +55,29 @@ const nextConfig = {
       });
     }
 
-    return [{ source: "/(.*)", headers }];
+    const deckHeaders = [
+      {
+        key:   "Content-Type",
+        value: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      },
+      {
+        key:   "Content-Disposition",
+        value: 'attachment; filename="DITCH-Deck.pptx"',
+      },
+    ];
+
+    return [
+      { source: "/(.*)", headers },
+      { source: "/deck", headers: deckHeaders },
+      { source: "/DITCH-Deck.pptx", headers: deckHeaders },
+    ];
+  },
+
+  // Serve the pitch deck at the clean URL ditchlive.app/deck (keeps the URL,
+  // streams the file from /public). The Content-Disposition header above gives
+  // it a proper download filename.
+  async rewrites() {
+    return [{ source: "/deck", destination: "/DITCH-Deck.pptx" }];
   },
 };
 
