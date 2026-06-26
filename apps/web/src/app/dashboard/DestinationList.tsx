@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import { api, ApiError } from "@/lib/api";
-import type { StreamDestination, StreamPlatform } from "@ditch/types";
+import type { StreamPlatform } from "@ditch/types";
 
 const PLATFORMS: StreamPlatform[] = ["twitch", "youtube", "tiktok", "kick", "ditch"];
 
@@ -15,20 +15,14 @@ const PLATFORM_LABEL: Record<StreamPlatform, string> = {
   ditch:   "DITCH",
 };
 
-const STATUS_COLOR: Record<string, string> = {
-  idle:       "text-zinc-400",
-  connecting: "text-yellow-400",
-  live:       "text-green-400",
-  error:      "text-red-400",
-  stopped:    "text-zinc-500",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  idle:       "Ready",
-  connecting: "Connecting",
-  live:       "Live",
-  error:      "Error",
-  stopped:    "Stopped",
+// A persistent, channel-level destination. Credentials never come back from
+// the API, so the browser only ever sees these safe fields.
+export type SavedDestination = {
+  id: string;
+  channel_id: string;
+  platform: StreamPlatform;
+  label: string | null;
+  created_at: string;
 };
 
 async function getToken() {
@@ -38,13 +32,13 @@ async function getToken() {
 }
 
 export default function DestinationList({
-  sessionId,
+  channelId,
   initialDestinations,
 }: {
-  sessionId: string;
-  initialDestinations: StreamDestination[];
+  channelId: string;
+  initialDestinations: SavedDestination[];
 }) {
-  const [destinations, setDestinations] = useState<StreamDestination[]>(initialDestinations);
+  const [destinations, setDestinations] = useState<SavedDestination[]>(initialDestinations);
   const [adding, setAdding] = useState(false);
   const [platform, setPlatform] = useState<StreamPlatform>("twitch");
   const [rtmpUrl, setRtmpUrl] = useState("");
@@ -58,11 +52,20 @@ export default function DestinationList({
     setError(null);
     try {
       const token = await getToken();
-      const { destination } = await api.post<{ destination: StreamDestination }>("/destinations", {
-        token: token!,
-        body: { session_id: sessionId, platform, rtmp_url: rtmpUrl, stream_key: streamKey },
-      });
-      setDestinations((prev) => [...prev, destination]);
+      const { saved_destination } = await api.post<{ saved_destination: SavedDestination }>(
+        "/saved-destinations",
+        {
+          token: token!,
+          body: {
+            channel_id: channelId,
+            platform,
+            rtmp_url: rtmpUrl,
+            stream_key: streamKey,
+            label: PLATFORM_LABEL[platform],
+          },
+        },
+      );
+      setDestinations((prev) => [...prev, saved_destination]);
       setRtmpUrl("");
       setStreamKey("");
       setAdding(false);
@@ -75,7 +78,7 @@ export default function DestinationList({
   async function removeDestination(id: string) {
     const token = await getToken();
     try {
-      await api.delete(`/destinations/${id}`, { token: token! });
+      await api.delete(`/saved-destinations/${id}`, { token: token! });
       setDestinations((prev) => prev.filter((d) => d.id !== id));
     } catch {
       // silent - destination may already be gone
@@ -98,6 +101,10 @@ export default function DestinationList({
         )}
       </div>
 
+      <p className="text-xs text-[var(--color-text-muted)]">
+        Saved once and reused on every stream. You go live to all of these.
+      </p>
+
       {destinations.length === 0 && !adding && (
         <p className="text-sm text-[var(--color-text-muted)]">No destinations yet.</p>
       )}
@@ -108,12 +115,7 @@ export default function DestinationList({
             key={d.id}
             className="flex items-center justify-between text-sm py-2 border-b border-[var(--color-surface-border)] last:border-0"
           >
-            <div className="space-y-0.5">
-              <span className="font-medium">{PLATFORM_LABEL[d.platform]}</span>
-              <p className={`text-xs ${STATUS_COLOR[d.status] ?? "text-zinc-400"}`}>
-                {STATUS_LABEL[d.status] ?? d.status}
-              </p>
-            </div>
+            <span className="font-medium">{d.label ?? PLATFORM_LABEL[d.platform]}</span>
             <button
               onClick={() => removeDestination(d.id)}
               className="text-xs text-[var(--color-text-muted)] hover:text-red-400 transition-colors"

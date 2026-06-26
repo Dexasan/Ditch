@@ -57,6 +57,23 @@ export default function SessionPanel({
     setLoading(false);
   }
 
+  // Copy the channel's saved destinations into this session so the relay fans
+  // out to them. Returns the number applied (0 if none saved).
+  async function applySavedDestinations(sessionId: string): Promise<number> {
+    const token = await getToken();
+    const { saved_destinations } = await api.get<{ saved_destinations: { id: string }[] }>(
+      `/saved-destinations?channel_id=${channelId}`,
+      { token: token! },
+    );
+    const ids = saved_destinations.map((d) => d.id);
+    if (ids.length === 0) return 0;
+    await api.post(`/sessions/${sessionId}/apply-destinations`, {
+      token: token!,
+      body: { saved_destination_ids: ids },
+    });
+    return ids.length;
+  }
+
   async function transitionSession(status: SessionStatus) {
     if (!session) return;
     setLoading(true);
@@ -129,6 +146,20 @@ export default function SessionPanel({
             {status === "idle" && (
               <button
                 onClick={async () => {
+                  setLoading(true);
+                  setError(null);
+                  try {
+                    const count = await applySavedDestinations(session!.id);
+                    if (count === 0) {
+                      setError("Add at least one destination before going live.");
+                      setLoading(false);
+                      return;
+                    }
+                  } catch (err) {
+                    setError(err instanceof ApiError ? err.message : "Failed to apply destinations.");
+                    setLoading(false);
+                    return;
+                  }
                   await transitionSession("live");
                   router.push(`/c/${channelSlug}/live`);
                 }}

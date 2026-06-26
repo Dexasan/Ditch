@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { api } from "@/lib/api";
-import type { Channel, LiveSession, StreamDestination, CommunityPost } from "@ditch/types";
+import type { Channel, LiveSession, CommunityPost } from "@ditch/types";
 import SessionPanel from "./SessionPanel";
-import DestinationList from "./DestinationList";
+import DestinationList, { type SavedDestination } from "./DestinationList";
 import SignOutButton from "./SignOutButton";
 
 export default async function DashboardPage() {
@@ -17,14 +17,14 @@ export default async function DashboardPage() {
   const { channel } = await api.get<{ channel: Channel | null }>("/channels/mine", { token });
   if (!channel) redirect("/onboarding");
 
-  // Get active session, destinations, and top suggestions in parallel
-  const [{ session: liveSession }, { destinations }, { suggestions }] = await Promise.all([
+  // Get active session, saved destinations, and top suggestions in parallel
+  const [{ session: liveSession }, { saved_destinations }, { suggestions }] = await Promise.all([
     api.get<{ session: LiveSession | null; channel: Channel }>(`/channels/${channel.slug}`).then(
       (r) => ({ session: r.session })
     ),
     api
-      .get<{ destinations: StreamDestination[] }>(`/destinations?channel_id=${channel.id}`, { token })
-      .catch(() => ({ destinations: [] as StreamDestination[] })),
+      .get<{ saved_destinations: SavedDestination[] }>(`/saved-destinations?channel_id=${channel.id}`, { token })
+      .catch(() => ({ saved_destinations: [] as SavedDestination[] })),
     api
       .get<{ suggestions: CommunityPost[] }>("/channels/mine/suggestions", { token })
       .catch(() => ({ suggestions: [] as CommunityPost[] })),
@@ -72,12 +72,10 @@ export default async function DashboardPage() {
           initialSession={liveSession ?? null}
         />
 
-        {liveSession && liveSession.status !== "ended" && (
-          <DestinationList
-            sessionId={liveSession.id}
-            initialDestinations={destinations}
-          />
-        )}
+        <DestinationList
+          channelId={channel.id}
+          initialDestinations={saved_destinations}
+        />
 
         {/* Top suggestions from your community */}
         {suggestions.length > 0 && (
