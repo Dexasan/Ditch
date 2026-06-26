@@ -12,10 +12,12 @@
     "@ditch/db": "workspace:*",
     "@ditch/types": "workspace:*",
     "socket.io": "^4.7.0",
-    "tsx": "^4.0.0"
+    "tsx": "^4.0.0",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.10",
     "typescript": "^5.4.0"
   }
 }

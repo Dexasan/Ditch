@@ -267,6 +267,7 @@ export type Database = {
       saved_destinations: {
         Row: {
           channel_id: string
+          channel_ref: string | null
           created_at: string
           id: string
           label: string | null
@@ -276,6 +277,7 @@ export type Database = {
         }
         Insert: {
           channel_id: string
+          channel_ref?: string | null
           created_at?: string
           id?: string
           label?: string | null
@@ -285,6 +287,7 @@ export type Database = {
         }
         Update: {
           channel_id?: string
+          channel_ref?: string | null
           created_at?: string
           id?: string
           label?: string | null
@@ -304,6 +307,7 @@ export type Database = {
       }
       stream_destinations: {
         Row: {
+          channel_ref: string | null
           created_at: string
           id: string
           platform: Database["public"]["Enums"]["stream_platform"]
@@ -313,6 +317,7 @@ export type Database = {
           stream_key: string
         }
         Insert: {
+          channel_ref?: string | null
           created_at?: string
           id?: string
           platform: Database["public"]["Enums"]["stream_platform"]
@@ -322,6 +327,7 @@ export type Database = {
           stream_key: string
         }
         Update: {
+          channel_ref?: string | null
           created_at?: string
           id?: string
           platform?: Database["public"]["Enums"]["stream_platform"]

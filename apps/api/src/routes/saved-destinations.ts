@@ -78,6 +78,7 @@ export async function savedDestinationRoutes(server: FastifyInstance) {
       rtmp_url: string;
       stream_key: string;
       label?: string;
+      channel_ref?: string;
     };
   }>(
     "/saved-destinations",
@@ -93,13 +94,15 @@ export async function savedDestinationRoutes(server: FastifyInstance) {
             rtmp_url: { type: "string", pattern: "^rtmps?://.+" },
             stream_key: { type: "string", minLength: 1, maxLength: 512, pattern: "^[^|\\[\\]]+$" },
             label: { type: "string", maxLength: 100 },
+            // Channel identity for chat ingestion (Twitch login / YouTube id or @handle).
+            channel_ref: { type: "string", maxLength: 100, pattern: "^[^|\\[\\]]*$" },
           },
           additionalProperties: false,
         },
       },
     },
     async (request, reply) => {
-      const { channel_id, platform, rtmp_url, stream_key, label } = request.body;
+      const { channel_id, platform, rtmp_url, stream_key, label, channel_ref } = request.body;
       const userId = request.user.id;
 
       if (PRIVATE_HOST.test(rtmp_url)) {
@@ -111,7 +114,14 @@ export async function savedDestinationRoutes(server: FastifyInstance) {
 
       const { data: saved, error } = await supabaseAdmin!
         .from("saved_destinations")
-        .insert({ channel_id, platform, rtmp_url, stream_key, label: label ?? null })
+        .insert({
+          channel_id,
+          platform,
+          rtmp_url,
+          stream_key,
+          label: label ?? null,
+          channel_ref: channel_ref?.trim() || null,
+        })
         .select()
         .single();
 
@@ -216,7 +226,7 @@ export async function savedDestinationRoutes(server: FastifyInstance) {
       // so a caller can't splice in another channel's rows by id.
       const { data: saved, error: fetchErr } = await supabaseAdmin!
         .from("saved_destinations")
-        .select("platform, rtmp_url, stream_key")
+        .select("platform, rtmp_url, stream_key, channel_ref")
         .eq("channel_id", session.channel_id)
         .in("id", saved_destination_ids);
 
@@ -242,6 +252,7 @@ export async function savedDestinationRoutes(server: FastifyInstance) {
         platform: s.platform,
         rtmp_url: s.rtmp_url,
         stream_key: s.stream_key,
+        channel_ref: s.channel_ref,
       }));
 
       const { error: insErr } = await supabaseAdmin!

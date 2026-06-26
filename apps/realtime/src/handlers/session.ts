@@ -2,6 +2,7 @@ import type { Server, Socket } from "socket.io";
 import type { ClientToServerEvents, ServerToClientEvents, SocketData } from "../types.js";
 import { supabaseAdmin } from "@ditch/db";
 import type { Participant, ChatMessage } from "@ditch/types";
+import { startIngest, stopIngest } from "../ingest/manager.js";
 
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
@@ -30,6 +31,12 @@ export function registerSessionHandlers(io: AppServer, socket: AppSocket) {
       }
 
       await socket.join(session_id);
+
+      // Start external chat ingestion (Twitch/YouTube) for this live session.
+      // Idempotent and fire-and-forget — failures here must not block the join.
+      void startIngest(io, session_id).catch((err) =>
+        console.error("[realtime] startIngest failed:", err),
+      );
 
       const [{ data: participants }, { data: recentMessages }] = await Promise.all([
         supabaseAdmin!
@@ -96,6 +103,7 @@ export function registerSessionHandlers(io: AppServer, socket: AppSocket) {
       const channel = Array.isArray(rawChannel) ? rawChannel[0] : rawChannel;
       if (channel?.owner_id !== userId) return;
 
+      stopIngest(session_id);
       io.to(session_id).emit("session:ended", { session_id });
     } catch (err) {
       console.error("[realtime] session:end failed:", err);
