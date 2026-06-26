@@ -13,7 +13,7 @@ import { useStudioStore } from "@/lib/studio-store";
 import { api, ApiError } from "@/lib/api";
 import { getChromaKeyEffect, withChromaKey, DEFAULT_CHROMA_KEY, type ChromaKeyConfig } from "@/lib/chromaKey";
 import { createClient } from "@/lib/supabase/browser";
-import type { ChatMessage, Participant, ParticipantStatus, StreamDestination, StreamPlatform } from "@ditch/types";
+import type { ChatMessage, Participant, ParticipantStatus, StreamPlatform } from "@ditch/types";
 import type { ILocalAudioTrack, ILocalVideoTrack } from "agora-rtc-sdk-ng";
 import { ToastManager } from "./Toast";
 import { useStudioShortcuts } from "@/hooks/useStudioShortcuts";
@@ -212,49 +212,82 @@ const PLATFORM_RTMP_URL: Partial<Record<StreamPlatform, string>> = {
 
 const ALL_DEST_PLATFORMS: StreamPlatform[] = ["twitch", "youtube", "tiktok", "kick", "ditch"];
 
+// A persistent (channel-level) destination, with a per-broadcast enabled toggle.
+type SavedDestination = {
+  id: string;
+  platform: StreamPlatform;
+  label: string | null;
+  enabled: boolean;
+};
+
 function GoLiveModal({
   onClose,
   onGoLive,
   sessionId,
+  channelId,
   token,
 }: {
   onClose: () => void;
   onGoLive: () => void;
   sessionId: string;
+  channelId: string;
   token: string;
 }) {
-  const { settings, addDestination, removeDestination, updateSettings, addToast } = useStudioStore();
+  const { settings, updateSettings, addToast } = useStudioStore();
+  const [saved, setSaved] = useState<SavedDestination[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newPlatform, setNewPlatform] = useState<StreamPlatform>("twitch");
   const [newRtmpUrl, setNewRtmpUrl] = useState(PLATFORM_RTMP_URL["twitch"] ?? "");
   const [newStreamKey, setNewStreamKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
+  const [goingLive, setGoingLive] = useState(false);
+
+  // Load the channel's persistent destinations. New destinations default to
+  // enabled so a returning creator can go live in one click.
+  useEffect(() => {
+    api
+      .get<{ saved_destinations: Omit<SavedDestination, "enabled">[] }>(
+        `/saved-destinations?channel_id=${channelId}`,
+        { token },
+      )
+      .then(({ saved_destinations }) => {
+        setSaved(saved_destinations.map((d) => ({ ...d, enabled: true })));
+      })
+      .catch(() => addToast("Failed to load saved destinations", "error"))
+      .finally(() => setLoadingSaved(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-fill RTMP URL when platform changes
   useEffect(() => {
     setNewRtmpUrl(PLATFORM_RTMP_URL[newPlatform] ?? "");
   }, [newPlatform]);
 
+  const enabledCount = saved.filter((d) => d.enabled).length;
+
+  function toggleEnabled(id: string) {
+    setSaved((list) => list.map((d) => (d.id === id ? { ...d, enabled: !d.enabled } : d)));
+  }
+
   async function handleAdd() {
     if (!newRtmpUrl.trim() || !newStreamKey.trim()) return;
     setAddLoading(true);
     try {
-      const { destination } = await api.post<{ destination: StreamDestination }>("/destinations", {
+      const { saved_destination } = await api.post<{
+        saved_destination: Omit<SavedDestination, "enabled">;
+      }>("/saved-destinations", {
         token,
         body: {
-          session_id: sessionId,
+          channel_id: channelId,
           platform: newPlatform,
           rtmp_url: newRtmpUrl.trim(),
           stream_key: newStreamKey.trim(),
+          label: DEST_PLATFORM_LABEL[newPlatform],
         },
       });
-      addDestination({
-        id: destination.id,
-        platform: destination.platform,
-        label: DEST_PLATFORM_LABEL[destination.platform],
-        streamKey: "••••••••",
-      });
+      setSaved((list) => [...list, { ...saved_destination, enabled: true }]);
       setNewRtmpUrl(PLATFORM_RTMP_URL[newPlatform] ?? "");
       setNewStreamKey("");
       setNewPlatform("twitch");
@@ -266,12 +299,29 @@ function GoLiveModal({
     }
   }
 
-  async function handleRemove(destId: string) {
+  async function handleRemove(savedId: string) {
     try {
-      await api.delete(`/destinations/${destId}`, { token });
-      removeDestination(destId);
+      await api.delete(`/saved-destinations/${savedId}`, { token });
+      setSaved((list) => list.filter((d) => d.id !== savedId));
     } catch {
       addToast("Failed to remove destination", "error");
+    }
+  }
+
+  // Copy the enabled destinations into this session, then hand off to the relay.
+  async function handleGoLive() {
+    const ids = saved.filter((d) => d.enabled).map((d) => d.id);
+    if (ids.length === 0) return;
+    setGoingLive(true);
+    try {
+      await api.post("/sessions/" + sessionId + "/apply-destinations", {
+        token,
+        body: { saved_destination_ids: ids },
+      });
+      onGoLive();
+    } catch (err) {
+      addToast(err instanceof ApiError ? err.message : "Failed to start stream", "error");
+      setGoingLive(false);
     }
   }
 
@@ -312,32 +362,45 @@ function GoLiveModal({
             Destinations
           </p>
 
-          {settings.destinations.length === 0 && !showAddForm && (
+          {loadingSaved && (
+            <p className="text-[12px] text-[var(--text-muted)] py-1">Loading…</p>
+          )}
+
+          {!loadingSaved && saved.length === 0 && !showAddForm && (
             <p className="text-[12px] text-[var(--text-muted)] py-1">
-              No destinations yet. Add one below.
+              No destinations yet. Add one below and it&apos;s saved for next time.
             </p>
           )}
 
-          {settings.destinations.map((dest) => (
-            <div
+          {saved.map((dest) => (
+            <label
               key={dest.id}
-              className="flex items-center gap-2 px-3 py-2 rounded bg-[var(--bg-base)] border border-[var(--border)]"
+              className="flex items-center gap-2 px-3 py-2 rounded bg-[var(--bg-base)] border border-[var(--border)] cursor-pointer"
             >
+              <input
+                type="checkbox"
+                checked={dest.enabled}
+                onChange={() => toggleEnabled(dest.id)}
+                className="accent-[var(--accent-primary)] shrink-0"
+              />
               <span
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: DEST_PLATFORM_COLOR[dest.platform] }}
               />
               <span className="text-[12px] text-[var(--text-primary)] flex-1 truncate">
-                {DEST_PLATFORM_LABEL[dest.platform]}
+                {dest.label ?? DEST_PLATFORM_LABEL[dest.platform]}
               </span>
               <button
-                onClick={() => handleRemove(dest.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleRemove(dest.id);
+                }}
                 className="w-5 h-5 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-red-400 transition-colors shrink-0"
                 title="Remove"
               >
                 ✕
               </button>
-            </div>
+            </label>
           ))}
 
           {showAddForm ? (
@@ -426,11 +489,15 @@ function GoLiveModal({
 
         {/* Go Live */}
         <button
-          onClick={onGoLive}
-          disabled={settings.destinations.length === 0}
+          onClick={handleGoLive}
+          disabled={enabledCount === 0 || goingLive}
           className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--accent-primary)] text-white hover:bg-[var(--color-brand-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
-          Go Live
+          {goingLive
+            ? "Starting…"
+            : enabledCount > 0
+            ? `Go Live (${enabledCount})`
+            : "Go Live"}
         </button>
         {/* The relay refuses to start a session with zero destinations, so there
             is deliberately no "go live anyway" escape hatch here. */}
@@ -559,8 +626,8 @@ function EndStreamModal({
 
 // ── Top bar ───────────────────────────────────────────────────────────────────
 
-function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessionId: string; token: string; onRecordClick: () => void }) {
-  const { streamStatus, streamError, fps, setStreamStatus, settings, isRecording, streamDuration } = useStudioStore();
+function TopBar({ slug, sessionId, channelId, token, onRecordClick }: { slug: string; sessionId: string; channelId: string; token: string; onRecordClick: () => void }) {
+  const { streamStatus, streamError, fps, setStreamStatus, isRecording, streamDuration } = useStudioStore();
   const [showGoLiveModal,    setShowGoLiveModal]    = useState(false);
   const [showEndModal,       setShowEndModal]       = useState(false);
   const [showInviteModal,    setShowInviteModal]    = useState(false);
@@ -570,11 +637,9 @@ function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessi
     if (streamStatus === "live") {
       setShowEndModal(true);
     } else if (streamStatus === "offline") {
-      if (settings.destinations.length === 0) {
-        setShowGoLiveModal(true);
-      } else {
-        setStreamStatus("connecting");
-      }
+      // Always open the modal so the creator picks which saved destinations to
+      // stream to this session before going live.
+      setShowGoLiveModal(true);
     }
     // "connecting" - button is pointer-events-none, never fires
   }
@@ -603,6 +668,7 @@ function TopBar({ slug, sessionId, token, onRecordClick }: { slug: string; sessi
           onClose={() => setShowGoLiveModal(false)}
           onGoLive={beginGoLive}
           sessionId={sessionId}
+          channelId={channelId}
           token={token}
         />
       )}
@@ -2792,26 +2858,8 @@ export default function Studio({
   const streamStatusRef = useRef(streamStatus);
   streamStatusRef.current = streamStatus;
 
-  // FIX 1 - Populate destinations from DB on mount so the studio reflects what
-  // the dashboard already configured. Non-fatal: studio still works if this fails.
-  const { updateSettings } = useStudioStore();
-  useEffect(() => {
-    api.get<{ destinations: StreamDestination[] }>(`/destinations?channel_id=${channelId}`, { token })
-      .then(({ destinations }) => {
-        if (destinations.length) {
-          updateSettings({
-            destinations: destinations.map((d) => ({
-              id: d.id,
-              platform: d.platform,
-              label: DEST_PLATFORM_LABEL[d.platform],
-              streamKey: "••••••••",
-            })),
-          });
-        }
-      })
-      .catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Saved destinations are loaded inside the Go Live modal (channel-scoped and
+  // persistent), so there's no longer a per-session destination fetch on mount.
 
   // Session recovery - if the DB shows this session is live (e.g. the creator
   // closed the tab mid-stream and re-opened it), set streamStatus to "live" so
@@ -3088,7 +3136,7 @@ export default function Studio({
           background: "var(--bg-deep, #0D0D1A)",
         }}
       >
-        <TopBar slug={slug} sessionId={sessionId} token={token} onRecordClick={handleRecordClick} />
+        <TopBar slug={slug} sessionId={sessionId} channelId={channelId} token={token} onRecordClick={handleRecordClick} />
         <ScenesPanel />
         <LayersPanel
           localVideoTrack={localVideoTrack}

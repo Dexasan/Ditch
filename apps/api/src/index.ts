@@ -7,6 +7,7 @@ import { authRoutes } from "./routes/auth";
 import { channelRoutes } from "./routes/channels";
 import { sessionRoutes } from "./routes/sessions";
 import { destinationRoutes } from "./routes/destinations";
+import { savedDestinationRoutes } from "./routes/saved-destinations";
 import { participantRoutes } from "./routes/participants";
 import { communityRoutes } from "./routes/community";
 import { agoraRoutes } from "./routes/agora";
@@ -60,6 +61,7 @@ async function start() {
   await server.register(channelRoutes);
   await server.register(sessionRoutes);
   await server.register(destinationRoutes);
+  await server.register(savedDestinationRoutes);
   await server.register(participantRoutes);
   await server.register(communityRoutes);
   await server.register(agoraRoutes);

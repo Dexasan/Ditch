@@ -264,6 +264,44 @@ export type Database = {
           },
         ]
       }
+      saved_destinations: {
+        Row: {
+          channel_id: string
+          created_at: string
+          id: string
+          label: string | null
+          platform: Database["public"]["Enums"]["stream_platform"]
+          rtmp_url: string
+          stream_key: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          platform: Database["public"]["Enums"]["stream_platform"]
+          rtmp_url: string
+          stream_key: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          platform?: Database["public"]["Enums"]["stream_platform"]
+          rtmp_url?: string
+          stream_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_destinations_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stream_destinations: {
         Row: {
           created_at: string

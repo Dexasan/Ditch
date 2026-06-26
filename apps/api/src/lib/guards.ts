@@ -72,6 +72,38 @@ export async function assertSessionOwner(
 }
 
 /**
+ * Verifies that userId owns the saved destination (via saved_destination → channel).
+ * Returns the saved destination row on success, sends 403/404 and returns null
+ * on failure.
+ */
+export async function assertSavedDestinationOwner(
+  userId: string,
+  savedDestinationId: string,
+  reply: FastifyReply
+) {
+  const client = supabaseAdmin!;
+
+  const { data: saved, error } = await client
+    .from("saved_destinations")
+    .select("*, channels!inner(owner_id)")
+    .eq("id", savedDestinationId)
+    .single();
+
+  if (error || !saved) {
+    reply.status(404).send({ error: "Saved destination not found" });
+    return null;
+  }
+
+  const channel = saved.channels as { owner_id: string };
+  if (channel.owner_id !== userId) {
+    reply.status(403).send({ error: "Forbidden" });
+    return null;
+  }
+
+  return saved;
+}
+
+/**
  * Looks up a participant and verifies the caller is either the session owner
  * (creator) or the participant themselves. Returns { participant, isCreator }
  * on success, sends 403/404 and returns null on failure.
