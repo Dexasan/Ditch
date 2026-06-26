@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/browser";
 import { api, ApiError } from "@/lib/api";
 import type { LiveSession, SessionStatus } from "@ditch/types";
+import { readDisabled } from "./destinationSelection";
 
 const STATUS_LABEL: Record<SessionStatus, string> = {
   idle:   "Ready",
@@ -65,7 +66,8 @@ export default function SessionPanel({
       `/saved-destinations?channel_id=${channelId}`,
       { token: token! },
     );
-    const ids = saved_destinations.map((d) => d.id);
+    const off = readDisabled(channelId);
+    const ids = saved_destinations.map((d) => d.id).filter((id) => !off.has(id));
     if (ids.length === 0) return 0;
     await api.post(`/sessions/${sessionId}/apply-destinations`, {
       token: token!,
@@ -151,7 +153,7 @@ export default function SessionPanel({
                   try {
                     const count = await applySavedDestinations(session!.id);
                     if (count === 0) {
-                      setError("Add at least one destination before going live.");
+                      setError("Select at least one destination before going live.");
                       setLoading(false);
                       return;
                     }

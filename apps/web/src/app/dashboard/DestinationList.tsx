@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import { api, ApiError } from "@/lib/api";
 import type { StreamPlatform } from "@ditch/types";
+import { readDisabled, writeDisabled } from "./destinationSelection";
 
 const PLATFORMS: StreamPlatform[] = ["twitch", "youtube", "tiktok", "kick", "ditch"];
 
@@ -13,6 +14,14 @@ const PLATFORM_LABEL: Record<StreamPlatform, string> = {
   tiktok:  "TikTok",
   kick:    "Kick",
   ditch:   "DITCH",
+};
+
+// Default ingest URLs so the creator only has to paste a stream key. TikTok is
+// omitted because it issues a per-stream server URL (no stable default).
+const PLATFORM_RTMP_URL: Partial<Record<StreamPlatform, string>> = {
+  twitch:  "rtmp://live.twitch.tv/live",
+  youtube: "rtmp://a.rtmp.youtube.com/live2",
+  kick:    "rtmp://ingest.global-contribute.live-video.net/app",
 };
 
 // A persistent, channel-level destination. Credentials never come back from
@@ -41,10 +50,33 @@ export default function DestinationList({
   const [destinations, setDestinations] = useState<SavedDestination[]>(initialDestinations);
   const [adding, setAdding] = useState(false);
   const [platform, setPlatform] = useState<StreamPlatform>("twitch");
-  const [rtmpUrl, setRtmpUrl] = useState("");
+  const [rtmpUrl, setRtmpUrl] = useState(PLATFORM_RTMP_URL["twitch"] ?? "");
   const [streamKey, setStreamKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Which destinations are turned OFF for the next broadcast (opt-out set).
+  const [disabled, setDisabled] = useState<Set<string>>(new Set());
+
+  // Hydrate the toggle state from localStorage on mount (client-only).
+  useEffect(() => {
+    setDisabled(readDisabled(channelId));
+  }, [channelId]);
+
+  // Auto-fill the RTMP URL when the platform changes so the creator usually
+  // only needs to paste a stream key.
+  useEffect(() => {
+    setRtmpUrl(PLATFORM_RTMP_URL[platform] ?? "");
+  }, [platform]);
+
+  function toggleEnabled(id: string) {
+    setDisabled((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      writeDisabled(channelId, next);
+      return next;
+    });
+  }
 
   async function addDestination(e: React.FormEvent) {
     e.preventDefault();
@@ -66,7 +98,7 @@ export default function DestinationList({
         },
       );
       setDestinations((prev) => [...prev, saved_destination]);
-      setRtmpUrl("");
+      setRtmpUrl(PLATFORM_RTMP_URL[platform] ?? "");
       setStreamKey("");
       setAdding(false);
     } catch (err) {
@@ -80,6 +112,13 @@ export default function DestinationList({
     try {
       await api.delete(`/saved-destinations/${id}`, { token: token! });
       setDestinations((prev) => prev.filter((d) => d.id !== id));
+      setDisabled((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        writeDisabled(channelId, next);
+        return next;
+      });
     } catch {
       // silent - destination may already be gone
     }
@@ -102,7 +141,7 @@ export default function DestinationList({
       </div>
 
       <p className="text-xs text-[var(--color-text-muted)]">
-        Saved once and reused on every stream. You go live to all of these.
+        Saved once and reused on every stream. Tick which ones to go live to.
       </p>
 
       {destinations.length === 0 && !adding && (
@@ -113,12 +152,18 @@ export default function DestinationList({
         {destinations.map((d) => (
           <li
             key={d.id}
-            className="flex items-center justify-between text-sm py-2 border-b border-[var(--color-surface-border)] last:border-0"
+            className="flex items-center gap-3 text-sm py-2 border-b border-[var(--color-surface-border)] last:border-0"
           >
-            <span className="font-medium">{d.label ?? PLATFORM_LABEL[d.platform]}</span>
+            <input
+              type="checkbox"
+              checked={!disabled.has(d.id)}
+              onChange={() => toggleEnabled(d.id)}
+              className="accent-[var(--color-brand)] shrink-0"
+            />
+            <span className="font-medium flex-1">{d.label ?? PLATFORM_LABEL[d.platform]}</span>
             <button
               onClick={() => removeDestination(d.id)}
-              className="text-xs text-[var(--color-text-muted)] hover:text-red-400 transition-colors"
+              className="text-xs text-[var(--color-text-muted)] hover:text-red-400 transition-colors shrink-0"
             >
               Remove
             </button>
