@@ -32,8 +32,55 @@ export interface FfmpegSession {
   onError: (cb: (err: Error) => void) => void;
 }
 
-export function spawnFfmpeg(rtmpTargets: string[], sessionId: string): FfmpegSession {
-  const args = buildArgs(rtmpTargets);
+export type EncoderPreset = "quality" | "balanced" | "performance";
+
+export interface EncoderParams {
+  videoBitrateKbps: number;
+  audioBitrateKbps: number;
+  preset: EncoderPreset;
+  fps: number;
+}
+
+export const DEFAULT_ENCODER_PARAMS: EncoderParams = {
+  videoBitrateKbps: 3000,
+  audioBitrateKbps: 128,
+  preset: "balanced",
+  fps: 30,
+};
+
+const X264_PRESETS: Record<EncoderPreset, string> = {
+  quality: "medium",
+  balanced: "veryfast",
+  performance: "ultrafast",
+};
+
+function clampInt(v: unknown, min: number, max: number, fallback: number): number {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+// Encoder params arrive from the browser in the WS "start" message - clamp
+// everything to sane ranges so a tampered client can't drive ffmpeg with
+// absurd values.
+export function sanitizeEncoderParams(msg: Record<string, unknown>): EncoderParams {
+  const preset = msg.encoder_preset;
+  return {
+    videoBitrateKbps: clampInt(msg.video_bitrate_kbps, 1000, 8000, DEFAULT_ENCODER_PARAMS.videoBitrateKbps),
+    audioBitrateKbps: clampInt(msg.audio_bitrate_kbps, 64, 320, DEFAULT_ENCODER_PARAMS.audioBitrateKbps),
+    preset: preset === "quality" || preset === "balanced" || preset === "performance"
+      ? preset
+      : DEFAULT_ENCODER_PARAMS.preset,
+    fps: msg.fps === 60 ? 60 : 30,
+  };
+}
+
+export function spawnFfmpeg(
+  rtmpTargets: string[],
+  sessionId: string,
+  params: EncoderParams = DEFAULT_ENCODER_PARAMS,
+): FfmpegSession {
+  const args = buildArgs(rtmpTargets, params);
   const tag = `[ffmpeg ${sessionId.slice(0, 8)}]`;
 
   console.log(tag, "spawning:", FFMPEG_BIN, args.join(" "));
@@ -86,7 +133,7 @@ export function spawnFfmpeg(rtmpTargets: string[], sessionId: string): FfmpegSes
   };
 }
 
-function buildArgs(targets: string[]): string[] {
+export function buildArgs(targets: string[], params: EncoderParams = DEFAULT_ENCODER_PARAMS): string[] {
   const inputFlags = [
     "-fflags", "+nobuffer+genpts",
     "-thread_queue_size", "512",
@@ -98,35 +145,41 @@ function buildArgs(targets: string[]): string[] {
 
   // YouTube (unlike Twitch) refuses to leave "Preparing stream" unless it gets a
   // keyframe every ~2s. The browser's MediaRecorder emits them too infrequently
-  // and -c:v copy can't insert them, so when a YouTube target is present we must
-  // re-encode with a forced 2s keyframe interval. Other targets pass through
-  // untouched to avoid the generation loss re-encoding causes (the browser's
-  // encoder drops bitrate on static scenes; a second H264 pass only degrades it).
-  const reencode = targets.some((t) => /youtube/i.test(t));
+  // and -c:v copy can't insert them, so YouTube targets get a libx264 re-encode
+  // with a forced 2s keyframe interval. All other targets keep the lossless
+  // passthrough: ffmpeg supports per-output codecs from one input, so the two
+  // branches coexist in a single process (re-encoding everything caused Twitch
+  // to show black video while accepting bytes).
+  const needsReencode = (t: string) => /youtube/i.test(t);
+  const reencodeTargets = targets.filter(needsReencode);
+  const copyTargets = targets.filter((t) => !needsReencode(t));
 
-  const encodeFlags = reencode
-    ? [
-        "-c:v", "libx264",
-        "-preset", "veryfast",
-        "-profile:v", "main",
-        "-pix_fmt", "yuv420p",
-        // Force a keyframe every 2 seconds of wall-clock time (fps-independent).
-        "-force_key_frames", "expr:gte(t,n_forced*2)",
-        "-b:v", "3000k",
-        "-maxrate", "3000k",
-        "-bufsize", "6000k",
-        "-c:a", "aac",
-        "-b:a", "128k",
-        "-ar", "44100",
-      ]
-    : [
-        // Pass H264 NAL units from the browser straight into FLV (no re-encode).
-        // Audio transcoded Opus → AAC since RTMP does not carry Opus.
-        "-c:v", "copy",
-        "-c:a", "aac",
-        "-b:a", "128k",
-        "-ar", "44100",
-      ];
+  // Audio is always transcoded Opus → AAC since RTMP does not carry Opus.
+  const audioFlags = [
+    "-c:a", "aac",
+    "-b:a", `${params.audioBitrateKbps}k`,
+    "-ar", "44100",
+  ];
+
+  // Pass H264 NAL units from the browser straight into FLV (no re-encode).
+  const copyFlags = ["-c:v", "copy", ...audioFlags];
+
+  const reencodeFlags = [
+    "-c:v", "libx264",
+    "-preset", X264_PRESETS[params.preset],
+    "-profile:v", "main",
+    "-pix_fmt", "yuv420p",
+    // The browser canvas capture is variable-framerate; RTMP ingests expect
+    // constant. As an output option -r duplicates/drops frames to hold a
+    // constant rate (CFR), regularizing timestamps on static scenes.
+    "-r", String(params.fps),
+    // Force a keyframe every 2 seconds of wall-clock time (fps-independent).
+    "-force_key_frames", "expr:gte(t,n_forced*2)",
+    "-b:v", `${params.videoBitrateKbps}k`,
+    "-maxrate", `${params.videoBitrateKbps}k`,
+    "-bufsize", `${params.videoBitrateKbps * 2}k`,
+    ...audioFlags,
+  ];
 
   // Flush every packet immediately; skip duration/filesize fields in FLV header
   // (they can't be known for a live stream and cause noisy errors on shutdown).
@@ -135,14 +188,23 @@ function buildArgs(targets: string[]): string[] {
     "-flush_packets", "1",
   ];
 
-  if (targets.length === 1) {
-    return [...inputFlags, ...encodeFlags, ...outputFlags, "-f", "flv", targets[0]];
-  }
-
-  // Tee muxer: encode once, push to all destinations simultaneously.
+  // One output branch per encode policy. A branch with a single target is a
+  // plain FLV output; multiple targets share one encode via the tee muxer.
   // Escape any literal `|` in the target URL so it isn't parsed as a tee
   // output separator. Defense-in-depth: the API rejects `|` in stream_key,
   // but we sanitize here too in case data arrives from another path.
-  const tee = targets.map((t) => `[onfail=ignore:f=flv]${t.replace(/\|/g, "\\|")}`).join("|");
-  return [...inputFlags, ...encodeFlags, ...outputFlags, "-f", "tee", "-map", "0:v", "-map", "0:a", tee];
+  function outputBranch(encodeFlags: string[], branchTargets: string[]): string[] {
+    const mapFlags = ["-map", "0:v", "-map", "0:a"];
+    if (branchTargets.length === 1) {
+      return [...mapFlags, ...encodeFlags, ...outputFlags, "-f", "flv", branchTargets[0]];
+    }
+    const tee = branchTargets.map((t) => `[onfail=ignore:f=flv]${t.replace(/\|/g, "\\|")}`).join("|");
+    return [...mapFlags, ...encodeFlags, ...outputFlags, "-f", "tee", tee];
+  }
+
+  return [
+    ...inputFlags,
+    ...(copyTargets.length ? outputBranch(copyFlags, copyTargets) : []),
+    ...(reencodeTargets.length ? outputBranch(reencodeFlags, reencodeTargets) : []),
+  ];
 }

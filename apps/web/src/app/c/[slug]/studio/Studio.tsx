@@ -9,7 +9,7 @@ import { useRelayStream } from "@/hooks/useRelayStream";
 import type { CamCell, Destination, Layer, Scene } from "@/lib/studio-store";
 import { CREATOR_CAM_UID, CREATOR_SCREEN_UID } from "@/lib/agora";
 import { getSocket, type SessionJoinAck } from "@/lib/socket";
-import { useStudioStore } from "@/lib/studio-store";
+import { recommendedBitrateKbps, useStudioStore } from "@/lib/studio-store";
 import { api, ApiError } from "@/lib/api";
 import { getChromaKeyEffect, withChromaKey, DEFAULT_CHROMA_KEY, type ChromaKeyConfig } from "@/lib/chromaKey";
 import { createClient } from "@/lib/supabase/browser";
@@ -1881,6 +1881,9 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const autoBitrateKbps = recommendedBitrateKbps(settings.outputResolution, targetFps);
+  const effectiveBitrateKbps = settings.autoBitrate ? autoBitrateKbps : settings.videoBitrateKbps;
+
   const sectionHd = "text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider";
   const row = "flex items-center justify-between gap-4";
   const pill = (active: boolean, disabled = false) =>
@@ -1962,15 +1965,25 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             <div>
               <div className={row}>
                 <span className="text-[11px] text-[var(--text-primary)]">Target bitrate</span>
-                <span className="text-[11px] font-mono" style={{ color: "var(--accent-primary)" }}>
-                  {(settings.videoBitrateKbps / 1000).toFixed(1)} Mbps
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => updateSettings({ autoBitrate: !settings.autoBitrate })}
+                    title="Pick the best bitrate for the output resolution and frame rate"
+                    className={pill(settings.autoBitrate)}
+                  >
+                    Auto
+                  </button>
+                  <span className="text-[11px] font-mono" style={{ color: "var(--accent-primary)" }}>
+                    {(effectiveBitrateKbps / 1000).toFixed(1)} Mbps
+                  </span>
+                </div>
               </div>
               <input
                 type="range" min={1000} max={8000} step={500}
-                value={settings.videoBitrateKbps}
+                value={effectiveBitrateKbps}
+                disabled={settings.autoBitrate}
                 onChange={(e) => updateSettings({ videoBitrateKbps: Number(e.target.value) })}
-                className="w-full mt-2 accent-[var(--accent-primary)]"
+                className="w-full mt-2 accent-[var(--accent-primary)] disabled:opacity-40 disabled:cursor-not-allowed"
               />
               <div className="flex justify-between text-[9px] text-[var(--text-muted)] mt-0.5">
                 <span>1 Mbps</span><span>4 Mbps</span><span>8 Mbps</span>
@@ -2013,7 +2026,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         {/* Footer */}
         <div className="px-5 py-3 border-t border-[var(--border)] shrink-0" style={{ background: "var(--bg-mid)" }}>
           <p className="text-[10px] text-[var(--text-muted)]">
-            Bitrate and preset changes take effect on next stream start. 1080p output coming soon.
+            Auto bitrate is picked from resolution and frame rate. Changes take effect on next stream start. 1080p output coming soon.
           </p>
         </div>
       </div>
@@ -2796,6 +2809,7 @@ export default function Studio({
   const {
     streamStatus, setStreamStatus, setStreamError, setFps,
     targetFps,
+    settings,
     setBitrateKbps,
     setIsRecording: storeSetIsRecording,
     setStreamDuration,
@@ -3015,12 +3029,20 @@ export default function Studio({
   });
 
   // Relay stream - only active when streamStatus !== 'offline'.
+  // Auto bitrate (default) is computed from output settings at stream start;
+  // the manual slider value is only used when the streamer turns Auto off.
   const { streaming: relayStreaming, error: relayError } = useRelayStream({
     stream: compositeStream,
     sessionId,
     token,
     enabled: streamStatus !== "offline",
     onBitrate: setBitrateKbps,
+    videoBitrateKbps: settings.autoBitrate
+      ? recommendedBitrateKbps(settings.outputResolution, targetFps)
+      : settings.videoBitrateKbps,
+    audioBitrateKbps: settings.audioBitrateKbps,
+    encoderPreset: settings.encoderPreset,
+    fps: targetFps,
   });
 
   // Sync relay connection state into store.

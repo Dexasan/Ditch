@@ -63,10 +63,19 @@ export type OutputResolution = "720p" | "1080p";
 interface StudioSettings {
   destinations: Destination[];
   streamTitle: string;
+  autoBitrate: boolean;
   videoBitrateKbps: number;
   audioBitrateKbps: number;
   encoderPreset: EncoderPreset;
   outputResolution: OutputResolution;
+}
+
+// Platform-guidance bitrate table (kbps). With autoBitrate on (the default)
+// this is computed from output settings at stream start, so streamers never
+// have to pre-pick a bitrate; the slider remains as a manual override.
+export function recommendedBitrateKbps(resolution: OutputResolution, fps: number): number {
+  if (resolution === "1080p") return fps >= 60 ? 8000 : 6000;
+  return fps >= 60 ? 6000 : 4500;
 }
 
 export interface Scene {
@@ -256,6 +265,7 @@ export const useStudioStore = create<StudioStore>()(
   settings: {
     destinations: [],
     streamTitle: "",
+    autoBitrate: true,
     videoBitrateKbps: 4000,
     audioBitrateKbps: 128,
     encoderPreset: "balanced" as EncoderPreset,
@@ -357,15 +367,17 @@ export const useStudioStore = create<StudioStore>()(
       }
       return state;
     },
-    // Only persist layout state. Stream status, bitrate, recording, toasts,
-    // and undo history are ephemeral - they reset correctly on reload.
-    // settings (destinations) intentionally excluded to keep stream keys out of localStorage.
+    // Only persist layout state and encoder settings. Stream status, bitrate,
+    // recording, toasts, and undo history are ephemeral - they reset correctly
+    // on reload. Destinations are stripped from persisted settings so stream
+    // keys never touch localStorage (they are per-session DB rows anyway).
     partialize: (state) => ({
       scenes: state.scenes,
       activeSceneId: state.activeSceneId,
       targetFps: state.targetFps,
       snapToGrid: state.snapToGrid,
       lastSessionId: state.lastSessionId,
+      settings: { ...state.settings, destinations: [] },
     }),
   }
 ));

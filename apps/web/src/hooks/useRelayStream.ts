@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { EncoderPreset } from "@/lib/studio-store";
 
 const CHUNK_INTERVAL_MS = 250;
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 2000;
+
+const DEFAULT_VIDEO_KBPS = 3000;
+const DEFAULT_AUDIO_KBPS = 128;
 
 interface RelayStreamOptions {
   stream: MediaStream | null;
@@ -12,6 +16,12 @@ interface RelayStreamOptions {
   token: string;
   enabled: boolean;
   onBitrate?: (kbps: number) => void;
+  // Encoder settings are read at (re)connect time, not reactively: changing
+  // them mid-stream must not restart the recorder. They apply on next start.
+  videoBitrateKbps?: number;
+  audioBitrateKbps?: number;
+  encoderPreset?: EncoderPreset;
+  fps?: number;
 }
 
 export interface RelayStreamState {
@@ -25,6 +35,10 @@ export function useRelayStream({
   token,
   enabled,
   onBitrate,
+  videoBitrateKbps,
+  audioBitrateKbps,
+  encoderPreset,
+  fps,
 }: RelayStreamOptions): RelayStreamState {
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +50,19 @@ export function useRelayStream({
   // Stable ref so the interval closure never captures a stale callback
   const onBitrateRef = useRef(onBitrate);
   onBitrateRef.current = onBitrate;
+  // Ref (not effect dep) so settings changes don't tear down a live stream
+  const encoderRef = useRef({
+    videoBitrateKbps: DEFAULT_VIDEO_KBPS,
+    audioBitrateKbps: DEFAULT_AUDIO_KBPS,
+    encoderPreset: "balanced" as EncoderPreset,
+    fps: 30,
+  });
+  encoderRef.current = {
+    videoBitrateKbps: videoBitrateKbps ?? DEFAULT_VIDEO_KBPS,
+    audioBitrateKbps: audioBitrateKbps ?? DEFAULT_AUDIO_KBPS,
+    encoderPreset: encoderPreset ?? "balanced",
+    fps: fps ?? 30,
+  };
 
   useEffect(() => {
     if (!enabled || !stream) return;
@@ -82,7 +109,16 @@ export function useRelayStream({
       wsRef.current = ws;
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({ type: "start", session_id: sessionId, token }));
+        const enc = encoderRef.current;
+        ws.send(JSON.stringify({
+          type: "start",
+          session_id: sessionId,
+          token,
+          video_bitrate_kbps: enc.videoBitrateKbps,
+          audio_bitrate_kbps: enc.audioBitrateKbps,
+          encoder_preset: enc.encoderPreset,
+          fps: enc.fps,
+        }));
       };
 
       ws.onmessage = (event: MessageEvent<string>) => {
@@ -101,11 +137,17 @@ export function useRelayStream({
 
           console.log("[relay-stream] MediaRecorder mimeType selected:", mimeType);
 
+          const enc = encoderRef.current;
           const recorder = new MediaRecorder(stream!, {
             mimeType,
-            videoBitsPerSecond: 3_000_000,
-            audioBitsPerSecond: 128_000,
-          });
+            videoBitsPerSecond: enc.videoBitrateKbps * 1000,
+            audioBitsPerSecond: enc.audioBitrateKbps * 1000,
+            // Ask Chromium for a keyframe every 2s. Unknown dictionary members
+            // are ignored by browsers without support, so this is safe to pass
+            // unconditionally. Groundwork for dropping the relay-side YouTube
+            // re-encode once source keyframes are verified in production.
+            videoKeyFrameIntervalDuration: 2000,
+          } as MediaRecorderOptions);
           recorderRef.current = recorder;
 
           recorder.ondataavailable = (e: BlobEvent) => {

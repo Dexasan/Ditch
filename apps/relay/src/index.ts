@@ -2,7 +2,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { createServer, type IncomingMessage, type ServerResponse } from "http";
 import { supabaseAdmin } from "@ditch/db";
 import { validateEnv } from "./lib/env.js";
-import { spawnFfmpeg, type FfmpegSession } from "./lib/ffmpeg.js";
+import { spawnFfmpeg, sanitizeEncoderParams, type FfmpegSession } from "./lib/ffmpeg.js";
 
 validateEnv();
 
@@ -56,6 +56,7 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
 
     if (msg.type === "start") {
       const { session_id, token } = msg as { session_id: string; token: string };
+      const encoderParams = sanitizeEncoderParams(msg);
 
       // 1. Validate JWT
       const { data: authData, error: authError } = await supabaseAdmin!.auth.getUser(token);
@@ -105,7 +106,7 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
 
       // 5. Spawn ffmpeg
       try {
-        session = spawnFfmpeg(rtmpTargets, session_id);
+        session = spawnFfmpeg(rtmpTargets, session_id, encoderParams);
         currentSessionId = session_id;
         activeSessions.set(session_id, session);
       } catch (err) {
