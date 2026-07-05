@@ -96,17 +96,37 @@ function buildArgs(targets: string[]): string[] {
     "-i", "pipe:0",
   ];
 
-  // -c:v copy: pass H264 NAL units from the browser directly into FLV without
-  // re-encoding. Re-encoding causes generation loss: the browser's encoder
-  // aggressively drops bitrate on static scenes, producing a degraded source
-  // that a second H264 encode can only make worse.
-  // Audio transcoded Opus → AAC since RTMP does not carry Opus.
-  const encodeFlags = [
-    "-c:v", "copy",
-    "-c:a", "aac",
-    "-b:a", "128k",
-    "-ar", "44100",
-  ];
+  // YouTube (unlike Twitch) refuses to leave "Preparing stream" unless it gets a
+  // keyframe every ~2s. The browser's MediaRecorder emits them too infrequently
+  // and -c:v copy can't insert them, so when a YouTube target is present we must
+  // re-encode with a forced 2s keyframe interval. Other targets pass through
+  // untouched to avoid the generation loss re-encoding causes (the browser's
+  // encoder drops bitrate on static scenes; a second H264 pass only degrades it).
+  const reencode = targets.some((t) => /youtube/i.test(t));
+
+  const encodeFlags = reencode
+    ? [
+        "-c:v", "libx264",
+        "-preset", "veryfast",
+        "-profile:v", "main",
+        "-pix_fmt", "yuv420p",
+        // Force a keyframe every 2 seconds of wall-clock time (fps-independent).
+        "-force_key_frames", "expr:gte(t,n_forced*2)",
+        "-b:v", "3000k",
+        "-maxrate", "3000k",
+        "-bufsize", "6000k",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-ar", "44100",
+      ]
+    : [
+        // Pass H264 NAL units from the browser straight into FLV (no re-encode).
+        // Audio transcoded Opus → AAC since RTMP does not carry Opus.
+        "-c:v", "copy",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-ar", "44100",
+      ];
 
   // Flush every packet immediately; skip duration/filesize fields in FLV header
   // (they can't be known for a live stream and cause noisy errors on shutdown).
