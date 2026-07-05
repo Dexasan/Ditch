@@ -11,6 +11,14 @@ const API = "https://www.googleapis.com/youtube/v3";
 const KEY = process.env.GOOGLE_API_KEY;
 const MIN_POLL_MS = 3000;
 const ERROR_BACKOFF_MS = 15000;
+// YouTube's search index lags a few minutes behind a stream going live, so a
+// single discovery attempt usually misses. Retry on an interval. search.list
+// costs 100 quota units/call, so keep the interval long and the count bounded
+// (6 × 100 = 600 units per session worst case).
+const DISCOVERY_RETRY_MS = 120000;
+const MAX_DISCOVERY_ATTEMPTS = 6;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function getJson(url: URL): Promise<any | null> {
   const res = await fetch(url);
@@ -67,16 +75,19 @@ export function startYouTube(channelRef: string, emit: EmitFn): Ingestor {
         console.warn(`[ingest] youtube: could not resolve channel "${channelRef}"`);
         return;
       }
-      const videoId = await findLiveVideoId(channelId);
-      if (!videoId) {
-        console.warn(`[ingest] youtube: no live broadcast for "${channelRef}"`);
-        return;
+      // Retry discovery: the stream may not be indexed yet, or the creator may
+      // go live on YouTube shortly after going live on DITCH.
+      let liveChatId: string | null = null;
+      for (let attempt = 1; active && attempt <= MAX_DISCOVERY_ATTEMPTS; attempt++) {
+        const videoId = await findLiveVideoId(channelId);
+        if (videoId) liveChatId = await getLiveChatId(videoId);
+        if (liveChatId) break;
+        console.warn(
+          `[ingest] youtube: no live broadcast for "${channelRef}" (attempt ${attempt}/${MAX_DISCOVERY_ATTEMPTS})`,
+        );
+        if (attempt < MAX_DISCOVERY_ATTEMPTS) await sleep(DISCOVERY_RETRY_MS);
       }
-      const liveChatId = await getLiveChatId(videoId);
-      if (!liveChatId) {
-        console.warn(`[ingest] youtube: no active live chat for "${channelRef}"`);
-        return;
-      }
+      if (!active || !liveChatId) return;
 
       console.log(`[ingest] youtube connector started for ${channelRef}`);
       let pageToken: string | undefined;
