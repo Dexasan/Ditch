@@ -8,21 +8,28 @@ import { startYouTube } from "./youtube.js";
 
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
-// session_id → its running connectors. Presence of a key (even an empty array)
-// means "ingestion already set up for this session" so starts are idempotent.
+// session_id → its running connectors. Presence of a key means ingestion is
+// live for that session. We intentionally do NOT add a key when a session has
+// no external destinations yet, so a later attempt can pick them up once the
+// creator goes live (the room is often joined before destinations are applied).
 const active = new Map<string, Ingestor[]>();
+// Guards against two concurrent starts racing between the await points.
+const starting = new Set<string>();
+
+// Set once at boot so the sweep and connectors can broadcast without threading
+// `io` through every call site.
+let io: AppServer | null = null;
 
 // Persist an ingested message and broadcast it to the session room so every
 // viewer sees the unified feed. Mirrors the shape of native chat:message.
 async function emitMessage(
-  io: AppServer,
   sessionId: string,
   platform: "twitch" | "youtube",
   author: string,
   body: string,
 ) {
   const text = body.trim();
-  if (!text) return;
+  if (!text || !io) return;
   try {
     const { data: message, error } = await supabaseAdmin!
       .from("chat_messages")
@@ -44,31 +51,39 @@ async function emitMessage(
 
 /**
  * Ensures chat ingestion is running for a live session. Idempotent — safe to
- * call on every session:join. Reads the session's external destinations and
- * starts a connector for each that has a channel reference.
+ * call repeatedly (on every session:join and on every sweep). If the session
+ * has no external destinations with a channel reference yet, it returns without
+ * claiming the session, so a later call can start it once the creator goes live.
  */
-export async function startIngest(io: AppServer, sessionId: string): Promise<void> {
-  if (active.has(sessionId)) return;
-  active.set(sessionId, []); // reserve immediately to avoid concurrent double-starts
+export async function startIngest(sessionId: string): Promise<void> {
+  if (!io || active.has(sessionId) || starting.has(sessionId)) return;
+  starting.add(sessionId);
+  try {
+    const { data: dests } = await supabaseAdmin!
+      .from("stream_destinations")
+      .select("platform, channel_ref")
+      .eq("session_id", sessionId);
 
-  const { data: dests } = await supabaseAdmin!
-    .from("stream_destinations")
-    .select("platform, channel_ref")
-    .eq("session_id", sessionId);
+    const externals = (dests ?? []).filter(
+      (d) => d.channel_ref && (d.platform === "twitch" || d.platform === "youtube"),
+    );
+    // Nothing to read yet. Don't claim the session — a later attempt will retry
+    // once destinations are applied.
+    if (externals.length === 0) return;
+    if (active.has(sessionId)) return; // re-check after the await
 
-  const connectors: Ingestor[] = [];
-  for (const d of dests ?? []) {
-    if (!d.channel_ref) continue;
-    if (d.platform === "twitch") {
-      connectors.push(startTwitch(d.channel_ref, (a, b) => emitMessage(io, sessionId, "twitch", a, b)));
-    } else if (d.platform === "youtube") {
-      connectors.push(startYouTube(d.channel_ref, (a, b) => emitMessage(io, sessionId, "youtube", a, b)));
-    }
-  }
+    const connectors: Ingestor[] = externals.map((d) =>
+      d.platform === "twitch"
+        ? startTwitch(d.channel_ref!, (a, b) => emitMessage(sessionId, "twitch", a, b))
+        : startYouTube(d.channel_ref!, (a, b) => emitMessage(sessionId, "youtube", a, b)),
+    );
 
-  active.set(sessionId, connectors);
-  if (connectors.length) {
+    active.set(sessionId, connectors);
     console.log(`[ingest] session ${sessionId}: ${connectors.length} connector(s) running`);
+  } catch (err) {
+    console.error("[ingest] startIngest failed:", err);
+  } finally {
+    starting.delete(sessionId);
   }
 }
 
@@ -87,22 +102,39 @@ export function stopIngest(sessionId: string): void {
   console.log(`[ingest] session ${sessionId}: ingestion stopped`);
 }
 
-// Safety sweep: a creator who closes their tab without ending cleanly leaves
-// connectors running. Every 60s, drop ingestion for any session that the DB no
-// longer reports as live.
-const SWEEP_MS = 60000;
-setInterval(async () => {
-  if (active.size === 0) return;
-  for (const sessionId of [...active.keys()]) {
-    try {
+// Periodic reconciler. Handles the common race where the creator opens the
+// control room (joining the session) BEFORE going live, then attaches
+// destinations. It also cleans up sessions that ended without a clean stop.
+const SWEEP_MS = 15000;
+
+async function sweep() {
+  try {
+    // 1. Start ingestion for any live session not already reading. startIngest
+    //    is a no-op when a session has no external destinations, so this is cheap.
+    const { data: liveSessions } = await supabaseAdmin!
+      .from("live_sessions")
+      .select("id")
+      .eq("status", "live");
+    for (const s of liveSessions ?? []) {
+      if (!active.has(s.id)) void startIngest(s.id);
+    }
+
+    // 2. Stop ingestion for sessions we're reading that are no longer live.
+    for (const sessionId of [...active.keys()]) {
       const { data } = await supabaseAdmin!
         .from("live_sessions")
         .select("status")
         .eq("id", sessionId)
         .maybeSingle();
       if (!data || data.status === "ended") stopIngest(sessionId);
-    } catch {
-      // leave it running; try again next sweep
     }
+  } catch (err) {
+    console.error("[ingest] sweep failed:", err);
   }
-}, SWEEP_MS).unref();
+}
+
+/** Wires the manager to the Socket.io server and starts the reconcile loop. */
+export function initIngest(server: AppServer): void {
+  io = server;
+  setInterval(sweep, SWEEP_MS).unref();
+}

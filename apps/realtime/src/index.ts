@@ -3,6 +3,7 @@ import { Server } from "socket.io";
 import type { ClientToServerEvents, ServerToClientEvents, SocketData } from "./types.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { registerHandlers } from "./handlers/index.js";
+import { initIngest } from "./ingest/manager.js";
 import { validateEnv } from "./lib/env.js";
 
 validateEnv();
@@ -46,6 +47,9 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, Record<string,
 );
 
 io.use(authMiddleware);
+
+// Wire external chat ingestion (Twitch/YouTube) to this Socket.io server.
+initIngest(io);
 
 io.on("connection", (socket) => {
   console.log(`[realtime] socket ${socket.id} connected (user_id: ${socket.data.user_id ?? "anon"})`);

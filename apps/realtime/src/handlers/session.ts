@@ -34,9 +34,9 @@ export function registerSessionHandlers(io: AppServer, socket: AppSocket) {
 
       // Start external chat ingestion (Twitch/YouTube) for this live session.
       // Idempotent and fire-and-forget — failures here must not block the join.
-      void startIngest(io, session_id).catch((err) =>
-        console.error("[realtime] startIngest failed:", err),
-      );
+      // A periodic sweep also starts ingestion, covering the case where the room
+      // is joined before destinations are applied.
+      void startIngest(session_id);
 
       const [{ data: participants }, { data: recentMessages }] = await Promise.all([
         supabaseAdmin!
