@@ -86,9 +86,11 @@ export function useStudioShortcuts({
         return;
       }
 
-      // Cmd+D: duplicate selected layer
+      // Cmd+D: duplicate selected layer (screenshare/media are lifecycle-bound
+      // to their captures/files and can't be duplicated)
       if (meta && e.key === "d") {
         e.preventDefault();
+        if (selectedLayer.type === "screenshare" || selectedLayer.type === "media" || selectedLayer.type === "browser") return;
         s.pushUndo(s.activeSceneId, activeScene.layers);
         const dup: Layer = {
           ...selectedLayer,
@@ -99,7 +101,8 @@ export function useStudioShortcuts({
             x: selectedLayer.transform.x + 16,
             y: selectedLayer.transform.y + 16,
           },
-          effects: [...selectedLayer.effects],
+          sourceConfig: { ...selectedLayer.sourceConfig },
+          effects: selectedLayer.effects.map((ef) => ({ ...ef })),
         };
         s.addLayer(s.activeSceneId, dup);
         s.setSelectedLayerId(dup.id);

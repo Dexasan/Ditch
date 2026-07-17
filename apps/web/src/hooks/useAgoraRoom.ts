@@ -90,6 +90,8 @@ export interface AgoraRoomState {
   toggleScreenShare: () => Promise<void>;
   /** Hot-switch the active microphone without dropping the channel. */
   switchMicDevice: (deviceId: string) => Promise<void>;
+  /** Hot-switch the published camera without dropping the channel. */
+  switchCamDevice: (deviceId: string) => Promise<void>;
   /** Leaves the current audience client and re-joins as host, then creates and
    *  publishes mic+camera tracks - all in one call meant to be invoked directly
    *  from an onClick handler. iOS Safari requires getUserMedia (and setClientRole)
@@ -114,7 +116,7 @@ export function useAgoraRoom(options: {
 }): AgoraRoomState {
   const { channelName, uid, role, publish, enabled, screenShareUid, authToken } = options;
 
-  const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "toggleScreenShare" | "switchMicDevice" | "goLiveAsHost" | "demoteToAudience">>({
+  const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "toggleScreenShare" | "switchMicDevice" | "switchCamDevice" | "goLiveAsHost" | "demoteToAudience">>({
     localVideoTrack: null,
     localAudioTrack: null,
     remoteUsers: [],
@@ -347,6 +349,12 @@ export function useAgoraRoom(options: {
     await localAudioTrackRef.current.setDevice(deviceId);
   }, []);
 
+  const switchCamDevice = useCallback(async (deviceId: string) => {
+    const track = camTrackRef.current as (ILocalVideoTrack & { setDevice?: (id: string) => Promise<void> }) | null;
+    if (!track?.setDevice) return;
+    await track.setDevice(deviceId);
+  }, []);
+
   const goLiveAsHost = useCallback(async (hostUid: number) => {
     if (!AGORA_APP_ID) return;
     try {
@@ -459,5 +467,5 @@ export function useAgoraRoom(options: {
     }
   }, []);
 
-  return { ...state, localScreenTrack, toggleScreenShare, switchMicDevice, goLiveAsHost, demoteToAudience };
+  return { ...state, localScreenTrack, toggleScreenShare, switchMicDevice, switchCamDevice, goLiveAsHost, demoteToAudience };
 }

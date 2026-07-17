@@ -18,7 +18,16 @@ export interface LayerSnapshot {
   layers: Layer[];
 }
 
-type LayerType = "camera" | "screenshare" | "media" | "browser" | "image" | "text" | "shape";
+type LayerType =
+  | "camera"
+  | "screenshare"
+  | "media"
+  | "browser"
+  | "image"
+  | "text"
+  | "shape"
+  | "markdown"
+  | "widget";
 
 interface Transform {
   x: number;
@@ -155,7 +164,7 @@ interface StudioStore {
   resetForNewSession: (sessionId: string) => void;
 
   // Layer actions
-  addLayer: (sceneId: string, layer: Layer) => void;
+  addLayer: (sceneId: string, layer: Layer, position?: "top" | "bottom") => void;
   removeLayer: (sceneId: string, layerId: string) => void;
   updateLayer: (sceneId: string, layerId: string, patch: Partial<Layer>) => void;
   reorderLayers: (sceneId: string, newOrder: Layer[]) => void;
@@ -313,10 +322,17 @@ export const useStudioStore = create<StudioStore>()(
     }),
 
   // Layer actions
-  addLayer: (sceneId, layer) =>
+  addLayer: (sceneId, layer, position = "top") =>
     set((s) => ({
       scenes: s.scenes.map((sc) =>
-        sc.id === sceneId ? { ...sc, layers: [...sc.layers, layer] } : sc,
+        sc.id === sceneId
+          ? {
+              ...sc,
+              // "bottom" inserts below every existing layer (index 0 = back of
+              // the z-stack) - used for full-canvas sources like screenshare.
+              layers: position === "bottom" ? [layer, ...sc.layers] : [...sc.layers, layer],
+            }
+          : sc,
       ),
     })),
   removeLayer: (sceneId, layerId) =>

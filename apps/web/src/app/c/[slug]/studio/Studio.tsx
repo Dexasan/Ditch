@@ -4,6 +4,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRe
 import { useAgoraRoom } from "@/hooks/useAgoraRoom";
 import { useClipBuffer } from "@/hooks/useClipBuffer";
 import { useCompositor } from "@/hooks/useCompositor";
+import { useMediaSources } from "@/hooks/useMediaSources";
 import { useRecorder } from "@/hooks/useRecorder";
 import { useRelayStream } from "@/hooks/useRelayStream";
 import type { CamCell, Destination, Layer, Scene } from "@/lib/studio-store";
@@ -788,6 +789,26 @@ function layerTypeIcon(type: Layer["type"]) {
         <polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>
       </svg>
     );
+    case "media":       return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 9 15 12 10 15 10 9" fill="currentColor" stroke="none"/>
+      </svg>
+    );
+    case "browser":     return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+    );
+    case "markdown":    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 15v-6l2.5 3L11 9v6"/><path d="M16 9v4"/><path d="M14 13l2 2 2-2"/>
+      </svg>
+    );
+    case "widget":      return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    );
     default:            return (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -796,21 +817,39 @@ function layerTypeIcon(type: Layer["type"]) {
   }
 }
 
+const LAYER_TYPE_LABEL: Record<Layer["type"], string> = {
+  camera: "Camera",
+  screenshare: "Screen Capture",
+  media: "Media",
+  browser: "Browser",
+  image: "Image",
+  text: "Text",
+  shape: "Rectangle",
+  markdown: "Markdown",
+  widget: "Widget",
+};
+
 function LayerRow({
   layer,
   isActive,
   onToggleVisible,
   onSelect,
+  onDuplicate,
+  onDelete,
 }: {
   layer: Layer;
   isActive: boolean;
   onToggleVisible: () => void;
   onSelect: () => void;
+  onDuplicate?: () => void;
+  onDelete: () => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <div
       onClick={onSelect}
-      className={`flex items-center gap-2 px-2 group cursor-pointer transition-colors border-l-2 ${
+      className={`relative flex items-center gap-2 px-2 group cursor-pointer transition-colors border-l-2 ${
         isActive
           ? "border-[var(--accent-secondary,#00D4AA)] bg-[var(--bg-mid,#1A1A3E)]"
           : "border-transparent hover:bg-[var(--bg-mid)]"
@@ -835,27 +874,81 @@ function LayerRow({
       >
         {layer.visible ? <IconEye /> : <IconEyeOff />}
       </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
+        className="w-6 h-6 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-muted)] hover:text-[var(--text-primary)] shrink-0"
+        title="Layer actions"
+      >
+        ⋯
+      </button>
+      {menuOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }} />
+          <div className="absolute top-full right-1 -mt-1 w-36 bg-[var(--bg-mid)] border border-[var(--border)] rounded shadow-xl z-20 py-1 overflow-hidden">
+            {onDuplicate && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDuplicate(); }}
+                className="w-full text-left px-3 py-1.5 text-[11px] flex items-center justify-between hover:bg-[var(--bg-base)] transition-colors"
+              >
+                Duplicate
+                <span className="text-[9px] text-[var(--text-muted)]">Ctrl+D</span>
+              </button>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }}
+              className="w-full text-left px-3 py-1.5 text-[11px] flex items-center justify-between text-red-400 hover:bg-[var(--bg-base)] transition-colors"
+            >
+              Delete
+              <span className="text-[9px] text-[var(--text-muted)]">Del</span>
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
+}
+
+function newLayer(type: Layer["type"], name: string, partial?: Partial<Layer>): Layer {
+  return {
+    id: crypto.randomUUID(),
+    type,
+    name,
+    visible: true,
+    locked: false,
+    opacity: 100,
+    transform: { x: 0, y: 0, width: 1280, height: 720, rotation: 0 },
+    sourceConfig: {},
+    effects: [],
+    ...partial,
+  };
 }
 
 function LayersPanel({
   localVideoTrack,
   isScreenSharing,
   toggleScreenShare,
+  attachFile,
+  onAddImage,
 }: {
   localVideoTrack: ILocalVideoTrack | null;
   isScreenSharing: boolean;
   toggleScreenShare: () => Promise<void>;
+  attachFile: (layerId: string, file: File) => void;
+  onAddImage: (file: File) => void;
 }) {
   const {
     scenes, activeSceneId,
-    updateLayer, addLayer, removeLayer,
+    updateLayer, addLayer, removeLayer, pushUndo,
     selectedLayerId, setSelectedLayerId,
+    addToast,
   } = useStudioStore();
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
-  const hasCameraLayer = activeScene.layers.some((l) => l.type === "camera");
+  const hasPrimaryCamera = activeScene.layers.some(
+    (l) => l.type === "camera" && !l.sourceConfig["deviceId"],
+  );
   const [menuOpen, setMenuOpen] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
 
   // Track the screenshare layer id so we can remove it when sharing stops.
   // Anchored to the scene that was active when sharing started.
@@ -865,17 +958,9 @@ function LayersPanel({
     if (isScreenSharing && !screenshareLayerRef.current) {
       const layerId = crypto.randomUUID();
       screenshareLayerRef.current = { sceneId: activeSceneId, layerId };
-      addLayer(activeSceneId, {
-        id: layerId,
-        type: "screenshare",
-        name: "Screen",
-        visible: true,
-        locked: false,
-        opacity: 100,
-        transform: { x: 0, y: 0, width: 1280, height: 720, rotation: 0 },
-        sourceConfig: {},
-        effects: [],
-      });
+      // Inserted at the BOTTOM of the stack so the camera stays on top of the
+      // shared screen (matches the pre-z-order compositor behavior).
+      addLayer(activeSceneId, newLayer("screenshare", "Screen", { id: layerId }), "bottom");
     } else if (!isScreenSharing && screenshareLayerRef.current) {
       const { sceneId, layerId } = screenshareLayerRef.current;
       removeLayer(sceneId, layerId);
@@ -889,8 +974,173 @@ function LayersPanel({
     updateLayer(activeScene.id, layer.id, { visible: !layer.visible });
   }
 
+  function handleDelete(layer: Layer) {
+    pushUndo(activeScene.id, activeScene.layers);
+    if (layer.type === "screenshare" && isScreenSharing) {
+      // Deleting the auto-managed screenshare layer also stops the share
+      void toggleScreenShare();
+      return;
+    }
+    removeLayer(activeScene.id, layer.id);
+    if (selectedLayerId === layer.id) setSelectedLayerId(null);
+  }
+
+  function handleDuplicate(layer: Layer) {
+    pushUndo(activeScene.id, activeScene.layers);
+    const dup: Layer = {
+      ...layer,
+      id: crypto.randomUUID(),
+      name: `${layer.name} Copy`,
+      transform: { ...layer.transform, x: layer.transform.x + 16, y: layer.transform.y + 16 },
+      sourceConfig: { ...layer.sourceConfig },
+      effects: layer.effects.map((e) => ({ ...e })),
+    };
+    addLayer(activeScene.id, dup);
+    setSelectedLayerId(dup.id);
+  }
+
+  async function handleAddCamera() {
+    setMenuOpen(false);
+    const devices = navigator.mediaDevices?.enumerateDevices
+      ? await navigator.mediaDevices.enumerateDevices()
+      : [];
+    const cams = devices.filter((d) => d.kind === "videoinput");
+
+    if (!hasPrimaryCamera) {
+      // First camera layer = the Agora-published one (guests see this)
+      const name = cams[0]?.label || "Camera";
+      const layer = newLayer("camera", name);
+      addLayer(activeSceneId, layer);
+      setSelectedLayerId(layer.id);
+      return;
+    }
+
+    // Extra video device: compositor-only getUserMedia capture
+    if (cams.length === 0 || !cams.some((d) => d.deviceId)) {
+      addToast("No camera devices found", "warning");
+      return;
+    }
+    const used = new Set(
+      activeScene.layers
+        .filter((l) => l.type === "camera")
+        .map((l) => l.sourceConfig["deviceId"] as string | undefined)
+        .filter(Boolean),
+    );
+    let primaryId: string | undefined;
+    try { primaryId = localVideoTrack?.getMediaStreamTrack().getSettings().deviceId; } catch {}
+    const pick =
+      cams.find((d) => d.deviceId && d.deviceId !== primaryId && !used.has(d.deviceId)) ??
+      cams.find((d) => d.deviceId && !used.has(d.deviceId)) ??
+      cams.find((d) => d.deviceId)!;
+    const layer = newLayer("camera", pick.label || "Camera 2", {
+      transform: { x: 832, y: 456, width: 426, height: 240, rotation: 0 },
+      sourceConfig: { deviceId: pick.deviceId },
+    });
+    addLayer(activeSceneId, layer);
+    setSelectedLayerId(layer.id);
+  }
+
+  function handleAddText() {
+    setMenuOpen(false);
+    const layer = newLayer("text", "Text", {
+      transform: { x: 80, y: 80, width: 720, height: 200, rotation: 0 },
+      sourceConfig: {
+        content: "Your text",
+        fontFamily: "Arial",
+        fontSizePx: 64,
+        color: "#FFFFFF",
+        weight: "700",
+        align: "left",
+        shadow: true,
+      },
+    });
+    addLayer(activeSceneId, layer);
+    setSelectedLayerId(layer.id);
+  }
+
+  function handleAddShape() {
+    setMenuOpen(false);
+    const layer = newLayer("shape", "Rectangle", {
+      transform: { x: 440, y: 210, width: 400, height: 300, rotation: 0 },
+      sourceConfig: { fill: "#FF1DB4", cornerRadius: 12, borderWidth: 0, borderColor: "#FFFFFF" },
+    });
+    addLayer(activeSceneId, layer);
+    setSelectedLayerId(layer.id);
+  }
+
+  function handleMediaPicked(file: File) {
+    const name = file.name.replace(/\.[^.]+$/, "") || "Media";
+    const layer = newLayer("media", name, {
+      sourceConfig: { fileName: file.name, loop: true },
+    });
+    addLayer(activeSceneId, layer);
+    attachFile(layer.id, file);
+    setSelectedLayerId(layer.id);
+  }
+
+  function handleAddBrowser() {
+    setMenuOpen(false);
+    const layer = newLayer("browser", "Browser", {
+      sourceUnavailable: true,
+      sourceConfig: { url: "" },
+    });
+    addLayer(activeSceneId, layer);
+    setSelectedLayerId(layer.id);
+    addToast("Enter the overlay URL in the Inspector, open it, then capture the tab", "info", 5000);
+  }
+
+  function handleAddMarkdown() {
+    setMenuOpen(false);
+    const layer = newLayer("markdown", "Markdown", {
+      transform: { x: 80, y: 80, width: 560, height: 420, rotation: 0 },
+      sourceConfig: {
+        markdown: "# Heading\n\nYour **markdown** here\n\n- point one\n- point two",
+        fontSizePx: 24,
+        color: "#FFFFFF",
+        bg: true,
+      },
+    });
+    addLayer(activeSceneId, layer);
+    setSelectedLayerId(layer.id);
+  }
+
+  function handleAddChatWidget() {
+    setMenuOpen(false);
+    const layer = newLayer("widget", "Live Chat", {
+      transform: { x: 20, y: 340, width: 380, height: 360, rotation: 0 },
+      sourceConfig: { widget: "chat", fontSizePx: 20, maxMessages: 8, bg: true },
+    });
+    addLayer(activeSceneId, layer);
+    setSelectedLayerId(layer.id);
+  }
+
+  const menuItemCls =
+    "w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 hover:bg-[var(--bg-base)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
+
   return (
     <div className="flex flex-col overflow-hidden border-r border-[var(--border)]" style={{ gridArea: "layers" }}>
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onAddImage(file);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={mediaInputRef}
+        type="file"
+        accept="video/*,audio/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleMediaPicked(file);
+          e.target.value = "";
+        }}
+      />
       <div
         className="flex items-center gap-2 px-3 border-b border-[var(--border)] shrink-0"
         style={{ height: 36 }}
@@ -910,64 +1160,58 @@ function LayersPanel({
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute top-full right-0 mt-1 w-44 bg-[var(--bg-mid)] border border-[var(--border)] rounded shadow-xl z-20 py-1 overflow-hidden">
-                <button
-                  disabled={hasCameraLayer}
-                  onClick={async () => {
-                    if (hasCameraLayer) return;
-                    let name = "Camera";
-                    if (localVideoTrack && navigator.mediaDevices?.enumerateDevices) {
-                      const devices = await navigator.mediaDevices.enumerateDevices();
-                      const cam = devices.find((d) => d.kind === "videoinput");
-                      if (cam?.label) name = cam.label;
-                    }
-                    addLayer(activeSceneId, {
-                      id: crypto.randomUUID(),
-                      type: "camera",
-                      name,
-                      visible: true,
-                      locked: false,
-                      opacity: 100,
-                      transform: { x: 0, y: 0, width: 1280, height: 720, rotation: 0 },
-                      sourceConfig: {},
-                      effects: [],
-                    });
-                    setMenuOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 hover:bg-[var(--bg-base)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
+              <div className="absolute top-full right-0 mt-1 w-48 bg-[var(--bg-mid)] border border-[var(--border)] rounded shadow-xl z-20 py-1 overflow-hidden">
+                <button onClick={() => { void handleAddCamera(); }} className={menuItemCls}>
                   <IconCamera />
-                  Camera
-                  {hasCameraLayer && (
-                    <span className="ml-auto text-[10px] text-[var(--text-muted)]">Active</span>
+                  Video Device
+                  {hasPrimaryCamera && (
+                    <span className="ml-auto text-[10px] text-[var(--text-muted)]">+</span>
                   )}
                 </button>
                 <button
                   onClick={() => { void toggleScreenShare(); setMenuOpen(false); }}
                   disabled={isScreenSharing}
-                  className="w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 hover:bg-[var(--bg-base)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className={menuItemCls}
                 >
                   <IconMonitor />
-                  Screen Capture
+                  Display Capture
                   {isScreenSharing && (
                     <span className="ml-auto text-[10px] text-[var(--accent-primary)]">Active</span>
                   )}
                 </button>
                 <button
-                  disabled
-                  className="w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 opacity-30 cursor-not-allowed"
+                  onClick={() => { mediaInputRef.current?.click(); setMenuOpen(false); }}
+                  className={menuItemCls}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  Image
-                  <span className="ml-auto text-[10px]">Soon</span>
+                  {layerTypeIcon("media")}
+                  Media Source
                 </button>
                 <button
-                  disabled
-                  className="w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 opacity-30 cursor-not-allowed"
+                  onClick={() => { imageInputRef.current?.click(); setMenuOpen(false); }}
+                  className={menuItemCls}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+                  {layerTypeIcon("image")}
+                  Image
+                </button>
+                <button onClick={handleAddBrowser} className={menuItemCls}>
+                  {layerTypeIcon("browser")}
+                  Browser
+                </button>
+                <button onClick={handleAddText} className={menuItemCls}>
+                  {layerTypeIcon("text")}
                   Text
-                  <span className="ml-auto text-[10px]">Soon</span>
+                </button>
+                <button onClick={handleAddMarkdown} className={menuItemCls}>
+                  {layerTypeIcon("markdown")}
+                  Markdown
+                </button>
+                <button onClick={handleAddShape} className={menuItemCls}>
+                  {layerTypeIcon("shape")}
+                  Rectangle
+                </button>
+                <button onClick={handleAddChatWidget} className={menuItemCls}>
+                  {layerTypeIcon("widget")}
+                  Live Chat Widget
                 </button>
               </div>
             </>
@@ -984,6 +1228,12 @@ function LayersPanel({
               isActive={selectedLayerId === layer.id}
               onToggleVisible={() => handleToggleVisible(layer)}
               onSelect={() => setSelectedLayerId(layer.id)}
+              onDuplicate={
+                layer.type === "screenshare" || layer.type === "media" || layer.type === "browser"
+                  ? undefined
+                  : () => handleDuplicate(layer)
+              }
+              onDelete={() => handleDelete(layer)}
             />
           </div>
         ))}
@@ -1419,12 +1669,8 @@ function LayerOverlay({
   onTransformLive: (patch: Partial<Layer["transform"]>) => void;
   onTransformCommit: (patch: Partial<Layer["transform"]>) => void;
 }) {
-  const isFullScreen = layer.type === "screenshare";
-
   const toCell = (tr: Layer["transform"]): CamCell =>
-    isFullScreen
-      ? { x: 0, y: 0, w: 1, h: 1 }
-      : { x: tr.x / 1280, y: tr.y / 720, w: tr.width / 1280, h: tr.height / 720 };
+    ({ x: tr.x / 1280, y: tr.y / 720, w: tr.width / 1280, h: tr.height / 720 });
 
   const fromCell = (cell: CamCell): Partial<Layer["transform"]> => ({
     x: cell.x * 1280, y: cell.y * 720, width: cell.w * 1280, height: cell.h * 720,
@@ -1440,7 +1686,7 @@ function LayerOverlay({
   useEffect(() => {
     if (!draggingRef.current) setLocalCell(toCell(layer.transform));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [x, y, width, height, isFullScreen]);
+  }, [x, y, width, height]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { shiftRef.current = e.shiftKey; };
@@ -1501,7 +1747,7 @@ function LayerOverlay({
   function onBodyDown(e: React.PointerEvent) {
     e.stopPropagation();
     onSelect();
-    if (isFullScreen || layer.locked) return;
+    if (layer.locked) return;
     startRef.current = { type: "move", cx: e.clientX, cy: e.clientY, cell: localCell };
     draggingRef.current = true;
   }
@@ -1513,7 +1759,7 @@ function LayerOverlay({
   }
 
   const pct = (v: number) => `${(v * 100).toFixed(2)}%`;
-  const showHandles = isSelected && !isFullScreen && !layer.locked;
+  const showHandles = isSelected && !layer.locked;
   const borderColor = isSelected
     ? "var(--accent-primary)"
     : hovered ? "rgba(255,255,255,0.35)" : "transparent";
@@ -1528,7 +1774,7 @@ function LayerOverlay({
           width: pct(localCell.w),
           height: pct(localCell.h),
           border: `1.5px solid ${borderColor}`,
-          cursor: isFullScreen || layer.locked ? "default" : "move",
+          cursor: layer.locked ? "default" : "move",
           boxSizing: "border-box",
           transition: "border-color 0.1s",
         }}
@@ -2199,9 +2445,444 @@ function ChromaKeySection({
   );
 }
 
+const FONT_OPTIONS = ["Arial", "Verdana", "Georgia", "Times New Roman", "Courier New", "Impact", "Trebuchet MS"];
+
+const inputCls =
+  "w-full px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[11px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors";
+
+function sectionToggleCls(active: boolean) {
+  return `px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+    active
+      ? "bg-[var(--accent-primary)] text-white"
+      : "border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+  }`;
+}
+
+function TextSection({
+  layer,
+  onUpdateLayer,
+}: {
+  layer: Layer;
+  onUpdateLayer: (patch: Partial<Layer>) => void;
+}) {
+  const cfg = layer.sourceConfig;
+  function set(patch: Record<string, unknown>) {
+    onUpdateLayer({ sourceConfig: { ...cfg, ...patch } });
+  }
+  const align = (cfg["align"] as string) || "left";
+  const weight = (cfg["weight"] as string) || "700";
+
+  return (
+    <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
+      <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Text</p>
+
+      <textarea
+        value={(cfg["content"] as string) ?? ""}
+        onChange={(e) => set({ content: e.target.value })}
+        rows={3}
+        placeholder="Your text"
+        className={`${inputCls} resize-y font-mono`}
+      />
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] text-[var(--text-muted)] block mb-0.5">Font</label>
+          <select
+            value={(cfg["fontFamily"] as string) || "Arial"}
+            onChange={(e) => set({ fontFamily: e.target.value })}
+            className={`${inputCls} cursor-pointer`}
+          >
+            {FONT_OPTIONS.map((f) => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-[10px] text-[var(--text-muted)] block mb-0.5">Size px</label>
+          <input
+            type="number" min={8} max={400}
+            value={Number(cfg["fontSizePx"]) || 64}
+            onChange={(e) => set({ fontSizePx: Number(e.target.value) })}
+            className={`${inputCls} font-mono`}
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={(cfg["color"] as string) || "#FFFFFF"}
+          onChange={(e) => set({ color: e.target.value })}
+          className="w-6 h-6 rounded cursor-pointer border border-[var(--border)] bg-transparent shrink-0"
+          title="Text color"
+        />
+        <span className="text-[10px] font-mono text-[var(--text-muted)] flex-1">{(cfg["color"] as string) || "#FFFFFF"}</span>
+        <button onClick={() => set({ weight: weight === "700" ? "400" : "700" })} className={sectionToggleCls(weight === "700")}>
+          Bold
+        </button>
+        <button onClick={() => set({ shadow: !cfg["shadow"] })} className={sectionToggleCls(!!cfg["shadow"])}>
+          Shadow
+        </button>
+      </div>
+
+      <div className="flex gap-1">
+        {(["left", "center", "right"] as const).map((a) => (
+          <button
+            key={a}
+            onClick={() => set({ align: a })}
+            className={`flex-1 py-1 rounded text-[10px] font-semibold border transition-colors capitalize ${
+              align === a
+                ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
+                : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            {a}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ShapeSection({
+  layer,
+  onUpdateLayer,
+}: {
+  layer: Layer;
+  onUpdateLayer: (patch: Partial<Layer>) => void;
+}) {
+  const cfg = layer.sourceConfig;
+  function set(patch: Record<string, unknown>) {
+    onUpdateLayer({ sourceConfig: { ...cfg, ...patch } });
+  }
+  const cornerRadius = Number(cfg["cornerRadius"]) || 0;
+  const borderWidth  = Number(cfg["borderWidth"]) || 0;
+
+  return (
+    <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
+      <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Rectangle</p>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={(cfg["fill"] as string) || "#FF1DB4"}
+          onChange={(e) => set({ fill: e.target.value })}
+          className="w-6 h-6 rounded cursor-pointer border border-[var(--border)] bg-transparent shrink-0"
+          title="Fill color"
+        />
+        <span className="text-[10px] font-mono text-[var(--text-muted)]">{(cfg["fill"] as string) || "#FF1DB4"}</span>
+      </div>
+
+      <div className="space-y-1">
+        <div className="flex justify-between">
+          <label className="text-[10px] text-[var(--text-muted)]">Corner radius</label>
+          <span className="text-[10px] font-mono text-[var(--text-primary)]">{cornerRadius}px</span>
+        </div>
+        <input
+          type="range" min={0} max={120} value={cornerRadius}
+          onChange={(e) => set({ cornerRadius: Number(e.target.value) })}
+          className="w-full h-1 cursor-pointer accent-[var(--accent-primary)]"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <div className="flex justify-between">
+          <label className="text-[10px] text-[var(--text-muted)]">Border</label>
+          <span className="text-[10px] font-mono text-[var(--text-primary)]">{borderWidth}px</span>
+        </div>
+        <input
+          type="range" min={0} max={20} value={borderWidth}
+          onChange={(e) => set({ borderWidth: Number(e.target.value) })}
+          className="w-full h-1 cursor-pointer accent-[var(--accent-primary)]"
+        />
+        {borderWidth > 0 && (
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              type="color"
+              value={(cfg["borderColor"] as string) || "#FFFFFF"}
+              onChange={(e) => set({ borderColor: e.target.value })}
+              className="w-6 h-6 rounded cursor-pointer border border-[var(--border)] bg-transparent shrink-0"
+              title="Border color"
+            />
+            <span className="text-[10px] font-mono text-[var(--text-muted)]">{(cfg["borderColor"] as string) || "#FFFFFF"}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MediaSection({
+  layer,
+  onUpdateLayer,
+  attachFile,
+}: {
+  layer: Layer;
+  onUpdateLayer: (patch: Partial<Layer>) => void;
+  attachFile: (layerId: string, file: File) => void;
+}) {
+  const cfg = layer.sourceConfig;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const loop = cfg["loop"] !== false;
+
+  return (
+    <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="video/*,audio/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            attachFile(layer.id, file);
+            onUpdateLayer({ name: file.name.replace(/\.[^.]+$/, "") || layer.name });
+          }
+          e.target.value = "";
+        }}
+      />
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Media</p>
+        <button onClick={() => onUpdateLayer({ sourceConfig: { ...cfg, loop: !loop } })} className={sectionToggleCls(loop)}>
+          Loop
+        </button>
+      </div>
+
+      <p className="text-[11px] text-[var(--text-muted)] truncate" title={(cfg["fileName"] as string) || ""}>
+        {(cfg["fileName"] as string) || "No file"}
+      </p>
+
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        className="w-full py-1.5 rounded text-[11px] border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent-primary)]/50 transition-colors"
+      >
+        {layer.sourceUnavailable ? "Re-select file" : "Replace file"}
+      </button>
+    </div>
+  );
+}
+
+function BrowserSection({
+  layer,
+  onUpdateLayer,
+  attachDisplayCapture,
+}: {
+  layer: Layer;
+  onUpdateLayer: (patch: Partial<Layer>) => void;
+  attachDisplayCapture: (layerId: string) => Promise<void>;
+}) {
+  const cfg = layer.sourceConfig;
+  const url = (cfg["url"] as string) ?? "";
+
+  function openUrl() {
+    if (!url.trim()) return;
+    const href = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
+    window.open(href, "_blank", "noopener");
+  }
+
+  return (
+    <div className="px-3 py-3 space-y-2 border-t border-[var(--border)]">
+      <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Browser</p>
+
+      <input
+        type="text"
+        value={url}
+        placeholder="https://streamelements.com/overlay/..."
+        onChange={(e) => onUpdateLayer({ sourceConfig: { ...cfg, url: e.target.value } })}
+        className={`${inputCls} font-mono`}
+      />
+
+      <div className="flex gap-2">
+        <button
+          onClick={openUrl}
+          disabled={!url.trim()}
+          className="flex-1 py-1.5 rounded text-[11px] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          1. Open page
+        </button>
+        <button
+          onClick={() => { void attachDisplayCapture(layer.id); }}
+          className="flex-1 py-1.5 rounded text-[11px] font-semibold bg-[var(--accent-primary)] text-white hover:bg-[var(--color-brand-light)] transition-colors"
+        >
+          {layer.sourceUnavailable ? "2. Capture tab" : "Re-capture"}
+        </button>
+      </div>
+
+      <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
+        Pick the overlay tab in the share dialog (tab shares include sound).
+        For transparency, set the overlay page to a green background and turn on
+        Chroma Key below.
+      </p>
+    </div>
+  );
+}
+
+function MarkdownSection({
+  layer,
+  onUpdateLayer,
+}: {
+  layer: Layer;
+  onUpdateLayer: (patch: Partial<Layer>) => void;
+}) {
+  const cfg = layer.sourceConfig;
+  function set(patch: Record<string, unknown>) {
+    onUpdateLayer({ sourceConfig: { ...cfg, ...patch } });
+  }
+
+  return (
+    <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Markdown</p>
+        <button onClick={() => set({ bg: !cfg["bg"] })} className={sectionToggleCls(!!cfg["bg"])}>
+          Card
+        </button>
+      </div>
+
+      <textarea
+        value={(cfg["markdown"] as string) ?? ""}
+        onChange={(e) => set({ markdown: e.target.value })}
+        rows={7}
+        placeholder={"# Heading\n\nYour **markdown** here"}
+        className={`${inputCls} resize-y font-mono`}
+      />
+
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={(cfg["color"] as string) || "#FFFFFF"}
+          onChange={(e) => set({ color: e.target.value })}
+          className="w-6 h-6 rounded cursor-pointer border border-[var(--border)] bg-transparent shrink-0"
+          title="Text color"
+        />
+        <span className="text-[10px] text-[var(--text-muted)] flex-1">Base size</span>
+        <input
+          type="number" min={10} max={80}
+          value={Number(cfg["fontSizePx"]) || 24}
+          onChange={(e) => set({ fontSizePx: Number(e.target.value) })}
+          className={`${inputCls} font-mono`}
+          style={{ width: 64 }}
+        />
+      </div>
+      <p className="text-[10px] text-[var(--text-muted)]">
+        Supports # headings, **bold**, *italic*, `code`, lists, quotes and ---.
+      </p>
+    </div>
+  );
+}
+
+function WidgetSection({
+  layer,
+  onUpdateLayer,
+}: {
+  layer: Layer;
+  onUpdateLayer: (patch: Partial<Layer>) => void;
+}) {
+  const cfg = layer.sourceConfig;
+  function set(patch: Record<string, unknown>) {
+    onUpdateLayer({ sourceConfig: { ...cfg, ...patch } });
+  }
+  const fontSize = Number(cfg["fontSizePx"]) || 20;
+  const maxMessages = Number(cfg["maxMessages"]) || 8;
+
+  return (
+    <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Live Chat</p>
+        <button onClick={() => set({ bg: cfg["bg"] === false ? true : false })} className={sectionToggleCls(cfg["bg"] !== false)}>
+          Backdrop
+        </button>
+      </div>
+
+      <div className="space-y-1">
+        <div className="flex justify-between">
+          <label className="text-[10px] text-[var(--text-muted)]">Text size</label>
+          <span className="text-[10px] font-mono text-[var(--text-primary)]">{fontSize}px</span>
+        </div>
+        <input
+          type="range" min={12} max={40} value={fontSize}
+          onChange={(e) => set({ fontSizePx: Number(e.target.value) })}
+          className="w-full h-1 cursor-pointer accent-[var(--accent-primary)]"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <div className="flex justify-between">
+          <label className="text-[10px] text-[var(--text-muted)]">Messages shown</label>
+          <span className="text-[10px] font-mono text-[var(--text-primary)]">{maxMessages}</span>
+        </div>
+        <input
+          type="range" min={2} max={20} value={maxMessages}
+          onChange={(e) => set({ maxMessages: Number(e.target.value) })}
+          className="w-full h-1 cursor-pointer accent-[var(--accent-primary)]"
+        />
+      </div>
+
+      <p className="text-[10px] text-[var(--text-muted)]">
+        Shows your unified chat from every connected platform, live on stream.
+      </p>
+    </div>
+  );
+}
+
+function CameraSection({
+  layer,
+  onUpdateLayer,
+  videoInputs,
+  switchCamDevice,
+}: {
+  layer: Layer;
+  onUpdateLayer: (patch: Partial<Layer>) => void;
+  videoInputs: MediaDeviceInfo[];
+  switchCamDevice: (deviceId: string) => Promise<void>;
+}) {
+  const isPrimary = !layer.sourceConfig["deviceId"];
+  const [primaryDeviceId, setPrimaryDeviceId] = useState<string>("");
+
+  if (videoInputs.length === 0) return null;
+
+  const value = isPrimary
+    ? (primaryDeviceId || (videoInputs[0]?.deviceId ?? ""))
+    : (layer.sourceConfig["deviceId"] as string);
+
+  function handlePick(deviceId: string) {
+    const label = videoInputs.find((d) => d.deviceId === deviceId)?.label;
+    if (isPrimary) {
+      setPrimaryDeviceId(deviceId);
+      switchCamDevice(deviceId).catch(() => {});
+      if (label) onUpdateLayer({ name: label });
+    } else {
+      onUpdateLayer({
+        sourceConfig: { ...layer.sourceConfig, deviceId },
+        ...(label ? { name: label } : {}),
+        sourceUnavailable: false,
+      });
+    }
+  }
+
+  return (
+    <div className="px-3 py-3 space-y-2 border-t border-[var(--border)]">
+      <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+        Device{isPrimary ? " (on-air camera)" : ""}
+      </p>
+      <select
+        value={value}
+        onChange={(e) => handlePick(e.target.value)}
+        className={`${inputCls} cursor-pointer`}
+      >
+        {videoInputs.map((d) => (
+          <option key={d.deviceId} value={d.deviceId}>
+            {d.label || `Camera ${d.deviceId.slice(0, 6)}`}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function Inspector({
   chatProps,
   queueProps,
+  layerProps,
 }: {
   chatProps: {
     messages: ChatMessage[];
@@ -2214,6 +2895,12 @@ function Inspector({
     approved: Participant[];
     nextSlot: number;
     onChangeStatus: (id: string, status: ParticipantStatus, slot?: number) => void;
+  };
+  layerProps: {
+    attachFile: (layerId: string, file: File) => void;
+    attachDisplayCapture: (layerId: string) => Promise<void>;
+    videoInputs: MediaDeviceInfo[];
+    switchCamDevice: (deviceId: string) => Promise<void>;
   };
 }) {
   const [tab, setTab] = useState<"properties" | "chat" | "queue">("properties");
@@ -2352,11 +3039,7 @@ function Inspector({
               <>
                 <div className="px-3 py-3">
                   <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
-                    {selectedLayer.type === "camera"
-                      ? "Camera"
-                      : selectedLayer.type === "screenshare"
-                      ? "Screen Capture"
-                      : "Layer"}
+                    {LAYER_TYPE_LABEL[selectedLayer.type] ?? "Layer"}
                   </p>
                   <div className="flex items-center gap-2 px-2 py-2 rounded bg-[var(--bg-base)] border border-[var(--border)]">
                     <span className="text-[var(--text-muted)] shrink-0">
@@ -2384,6 +3067,52 @@ function Inspector({
                   onUpdateLayer={(patch) => updateLayer(activeScene.id, selectedLayer.id, patch)}
                 />
                 {selectedLayer.type === "camera" && (
+                  <CameraSection
+                    layer={selectedLayer}
+                    onUpdateLayer={(patch) => updateLayer(activeScene.id, selectedLayer.id, patch)}
+                    videoInputs={layerProps.videoInputs}
+                    switchCamDevice={layerProps.switchCamDevice}
+                  />
+                )}
+                {selectedLayer.type === "text" && (
+                  <TextSection
+                    layer={selectedLayer}
+                    onUpdateLayer={(patch) => updateLayer(activeScene.id, selectedLayer.id, patch)}
+                  />
+                )}
+                {selectedLayer.type === "shape" && (
+                  <ShapeSection
+                    layer={selectedLayer}
+                    onUpdateLayer={(patch) => updateLayer(activeScene.id, selectedLayer.id, patch)}
+                  />
+                )}
+                {selectedLayer.type === "media" && (
+                  <MediaSection
+                    layer={selectedLayer}
+                    onUpdateLayer={(patch) => updateLayer(activeScene.id, selectedLayer.id, patch)}
+                    attachFile={layerProps.attachFile}
+                  />
+                )}
+                {selectedLayer.type === "browser" && (
+                  <BrowserSection
+                    layer={selectedLayer}
+                    onUpdateLayer={(patch) => updateLayer(activeScene.id, selectedLayer.id, patch)}
+                    attachDisplayCapture={layerProps.attachDisplayCapture}
+                  />
+                )}
+                {selectedLayer.type === "markdown" && (
+                  <MarkdownSection
+                    layer={selectedLayer}
+                    onUpdateLayer={(patch) => updateLayer(activeScene.id, selectedLayer.id, patch)}
+                  />
+                )}
+                {selectedLayer.type === "widget" && (
+                  <WidgetSection
+                    layer={selectedLayer}
+                    onUpdateLayer={(patch) => updateLayer(activeScene.id, selectedLayer.id, patch)}
+                  />
+                )}
+                {(selectedLayer.type === "camera" || selectedLayer.type === "media" || selectedLayer.type === "browser") && (
                   <ChromaKeySection
                     layer={selectedLayer}
                     onUpdateLayer={(patch) => updateLayer(activeScene.id, selectedLayer.id, patch)}
@@ -2521,6 +3250,7 @@ function AudioMixer({
   audioInputs,
   switchMicDevice,
   onRemoveParticipant,
+  extraSources,
 }: {
   localAudioTrack: ILocalAudioTrack | null;
   liveParticipants: Participant[];
@@ -2529,6 +3259,7 @@ function AudioMixer({
   audioInputs: MediaDeviceInfo[];
   switchMicDevice: (deviceId: string) => Promise<void>;
   onRemoveParticipant: (participantId: string) => void;
+  extraSources: { id: string; label: string }[];
 }) {
   const [channels, setChannels] = useState<Record<string, MixerChannel>>({
     mic: { volume: 1.0, muted: false },
@@ -2554,8 +3285,11 @@ function AudioMixer({
         participantId: p.id,
       });
     }
+    for (const s of extraSources) {
+      list.push({ id: s.id, label: s.label });
+    }
     return list;
-  }, [localAudioTrack, liveParticipants]);
+  }, [localAudioTrack, liveParticipants, extraSources]);
 
   function update(sourceId: string, patch: Partial<MixerChannel>) {
     setChannels((prev) => {
@@ -2657,6 +3391,7 @@ function StreamPulse({
   switchMicDevice,
   onClipClick,
   onRemoveParticipant,
+  extraAudioSources,
 }: {
   localAudioTrack: ILocalAudioTrack | null;
   liveParticipants: Participant[];
@@ -2666,6 +3401,7 @@ function StreamPulse({
   switchMicDevice: (deviceId: string) => Promise<void>;
   onClipClick: () => void;
   onRemoveParticipant: (participantId: string) => void;
+  extraAudioSources: { id: string; label: string }[];
 }) {
   const { scenes, activeSceneId, switchScene, streamStatus, fps, bitrateKbps, updateLayer } = useStudioStore();
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
@@ -2730,6 +3466,7 @@ function StreamPulse({
           audioInputs={audioInputs}
           switchMicDevice={switchMicDevice}
           onRemoveParticipant={onRemoveParticipant}
+          extraSources={extraAudioSources}
         />
       </div>
 
@@ -2805,6 +3542,7 @@ export default function Studio({
   const [chatBody, setChatBody] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([]);
+  const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([]);
 
   const {
     streamStatus, setStreamStatus, setStreamError, setFps,
@@ -2856,8 +3594,11 @@ export default function Studio({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // stable - sessionId and token don't change during a studio session
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? scenes[0];
-  const cameraLayer = activeScene?.layers.find((l) => l.type === "camera");
-  const cameraVisible = cameraLayer?.visible ?? false;
+  // The PRIMARY camera layer is the Agora-published one (no deviceId). Extra
+  // video-device layers are compositor-only and managed by useMediaSources.
+  const cameraLayer = activeScene?.layers.find(
+    (l) => l.type === "camera" && !l.sourceConfig["deviceId"],
+  );
 
   // Capture scene thumbnail 1.5 s after switching to a scene (lets video settle)
   useEffect(() => {
@@ -2968,6 +3709,7 @@ export default function Studio({
     isScreenSharing,
     toggleScreenShare,
     switchMicDevice,
+    switchCamDevice,
   } = useAgoraRoom({
     channelName: sessionId,
     uid: CREATOR_CAM_UID,
@@ -2980,7 +3722,9 @@ export default function Studio({
 
   useStudioShortcuts({ localAudioTrack });
 
-  // Auto-name camera layers using real device label + mark unavailable if no camera found.
+  // Auto-name PRIMARY camera layers using the real device label + mark
+  // unavailable if no camera found. Extra-device layers (deviceId set) keep
+  // their own device's label and are managed by useMediaSources.
   // Re-runs when localVideoTrack changes (permissions may have just been granted).
   useEffect(() => {
     if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -2991,7 +3735,7 @@ export default function Studio({
       const s = useStudioStore.getState();
       s.scenes.forEach((sc) => {
         sc.layers.forEach((l) => {
-          if (l.type !== "camera") return;
+          if (l.type !== "camera" || l.sourceConfig["deviceId"]) return;
           const name = label || l.name;
           if (name !== l.name || unavailable !== !!l.sourceUnavailable) {
             s.updateLayer(sc.id, l.id, { name, sourceUnavailable: unavailable });
@@ -3001,29 +3745,44 @@ export default function Studio({
     });
   }, [localVideoTrack]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Enumerate audio input devices once permissions are granted (localAudioTrack is the signal).
+  // Enumerate input devices once permissions are granted (the tracks are the signal).
   useEffect(() => {
     if (!localAudioTrack || !navigator.mediaDevices?.enumerateDevices) return;
     navigator.mediaDevices.enumerateDevices().then((devices) => {
       setAudioInputs(devices.filter((d) => d.kind === "audioinput"));
     });
   }, [localAudioTrack]);
+  useEffect(() => {
+    if (!localVideoTrack || !navigator.mediaDevices?.enumerateDevices) return;
+    navigator.mediaDevices.enumerateDevices().then((devices) => {
+      setVideoInputs(devices.filter((d) => d.kind === "videoinput"));
+    });
+  }, [localVideoTrack]);
 
-  // Compositor always runs so the preview canvas is live regardless of stream state.
-  const imageLayers = useMemo(
-    () => activeScene.layers.filter((l) => l.type === "image"),
-    [activeScene.layers],
+  // Media-file + extra-device + tab-capture sources (compositor-only handles)
+  const { attachFile, attachDisplayCapture, getSource, mediaAudioSources } = useMediaSources();
+  const extraAudioTracks = useMemo(
+    () => mediaAudioSources.map(({ id, track }) => ({ id, track })),
+    [mediaAudioSources],
+  );
+  const extraAudioSources = useMemo(
+    () => mediaAudioSources.map(({ id, label }) => ({ id, label })),
+    [mediaAudioSources],
   );
 
-  const { stream: compositeStream, setCamTransformLive, setTrackGain, getAnalyser } = useCompositor({
+  // Compositor always runs so the preview canvas is live regardless of stream state.
+  const { stream: compositeStream, setLayerTransformLive, setTrackGain, getAnalyser } = useCompositor({
     localVideoTrack,
     localScreenTrack,
     localAudioTrack,
     remoteUsers,
     liveParticipants,
     enabled: true,
-    cameraLayer,
-    imageLayers,
+    layers: activeScene.layers,
+    bgColor: activeScene.bgColor,
+    getExternalSource: getSource,
+    extraAudioTracks,
+    chatMessages: messages,
     targetFps,
     onFps: setFps,
   });
@@ -3164,6 +3923,8 @@ export default function Studio({
           localVideoTrack={localVideoTrack}
           isScreenSharing={isScreenSharing}
           toggleScreenShare={toggleScreenShare}
+          attachFile={attachFile}
+          onAddImage={handleFileDrop}
         />
         <div
           style={{
@@ -3182,10 +3943,7 @@ export default function Studio({
             layers={activeScene.layers}
             selectedLayerId={selectedLayerId}
             onSelectLayer={setSelectedLayerId}
-            onLayerTransformLive={(id, patch) => {
-              const layer = activeScene.layers.find((l) => l.id === id);
-              if (layer?.type === "camera") setCamTransformLive(patch);
-            }}
+            onLayerTransformLive={(id, patch) => setLayerTransformLive(id, patch)}
             onLayerTransformCommit={(id, patch) => {
               const layer = activeScene.layers.find((l) => l.id === id);
               if (layer) updateLayerRoot(activeScene.id, id, { transform: { ...layer.transform, ...patch } });
@@ -3196,6 +3954,7 @@ export default function Studio({
         <Inspector
           chatProps={{ messages, chatBody, onChange: setChatBody, onSend: sendChat }}
           queueProps={{ waiting, approved, nextSlot, onChangeStatus: changeParticipantStatus }}
+          layerProps={{ attachFile, attachDisplayCapture, videoInputs, switchCamDevice }}
         />
         <StreamPulse
           localAudioTrack={localAudioTrack}
@@ -3206,6 +3965,7 @@ export default function Studio({
           switchMicDevice={switchMicDevice}
           onClipClick={handleClipClick}
           onRemoveParticipant={(id) => changeParticipantStatus(id, "removed")}
+          extraAudioSources={extraAudioSources}
         />
       </div>
       <style>{`
