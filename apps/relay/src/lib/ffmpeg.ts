@@ -143,14 +143,15 @@ export function buildArgs(targets: string[], params: EncoderParams = DEFAULT_ENC
     "-i", "pipe:0",
   ];
 
-  // YouTube (unlike Twitch) refuses to leave "Preparing stream" unless it gets a
-  // keyframe every ~2s. The browser's MediaRecorder emits them too infrequently
-  // and -c:v copy can't insert them, so YouTube targets get a libx264 re-encode
-  // with a forced 2s keyframe interval. All other targets keep the lossless
-  // passthrough: ffmpeg supports per-output codecs from one input, so the two
-  // branches coexist in a single process (re-encoding everything caused Twitch
-  // to show black video while accepting bytes).
-  const needsReencode = (t: string) => /youtube/i.test(t);
+  // YouTube and Twitch both require a keyframe every ~2s: YouTube refuses to
+  // leave "Preparing stream" without one, Twitch plays but flags the ingest
+  // "Keyframe interval too high / UNSTABLE". The browser's MediaRecorder emits
+  // keyframes too infrequently (videoKeyFrameIntervalDuration is not honored
+  // for H264 in current Chromium) and -c:v copy can't insert them, so
+  // keyframe-strict targets share one libx264 re-encode (via tee) with forced
+  // 2s keyframes and CFR output. Other targets keep the lossless passthrough
+  // in a second output branch of the same process.
+  const needsReencode = (t: string) => /youtube|twitch/i.test(t);
   const reencodeTargets = targets.filter(needsReencode);
   const copyTargets = targets.filter((t) => !needsReencode(t));
 
