@@ -176,6 +176,11 @@ export function buildArgs(targets: string[], params: EncoderParams = DEFAULT_ENC
     "-r", String(params.fps),
     // Force a keyframe every 2 seconds of wall-clock time (fps-independent).
     "-force_key_frames", "expr:gte(t,n_forced*2)",
+    // ...and ONLY every 2 seconds: disable x264 scene-cut so no extra keyframes
+    // land between the forced ones. YouTube wants a consistent GOP and can sit
+    // in "Preparing stream" forever on an irregular one; Twitch tolerates it.
+    "-sc_threshold", "0",
+    "-g", String(params.fps * 2),
     "-b:v", `${params.videoBitrateKbps}k`,
     "-maxrate", `${params.videoBitrateKbps}k`,
     "-bufsize", `${params.videoBitrateKbps * 2}k`,
