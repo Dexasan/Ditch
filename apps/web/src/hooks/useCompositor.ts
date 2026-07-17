@@ -637,7 +637,12 @@ export function useCompositor({
       const pad = Math.round(fontSize * 0.7);
       const maxMessages = Number(cfg["maxMessages"]) || 8;
 
-      if (cfg["bg"] !== false) {
+      // Backdrop opacity is independent of layer opacity: 0 = no box at all,
+      // text stays fully crisp. (Legacy bg:false configs mean 0 too.)
+      const bgOpacity = cfg["bgOpacity"] !== undefined
+        ? Math.max(0, Math.min(100, Number(cfg["bgOpacity"])))
+        : (cfg["bg"] === false ? 0 : 55);
+      if (bgOpacity > 0) {
         ctx!.beginPath();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (typeof (ctx as any).roundRect === "function") {
@@ -646,13 +651,18 @@ export function useCompositor({
         } else {
           ctx!.rect(t.x, t.y, t.width, t.height);
         }
-        ctx!.fillStyle = "rgba(10,10,26,0.55)";
+        ctx!.fillStyle = `rgba(10,10,26,${(bgOpacity / 100).toFixed(2)})`;
         ctx!.fill();
       }
 
       ctx!.font = `600 ${fontSize}px Arial, sans-serif`;
       ctx!.textAlign = "left";
       ctx!.textBaseline = "top";
+      // Soft shadow keeps the text readable straight over video when the
+      // backdrop is transparent.
+      ctx!.shadowColor = "rgba(0,0,0,0.85)";
+      ctx!.shadowBlur = 4;
+      ctx!.shadowOffsetY = 1;
       const maxW = t.width - pad * 2;
       const msgs = chatMessagesRef.current.slice(-maxMessages);
       let bottom = t.y + t.height - pad;

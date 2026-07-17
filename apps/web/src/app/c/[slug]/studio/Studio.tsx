@@ -836,6 +836,8 @@ function LayerRow({
   onSelect,
   onDuplicate,
   onDelete,
+  onMoveUp,
+  onMoveDown,
 }: {
   layer: Layer;
   isActive: boolean;
@@ -843,6 +845,8 @@ function LayerRow({
   onSelect: () => void;
   onDuplicate?: () => void;
   onDelete: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -885,6 +889,20 @@ function LayerRow({
         <>
           <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }} />
           <div className="absolute top-full right-1 -mt-1 w-36 bg-[var(--bg-mid)] border border-[var(--border)] rounded shadow-xl z-20 py-1 overflow-hidden">
+            <button
+              disabled={!onMoveUp}
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMoveUp?.(); }}
+              className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-[var(--bg-base)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              Move up
+            </button>
+            <button
+              disabled={!onMoveDown}
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMoveDown?.(); }}
+              className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-[var(--bg-base)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              Move down
+            </button>
             {onDuplicate && (
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDuplicate(); }}
@@ -938,7 +956,7 @@ function LayersPanel({
 }) {
   const {
     scenes, activeSceneId,
-    updateLayer, addLayer, removeLayer, pushUndo,
+    updateLayer, addLayer, removeLayer, reorderLayers, pushUndo,
     selectedLayerId, setSelectedLayerId,
     addToast,
   } = useStudioStore();
@@ -983,6 +1001,16 @@ function LayersPanel({
     }
     removeLayer(activeScene.id, layer.id);
     if (selectedLayerId === layer.id) setSelectedLayerId(null);
+  }
+
+  // dir +1 = toward the top of the z-stack (end of the array / top of the list)
+  function handleMove(layer: Layer, dir: 1 | -1) {
+    const idx = activeScene.layers.findIndex((l) => l.id === layer.id);
+    const j = idx + dir;
+    if (idx === -1 || j < 0 || j >= activeScene.layers.length) return;
+    const next = [...activeScene.layers];
+    [next[idx], next[j]] = [next[j], next[idx]];
+    reorderLayers(activeScene.id, next);
   }
 
   function handleDuplicate(layer: Layer) {
@@ -1221,7 +1249,7 @@ function LayersPanel({
 
       {/* Layer list - reversed so index 0 (bottom of stack) appears at bottom of list */}
       <div className="flex-1 overflow-y-auto">
-        {[...activeScene.layers].reverse().map((layer) => (
+        {[...activeScene.layers].reverse().map((layer, revIdx) => (
           <div key={layer.id}>
             <LayerRow
               layer={layer}
@@ -1234,6 +1262,8 @@ function LayersPanel({
                   : () => handleDuplicate(layer)
               }
               onDelete={() => handleDelete(layer)}
+              onMoveUp={revIdx === 0 ? undefined : () => handleMove(layer, 1)}
+              onMoveDown={revIdx === activeScene.layers.length - 1 ? undefined : () => handleMove(layer, -1)}
             />
           </div>
         ))}
@@ -2783,14 +2813,29 @@ function WidgetSection({
   }
   const fontSize = Number(cfg["fontSizePx"]) || 20;
   const maxMessages = Number(cfg["maxMessages"]) || 8;
+  const bgOpacity = cfg["bgOpacity"] !== undefined
+    ? Number(cfg["bgOpacity"])
+    : (cfg["bg"] === false ? 0 : 55);
 
   return (
     <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Live Chat</p>
-        <button onClick={() => set({ bg: cfg["bg"] === false ? true : false })} className={sectionToggleCls(cfg["bg"] !== false)}>
-          Backdrop
-        </button>
+      <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Live Chat</p>
+
+      <div className="space-y-1">
+        <div className="flex justify-between">
+          <label className="text-[10px] text-[var(--text-muted)]">Backdrop opacity</label>
+          <span className="text-[10px] font-mono text-[var(--text-primary)]">
+            {bgOpacity === 0 ? "off" : `${bgOpacity}%`}
+          </span>
+        </div>
+        <input
+          type="range" min={0} max={100} value={bgOpacity}
+          onChange={(e) => set({ bgOpacity: Number(e.target.value) })}
+          className="w-full h-1 cursor-pointer accent-[var(--accent-primary)]"
+        />
+        <p className="text-[10px] text-[var(--text-muted)]">
+          0 removes the box; the text stays fully sharp.
+        </p>
       </div>
 
       <div className="space-y-1">
