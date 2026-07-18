@@ -7,9 +7,6 @@ export const metadata: Metadata = {
     "How DITCH collects, uses and protects your data as the browser multistream studio.",
 };
 
-// TODO(founder): review before launch. Open points that need a decision:
-// the legal entity acting as data controller, the contact address, and
-// concrete retention periods once they are settled.
 export default function PrivacyPage() {
   return (
     <LegalShell title="Privacy policy" updated="june 12, 2026">

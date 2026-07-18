@@ -53,6 +53,13 @@ async function findLiveVideoId(channelId: string): Promise<string | null> {
 // Zero-quota, zero-lag discovery: the channel's public /live page embeds the
 // current broadcast's videoId the moment it starts, while the Data API's
 // search index lags minutes behind. Works with both UC... ids and @handles.
+//
+// DANGER: when the channel is NOT live, /live serves the channel home page,
+// whose HTML contains OTHER channels' videos (recommendation shelves) and
+// past uploads. Never take "the first videoId in the document" - that reads a
+// stranger's chat. Only the canonical/watch metadata identifies the video
+// actually being served, and every candidate is ownership-checked by the
+// caller before we attach to any chat.
 async function scrapeLiveVideoId(ref: string): Promise<string | null> {
   const trimmed = ref.trim();
   const path = /^UC[\w-]{20,}$/.test(trimmed)
@@ -67,23 +74,40 @@ async function scrapeLiveVideoId(ref: string): Promise<string | null> {
     });
     if (!res.ok) return null;
     const html = await res.text();
-    // When the channel is not live, /live serves the channel home page, which
-    // still contains videoIds of past uploads - only trust a live document.
-    if (!/"isLive"\s*:\s*true/.test(html)) return null;
-    const m = html.match(/"videoId"\s*:\s*"([\w-]{11})"/);
-    return m?.[1] ?? null;
+
+    // A real watch document sets a canonical /watch?v= link. A channel page
+    // (i.e. not live) canonicalizes to the channel URL, so this simply misses.
+    const canonical = html.match(
+      /<link\s+rel="canonical"\s+href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/,
+    );
+    if (canonical) return canonical[1];
+
+    // Fallback: videoDetails describes the video being played on this page
+    // (not the recommendation shelves).
+    const details = html.match(/"videoDetails"\s*:\s*\{[^{}]*?"videoId"\s*:\s*"([\w-]{11})"/);
+    return details?.[1] ?? null;
   } catch {
     return null;
   }
 }
 
-async function getLiveChatId(videoId: string): Promise<string | null> {
+// Returns the owning channel + active chat id for a video. snippet.channelId is
+// what lets the caller prove a discovered video really belongs to the creator's
+// channel; both parts come back in a single 1-unit call.
+async function inspectVideo(
+  videoId: string,
+): Promise<{ channelId: string; liveChatId: string | null } | null> {
   const url = new URL(`${API}/videos`);
-  url.searchParams.set("part", "liveStreamingDetails");
+  url.searchParams.set("part", "snippet,liveStreamingDetails");
   url.searchParams.set("id", videoId);
   url.searchParams.set("key", KEY!);
   const data = await getJson(url);
-  return data?.items?.[0]?.liveStreamingDetails?.activeLiveChatId ?? null;
+  const item = data?.items?.[0];
+  if (!item) return null;
+  return {
+    channelId: item.snippet?.channelId ?? "",
+    liveChatId: item.liveStreamingDetails?.activeLiveChatId ?? null,
+  };
 }
 
 export function startYouTube(channelRef: string, emit: EmitFn): Ingestor {
@@ -97,20 +121,38 @@ export function startYouTube(channelRef: string, emit: EmitFn): Ingestor {
 
   (async () => {
     try {
-      // Only needed for the search.list fallback - the /live scrape resolves
-      // handles by itself, so a failed resolution is not fatal.
+      // Mandatory: every discovered video is checked against this id before we
+      // read its chat. Without it we cannot prove a video belongs to the
+      // creator, and attaching to the wrong one leaks a stranger's chat into
+      // the session - so a failed resolution aborts ingestion entirely.
       const channelId = await resolveChannelId(channelRef);
       if (!channelId) {
-        console.warn(`[ingest] youtube: could not resolve channel "${channelRef}" via API (scrape-only mode)`);
+        console.warn(
+          `[ingest] youtube: could not resolve channel "${channelRef}" - ingestion aborted ` +
+          `(channel_ref must be a UC... channel id or an @handle)`,
+        );
+        return;
       }
       // Retry discovery: the broadcast may start shortly after DITCH goes live.
       let liveChatId: string | null = null;
       for (let attempt = 1; active && attempt <= MAX_DISCOVERY_ATTEMPTS; attempt++) {
         let videoId = await scrapeLiveVideoId(channelRef);
-        if (!videoId && channelId && (attempt - 1) % 4 === 0) {
+        if (!videoId && (attempt - 1) % 4 === 0) {
           videoId = await findLiveVideoId(channelId);
         }
-        if (videoId) liveChatId = await getLiveChatId(videoId);
+        if (videoId) {
+          const info = await inspectVideo(videoId);
+          if (info && info.channelId !== channelId) {
+            // The /live page served someone else's video (recommendation
+            // shelf on a not-live channel page). Never read that chat.
+            console.warn(
+              `[ingest] youtube: discovered video ${videoId} belongs to channel ` +
+              `${info.channelId || "unknown"}, expected ${channelId} - ignoring`,
+            );
+          } else if (info?.liveChatId) {
+            liveChatId = info.liveChatId;
+          }
+        }
         if (liveChatId) break;
         console.warn(
           `[ingest] youtube: no live broadcast for "${channelRef}" (attempt ${attempt}/${MAX_DISCOVERY_ATTEMPTS})`,

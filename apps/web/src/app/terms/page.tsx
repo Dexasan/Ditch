@@ -7,9 +7,6 @@ export const metadata: Metadata = {
     "The terms that govern your use of DITCH, the browser multistream studio.",
 };
 
-// TODO(founder): review before launch. Open points that need a decision:
-// the legal entity name, the governing law section (drafted for Italy),
-// the minimum age, and the contact address.
 export default function TermsPage() {
   return (
     <LegalShell title="Terms of service" updated="june 12, 2026">
