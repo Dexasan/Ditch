@@ -3,6 +3,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useAgoraRoom } from "@/hooks/useAgoraRoom";
 import { useClipBuffer } from "@/hooks/useClipBuffer";
+import { useCompositePublish } from "@/hooks/useCompositePublish";
 import { useCompositor } from "@/hooks/useCompositor";
 import { useMediaSources } from "@/hooks/useMediaSources";
 import { useRecorder } from "@/hooks/useRecorder";
@@ -241,6 +242,7 @@ function GoLiveModal({
   const [newPlatform, setNewPlatform] = useState<StreamPlatform>("twitch");
   const [newRtmpUrl, setNewRtmpUrl] = useState(PLATFORM_RTMP_URL["twitch"] ?? "");
   const [newStreamKey, setNewStreamKey] = useState("");
+  const [newChannelRef, setNewChannelRef] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
   const [goingLive, setGoingLive] = useState(false);
@@ -286,11 +288,15 @@ function GoLiveModal({
           rtmp_url: newRtmpUrl.trim(),
           stream_key: newStreamKey.trim(),
           label: DEST_PLATFORM_LABEL[newPlatform],
+          // Chat ingestion reads this - without it the realtime service can't
+          // attach to the platform's chat and the unified feed stays empty.
+          channel_ref: newChannelRef.trim() || undefined,
         },
       });
       setSaved((list) => [...list, { ...saved_destination, enabled: true }]);
       setNewRtmpUrl(PLATFORM_RTMP_URL[newPlatform] ?? "");
       setNewStreamKey("");
+      setNewChannelRef("");
       setNewPlatform("twitch");
       setShowAddForm(false);
     } catch (err) {
@@ -444,6 +450,20 @@ function GoLiveModal({
                   {showKey ? <IconEyeOff /> : <IconEye />}
                 </button>
               </div>
+              {(newPlatform === "twitch" || newPlatform === "youtube") && (
+                <div>
+                  <input
+                    type="text"
+                    placeholder={newPlatform === "twitch" ? "Twitch channel name (for chat)" : "YouTube channel ID (for chat)"}
+                    value={newChannelRef}
+                    onChange={(e) => setNewChannelRef(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded bg-[var(--bg-mid)] border border-[var(--border)] text-[12px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
+                  />
+                  <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                    Needed to pull this platform&apos;s chat into your unified feed.
+                  </p>
+                </div>
+              )}
               <div className="flex gap-2">
                 <button
                   onClick={() => {
@@ -809,6 +829,7 @@ function layerTypeIcon(type: Layer["type"]) {
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
     );
+    case "participant": return <IconUsers />;
     default:            return (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -827,6 +848,7 @@ const LAYER_TYPE_LABEL: Record<Layer["type"], string> = {
   shape: "Rectangle",
   markdown: "Markdown",
   widget: "Widget",
+  participant: "Guest",
 };
 
 function LayerRow({
@@ -844,7 +866,7 @@ function LayerRow({
   onToggleVisible: () => void;
   onSelect: () => void;
   onDuplicate?: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
 }) {
@@ -912,13 +934,15 @@ function LayerRow({
                 <span className="text-[9px] text-[var(--text-muted)]">Ctrl+D</span>
               </button>
             )}
-            <button
-              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }}
-              className="w-full text-left px-3 py-1.5 text-[11px] flex items-center justify-between text-red-400 hover:bg-[var(--bg-base)] transition-colors"
-            >
-              Delete
-              <span className="text-[9px] text-[var(--text-muted)]">Del</span>
-            </button>
+            {onDelete && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }}
+                className="w-full text-left px-3 py-1.5 text-[11px] flex items-center justify-between text-red-400 hover:bg-[var(--bg-base)] transition-colors"
+              >
+                Delete
+                <span className="text-[9px] text-[var(--text-muted)]">Del</span>
+              </button>
+            )}
           </div>
         </>
       )}
@@ -1257,11 +1281,14 @@ function LayersPanel({
               onToggleVisible={() => handleToggleVisible(layer)}
               onSelect={() => setSelectedLayerId(layer.id)}
               onDuplicate={
-                layer.type === "screenshare" || layer.type === "media" || layer.type === "browser"
+                layer.type === "screenshare" || layer.type === "media" ||
+                layer.type === "browser" || layer.type === "participant"
                   ? undefined
                   : () => handleDuplicate(layer)
               }
-              onDelete={() => handleDelete(layer)}
+              // Guest layers are lifecycle-bound to the participant being on
+              // stage - remove people via the queue or mixer, not the canvas.
+              onDelete={layer.type === "participant" ? undefined : () => handleDelete(layer)}
               onMoveUp={revIdx === 0 ? undefined : () => handleMove(layer, 1)}
               onMoveDown={revIdx === activeScene.layers.length - 1 ? undefined : () => handleMove(layer, -1)}
             />
@@ -3804,6 +3831,51 @@ export default function Studio({
     });
   }, [localVideoTrack]);
 
+  // ── Guest layers ─────────────────────────────────────────────────────────────
+  // Every live participant gets a real, resizable/movable "participant" layer in
+  // the active scene (the compositor no longer auto-grids guests over the
+  // creator's layout). Layers appear when a guest goes live and disappear from
+  // every scene when they leave.
+  useEffect(() => {
+    const s = useStudioStore.getState();
+    const liveIds = new Set(liveParticipants.map((p) => p.id));
+
+    for (const sc of s.scenes) {
+      for (const l of sc.layers) {
+        if (l.type === "participant" && !liveIds.has(l.sourceConfig["participantId"] as string)) {
+          s.removeLayer(sc.id, l.id);
+        }
+      }
+    }
+
+    for (const p of liveParticipants) {
+      const cur = useStudioStore.getState();
+      const sc = cur.scenes.find((x) => x.id === cur.activeSceneId);
+      if (!sc) continue;
+      if (sc.layers.some((l) => l.type === "participant" && l.sourceConfig["participantId"] === p.id)) continue;
+      const guestCount = sc.layers.filter((l) => l.type === "participant").length;
+      cur.addLayer(sc.id, {
+        id: crypto.randomUUID(),
+        type: "participant",
+        name: p.display_name ?? "Guest",
+        visible: true,
+        locked: false,
+        opacity: 100,
+        // Default: tile stack down the right edge; the creator can move and
+        // resize it like any other layer. Clamped so late joiners stay on canvas.
+        transform: {
+          x: 838,
+          y: Math.min(16 + guestCount * 256, 720 - 248),
+          width: 426,
+          height: 240,
+          rotation: 0,
+        },
+        sourceConfig: { participantId: p.id, slotIndex: p.slot_index ?? 0 },
+        effects: [],
+      });
+    }
+  }, [liveParticipants, activeSceneId]);
+
   // Media-file + extra-device + tab-capture sources (compositor-only handles)
   const { attachFile, attachDisplayCapture, getSource, mediaAudioSources } = useMediaSources();
   const extraAudioTracks = useMemo(
@@ -3830,6 +3902,15 @@ export default function Studio({
     chatMessages: messages,
     targetFps,
     onFps: setFps,
+  });
+
+  // Publish the program mix into the Agora channel so DITCH viewers watch the
+  // full composed stream (layers, guests, overlays) - not just the raw camera.
+  useCompositePublish({
+    stream: compositeStream,
+    sessionId,
+    authToken: token,
+    enabled: !!compositeStream,
   });
 
   // Relay stream - only active when streamStatus !== 'offline'.

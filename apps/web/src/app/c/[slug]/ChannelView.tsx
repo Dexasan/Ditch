@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { getSocket, type SessionJoinAck } from "@/lib/socket";
 import { useAgoraRoom } from "@/hooks/useAgoraRoom";
-import { slotToUid, CREATOR_CAM_UID, CREATOR_SCREEN_UID, AGORA_APP_ID } from "@/lib/agora";
+import { slotToUid, CREATOR_CAM_UID, CREATOR_SCREEN_UID, CREATOR_COMPOSITE_UID, AGORA_APP_ID } from "@/lib/agora";
 import { api } from "@/lib/api";
 import type { ChatMessage, Participant } from "@ditch/types";
 import type { ILocalVideoTrack, IRemoteVideoTrack } from "agora-rtc-sdk-ng";
@@ -662,11 +662,34 @@ export default function ChannelView({
   }
 
   // Derived
-  const creatorVideo = remoteUsers.find((u) => u.uid === CREATOR_CAM_UID)?.videoTrack ?? null;
-  const screenVideo  = remoteUsers.find((u) => u.uid === CREATOR_SCREEN_UID)?.videoTrack ?? null;
+  const creatorVideo   = remoteUsers.find((u) => u.uid === CREATOR_CAM_UID)?.videoTrack ?? null;
+  const screenVideo    = remoteUsers.find((u) => u.uid === CREATOR_SCREEN_UID)?.videoTrack ?? null;
+  const compositeVideo = remoteUsers.find((u) => u.uid === CREATOR_COMPOSITE_UID)?.videoTrack ?? null;
   const liveSlots    = participants.filter((p) => p.status === "live");
   const onStreamCount = liveSlots.length + 1; // +1 for creator
-  const hasStrip     = !!(screenVideo || liveSlots.length > 0);
+
+  // Passive viewers watch the studio's PROGRAM feed (the full composed canvas:
+  // layers, guests, overlays - identical to what Twitch/YouTube receive).
+  // On-stage guests keep per-track views: lower latency, and the program audio
+  // would echo their own voice back at them.
+  const useProgram = !!compositeVideo && !isLiveParticipant;
+  const mainVideo  = useProgram ? compositeVideo : creatorVideo;
+  const hasStrip   = !useProgram && !!(screenVideo || liveSlots.length > 0);
+
+  // Audio routing follows the same rule: program mode plays ONLY the composite
+  // mix; per-track mode plays everyone individually (the useAgoraRoom default).
+  useEffect(() => {
+    const composite = remoteUsers.find((u) => u.uid === CREATOR_COMPOSITE_UID);
+    const programAudio = !!composite?.audioTrack && !isLiveParticipant;
+    for (const u of remoteUsers) {
+      if (!u.audioTrack) continue;
+      const shouldPlay = u.uid === CREATOR_COMPOSITE_UID ? programAudio : !programAudio;
+      try {
+        if (shouldPlay && !u.audioTrack.isPlaying) u.audioTrack.play();
+        if (!shouldPlay && u.audioTrack.isPlaying) u.audioTrack.stop();
+      } catch {}
+    }
+  }, [remoteUsers, isLiveParticipant]);
 
   // ── Error state ───────────────────────────────────────────────────────────────
   if (sessionError) {
@@ -725,8 +748,8 @@ export default function ChannelView({
             className="relative bg-black flex-shrink-0"
             style={{ aspectRatio: "16/9" }}
           >
-            {creatorVideo ? (
-              <AgoraVideoTile track={creatorVideo} />
+            {mainVideo ? (
+              <AgoraVideoTile track={mainVideo} />
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 select-none"
                    style={{ opacity: 0.25 }}>

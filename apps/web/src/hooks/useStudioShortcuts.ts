@@ -77,9 +77,11 @@ export function useStudioShortcuts({
       const selectedLayer = activeScene.layers.find((l) => l.id === s.selectedLayerId);
       if (!selectedLayer) return;
 
-      // Delete / Backspace: remove selected layer
+      // Delete / Backspace: remove selected layer (guest layers are bound to
+      // the participant being live - remove them via the queue/mixer instead)
       if ((e.key === "Delete" || e.key === "Backspace") && !meta) {
         e.preventDefault();
+        if (selectedLayer.type === "participant") return;
         s.pushUndo(s.activeSceneId, activeScene.layers);
         s.removeLayer(s.activeSceneId, s.selectedLayerId);
         s.setSelectedLayerId(null);
@@ -90,7 +92,10 @@ export function useStudioShortcuts({
       // to their captures/files and can't be duplicated)
       if (meta && e.key === "d") {
         e.preventDefault();
-        if (selectedLayer.type === "screenshare" || selectedLayer.type === "media" || selectedLayer.type === "browser") return;
+        if (
+          selectedLayer.type === "screenshare" || selectedLayer.type === "media" ||
+          selectedLayer.type === "browser" || selectedLayer.type === "participant"
+        ) return;
         s.pushUndo(s.activeSceneId, activeScene.layers);
         const dup: Layer = {
           ...selectedLayer,

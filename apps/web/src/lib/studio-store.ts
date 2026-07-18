@@ -27,7 +27,8 @@ type LayerType =
   | "text"
   | "shape"
   | "markdown"
-  | "widget";
+  | "widget"
+  | "participant";
 
 interface Transform {
   x: number;

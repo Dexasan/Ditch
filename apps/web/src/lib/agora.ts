@@ -28,5 +28,6 @@ export async function getAgoraRTC() {
 export const slotToUid = (slotIndex: number) => slotIndex + 1;
 
 // Reserved UIDs for the creator - fixed so viewers can find them in remoteUsers
-export const CREATOR_CAM_UID = 999;    // creator camera + mic
-export const CREATOR_SCREEN_UID = 998; // creator screen share (second client)
+export const CREATOR_CAM_UID = 999;       // creator camera + mic
+export const CREATOR_SCREEN_UID = 998;    // creator screen share (second client)
+export const CREATOR_COMPOSITE_UID = 997; // full program mix (studio canvas + audio)

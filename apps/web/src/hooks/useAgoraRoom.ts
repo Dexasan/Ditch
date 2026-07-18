@@ -8,7 +8,7 @@ import type {
   ILocalAudioTrack,
   IMicrophoneAudioTrack,
 } from "agora-rtc-sdk-ng";
-import { AGORA_APP_ID, getAgoraRTC } from "@/lib/agora";
+import { AGORA_APP_ID, CREATOR_COMPOSITE_UID, getAgoraRTC } from "@/lib/agora";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
@@ -171,8 +171,15 @@ export function useAgoraRoom(options: {
         setState((prev) => ({ ...prev, remoteUsers: [...client.remoteUsers] }));
 
       client.on("user-published", async (user, mediaType) => {
+        // Hosts (creator studio / legacy control room) never consume the
+        // composite program feed - it's their own output coming back (echo
+        // risk + wasted downlink). Audience clients subscribe so viewers can
+        // watch the full program.
+        if (user.uid === CREATOR_COMPOSITE_UID && role === "host") return;
         await client.subscribe(user, mediaType);
-        if (mediaType === "audio" && user.audioTrack) {
+        // Composite audio is played (or not) by the viewer page, which knows
+        // whether this user is a passive viewer or an on-stage guest.
+        if (mediaType === "audio" && user.audioTrack && user.uid !== CREATOR_COMPOSITE_UID) {
           user.audioTrack.play();
         }
         syncRemote();
@@ -382,6 +389,9 @@ export function useAgoraRoom(options: {
         setState((prev) => ({ ...prev, remoteUsers: [...client.remoteUsers] }));
 
       client.on("user-published", async (user, mediaType) => {
+        // On-stage guests keep the low-latency per-track view; the composite
+        // program feed would echo their own voice back at them.
+        if (user.uid === CREATOR_COMPOSITE_UID) return;
         await client.subscribe(user, mediaType);
         if (mediaType === "audio" && user.audioTrack) user.audioTrack.play();
         syncRemote();

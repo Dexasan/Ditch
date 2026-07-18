@@ -694,44 +694,35 @@ export function useCompositor({
 
       const layers = layersRef.current;
       const participantCount = liveParticipantsRef.current.length;
-      // The guest auto-grid anchors to the primary camera layer (the Agora-
-      // published one, i.e. no deviceId). Extra-device and duplicated camera
-      // layers draw as plain video at their own transform.
-      const primaryCamIdx = layers.findIndex(
-        (l) => l.type === "camera" && !l.sourceConfig["deviceId"],
-      );
 
-      // Guests keep rendering even when the scene has no primary camera layer -
-      // they must not vanish because the creator deleted their own cam.
-      if (participantCount > 0 && primaryCamIdx === -1) {
+      // Legacy path (LiveRoom passes no layers at all): auto-grid the guests.
+      // The studio never hits this - guests are real "participant" layers there,
+      // resizable and movable like everything else.
+      if (layers.length === 0 && participantCount > 0) {
         drawParticipants(getLayout(false, participantCount));
       }
 
-      let idx = -1;
       for (const layer of layers) {
-        idx++;
         const t = layerTransform(layer);
-
-        if (layer.type === "camera" && idx === primaryCamIdx && participantCount > 0) {
-          // Guests on stage: auto-tile creator + participants into one grid so a
-          // single guest can't swallow the canvas. Runs even when the camera
-          // layer is hidden (guests still render, creator cell drops out).
-          const creatorOn = layer.visible && !layer.sourceUnavailable && !!localVideoTrack;
-          const layout = getLayout(creatorOn, participantCount);
-          drawParticipants(layout);
-          const cell = layout[0];
-          if (creatorOn && cell) {
-            const source = localVideoTrack ? localTrackSource(localVideoTrack) : null;
-            // Grid cells never rotate - the auto layout owns the geometry.
-            const gridT = { ...layer.transform, rotation: 0 };
-            if (source) withLayerCtx(layer, gridT, () => drawVideoSource(source, layer, cell));
-          }
-          continue;
-        }
-
         if (!layer.visible || layer.sourceUnavailable) continue;
 
         switch (layer.type) {
+          case "participant": {
+            const slotIndex = Number(layer.sourceConfig["slotIndex"]) || 0;
+            const remoteUser = remoteUsersRef.current.find((u) => u.uid === slotIndex + 1);
+            if (!remoteUser?.videoTrack) break;
+            try {
+              const native = remoteUser.videoTrack.getMediaStreamTrack();
+              // Guest tracks render via a played <video> element (see the note
+              // in drawParticipants about the Breakout Box and remote tracks).
+              const source = getVideoElem(native.id, native);
+              if (source) {
+                withLayerCtx(layer, t, () =>
+                  drawVideoSource(source, layer, { x: t.x, y: t.y, w: t.width, h: t.height }));
+              }
+            } catch {}
+            break;
+          }
           case "camera": {
             const source = cameraSource(layer);
             if (source) {
@@ -852,8 +843,12 @@ export function useCompositor({
     }
     for (const user of remoteUsers) {
       if (!user.audioTrack) continue;
+      // Only guest slots (uid 1..8) feed the mix. Reserved creator UIDs stay
+      // out - mixing the composite feed (997) back in would be a feedback loop.
+      const uid = Number(user.uid);
+      if (!(uid >= 1 && uid <= 8)) continue;
       // Agora UID = slot_index + 1, so slot_index = uid - 1
-      const slotIndex = Number(user.uid) - 1;
+      const slotIndex = uid - 1;
       try { ensureConnected(`participant-${slotIndex}`, user.audioTrack.getMediaStreamTrack()); } catch {}
     }
     for (const { id, track } of extraAudioTracks) {
