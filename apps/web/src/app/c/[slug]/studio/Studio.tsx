@@ -3852,7 +3852,19 @@ export default function Studio({
       const cur = useStudioStore.getState();
       const sc = cur.scenes.find((x) => x.id === cur.activeSceneId);
       if (!sc) continue;
-      if (sc.layers.some((l) => l.type === "participant" && l.sourceConfig["participantId"] === p.id)) continue;
+      const existing = sc.layers.find(
+        (l) => l.type === "participant" && l.sourceConfig["participantId"] === p.id,
+      );
+      if (existing) {
+        // Keep the layer's slot in sync - it can be assigned after creation
+        const slot = p.slot_index ?? 0;
+        if (existing.sourceConfig["slotIndex"] !== slot) {
+          cur.updateLayer(sc.id, existing.id, {
+            sourceConfig: { ...existing.sourceConfig, slotIndex: slot },
+          });
+        }
+        continue;
+      }
       const guestCount = sc.layers.filter((l) => l.type === "participant").length;
       cur.addLayer(sc.id, {
         id: crypto.randomUUID(),

@@ -565,7 +565,6 @@ export default function ChannelView({
   }, [messages]);
 
   const isLiveParticipant = myParticipant?.status === "live";
-  const mySlotUid = isLiveParticipant ? slotToUid(myParticipant!.slot_index ?? 0) : 0;
 
   const { localVideoTrack, localAudioTrack, remoteUsers, joined: agoraJoined, connectionState: agoraConn, error: agoraError, goLiveAsHost, demoteToAudience } = useAgoraRoom({
     channelName: sessionId,
@@ -578,6 +577,11 @@ export default function ChannelView({
     authToken: tokenState ?? undefined,
   });
 
+  // The uid we last published under. Slot uids (slot_index + 1) are how the
+  // studio compositor finds a guest's video - publishing under any other uid
+  // renders an empty guest tile on stream.
+  const hostUidRef = useRef<number | null>(null);
+
   // When the creator removes a live participant, drop their published camera and
   // return them to audience so they keep watching instead of hanging on screen.
   const wasLiveHostRef = useRef(false);
@@ -586,11 +590,25 @@ export default function ChannelView({
     if (myParticipant?.status === "removed") {
       if (wasLiveHostRef.current) {
         wasLiveHostRef.current = false;
+        hostUidRef.current = null;
         demoteToAudience();
       }
       setMyParticipant(null);
     }
   }, [myParticipant?.status, demoteToAudience]);
+
+  // An approved guest can start their camera before the creator assigns a slot
+  // ("Go live now"); at that point there is no slot yet, so the publish happens
+  // under a placeholder uid the compositor can't map. The moment the slot
+  // arrives, rejoin under the correct slot uid so the guest appears on stream.
+  useEffect(() => {
+    if (myParticipant?.status !== "live" || myParticipant.slot_index == null) return;
+    const wantUid = slotToUid(myParticipant.slot_index);
+    if (hostUidRef.current !== null && hostUidRef.current !== wantUid) {
+      hostUidRef.current = wantUid;
+      goLiveAsHost(wantUid).catch(() => {});
+    }
+  }, [myParticipant?.status, myParticipant?.slot_index, goLiveAsHost]);
 
   // Opt-in on-screen diagnostics: open the channel with ?debug to see Agora state
   // on devices with no dev console (e.g. iPhone). Set in an effect to avoid SSR
@@ -658,7 +676,11 @@ export default function ChannelView({
 
   function handleGoLive() {
     setGoingLive(true);
-    goLiveAsHost(mySlotUid).finally(() => setGoingLive(false));
+    // Read the slot at call time - mySlotUid can be stale if the creator
+    // assigned the slot in the same tick the guest clicked.
+    const uid = myParticipant?.slot_index != null ? slotToUid(myParticipant.slot_index) : 0;
+    hostUidRef.current = uid;
+    goLiveAsHost(uid).finally(() => setGoingLive(false));
   }
 
   // Derived
@@ -668,13 +690,14 @@ export default function ChannelView({
   const liveSlots    = participants.filter((p) => p.status === "live");
   const onStreamCount = liveSlots.length + 1; // +1 for creator
 
-  // Passive viewers watch the studio's PROGRAM feed (the full composed canvas:
-  // layers, guests, overlays - identical to what Twitch/YouTube receive).
-  // On-stage guests keep per-track views: lower latency, and the program audio
-  // would echo their own voice back at them.
-  const useProgram = !!compositeVideo && !isLiveParticipant;
-  const mainVideo  = useProgram ? compositeVideo : creatorVideo;
-  const hasStrip   = !useProgram && !!(screenVideo || liveSlots.length > 0);
+  // Everyone watches the studio's PROGRAM feed as the main video (the full
+  // composed canvas: layers, guests, overlays - identical to what
+  // Twitch/YouTube receive). Only the AUDIO differs: on-stage guests keep
+  // per-track audio because the program mix would echo their own voice back.
+  const mainVideo = compositeVideo ?? creatorVideo;
+  // The thumbnail strip only matters for on-stage guests (self-monitoring)
+  // or as a fallback when no program feed is being published.
+  const hasStrip  = (isLiveParticipant || !compositeVideo) && !!(screenVideo || liveSlots.length > 0);
 
   // Audio routing follows the same rule: program mode plays ONLY the composite
   // mix; per-track mode plays everyone individually (the useAgoraRoom default).

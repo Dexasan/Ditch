@@ -708,7 +708,11 @@ export function useCompositor({
 
         switch (layer.type) {
           case "participant": {
-            const slotIndex = Number(layer.sourceConfig["slotIndex"]) || 0;
+            // Resolve the slot from the LIVE participant record - the slot can
+            // be assigned or changed after the layer was created.
+            const pid = layer.sourceConfig["participantId"] as string | undefined;
+            const liveP = pid ? liveParticipantsRef.current.find((p) => p.id === pid) : undefined;
+            const slotIndex = liveP?.slot_index ?? (Number(layer.sourceConfig["slotIndex"]) || 0);
             const remoteUser = remoteUsersRef.current.find((u) => u.uid === slotIndex + 1);
             if (!remoteUser?.videoTrack) break;
             try {

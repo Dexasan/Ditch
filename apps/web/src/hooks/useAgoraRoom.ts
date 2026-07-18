@@ -389,9 +389,10 @@ export function useAgoraRoom(options: {
         setState((prev) => ({ ...prev, remoteUsers: [...client.remoteUsers] }));
 
       client.on("user-published", async (user, mediaType) => {
-        // On-stage guests keep the low-latency per-track view; the composite
-        // program feed would echo their own voice back at them.
-        if (user.uid === CREATOR_COMPOSITE_UID) return;
+        // On-stage guests DO watch the program video (so they see the show as
+        // broadcast) but never its audio - the mix contains their own voice
+        // and would echo it back at them. They keep per-track audio instead.
+        if (user.uid === CREATOR_COMPOSITE_UID && mediaType === "audio") return;
         await client.subscribe(user, mediaType);
         if (mediaType === "audio" && user.audioTrack) user.audioTrack.play();
         syncRemote();
