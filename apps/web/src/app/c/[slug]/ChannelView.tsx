@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { getSocket, type SessionJoinAck } from "@/lib/socket";
 import { useAgoraRoom } from "@/hooks/useAgoraRoom";
@@ -74,7 +74,7 @@ function ParticipantTile({
       style={{ width: 112, height: 63, background: "#111120" }}
     >
       {videoTrack ? (
-        <AgoraVideoTile track={videoTrack} />
+        <AgoraVideoTile track={videoTrack} fit="cover" mirror={isMe} />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center">
           <div
@@ -176,7 +176,7 @@ function JoinPanel({
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="Your display name"
           maxLength={64}
-          className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none transition-colors"
+          className="audience-text-input w-full rounded-xl px-3.5 py-2.5 text-base transition-colors focus:outline-none"
           style={{
             background: "#111120",
             border: "1px solid var(--color-surface-border)",
@@ -360,6 +360,7 @@ function ChatPanel({
   connected,
   tokenState,
   chatEndRef,
+  chatScrollRef,
   chatInputRef,
   onSend,
   onBodyChange,
@@ -372,6 +373,7 @@ function ChatPanel({
   connected: boolean;
   tokenState: string | null;
   chatEndRef: React.RefObject<HTMLDivElement>;
+  chatScrollRef: React.RefObject<HTMLDivElement>;
   chatInputRef: React.RefObject<HTMLInputElement>;
   onSend: (e: React.FormEvent) => void;
   onBodyChange: (v: string) => void;
@@ -380,7 +382,10 @@ function ChatPanel({
 }) {
   return (
     <>
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 min-h-0">
+      <div
+        ref={chatScrollRef}
+        className="min-h-0 min-w-0 flex-1 space-y-2 overflow-y-auto overflow-x-hidden px-3 py-3"
+      >
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-20 gap-1.5 opacity-30 select-none">
             <span className="text-xl">💬</span>
@@ -390,7 +395,11 @@ function ChatPanel({
           </div>
         ) : (
           messages.map((m) => (
-            <div key={m.id} className="text-[12px] leading-relaxed">
+            <div
+              key={m.id}
+              className="min-w-0 text-[12px] leading-relaxed"
+              style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
+            >
               <span
                 className="font-semibold"
                 style={{ color: PLATFORM_COLOR[m.platform] ?? "var(--color-brand-light)" }}
@@ -409,7 +418,7 @@ function ChatPanel({
       {tokenState ? (
         <form
           onSubmit={onSend}
-          className="flex gap-2 p-3 border-t shrink-0"
+          className="audience-chat-composer flex shrink-0 gap-2 border-t p-3"
           style={{ borderColor: "var(--color-surface-border)" }}
         >
           <input
@@ -419,7 +428,7 @@ function ChatPanel({
             onChange={(e) => onBodyChange(e.target.value)}
             placeholder="Say something…"
             maxLength={500}
-            className="flex-1 min-w-0 px-3 py-2 rounded-lg text-[13px] focus:outline-none transition-colors"
+            className="audience-text-input min-w-0 flex-1 rounded-lg px-3 py-2 text-base transition-colors focus:outline-none"
             style={{
               background: "#111120",
               border: "1px solid var(--color-surface-border)",
@@ -438,7 +447,7 @@ function ChatPanel({
         </form>
       ) : (
         <div
-          className="flex gap-2 p-3 border-t shrink-0"
+          className="audience-chat-composer flex shrink-0 gap-2 border-t p-3"
           style={{ borderColor: "var(--color-surface-border)" }}
         >
           <input
@@ -447,13 +456,14 @@ function ChatPanel({
             onChange={(e) => onDraftChange(e.target.value)}
             placeholder="Sign in to chat…"
             maxLength={500}
-            className="flex-1 min-w-0 px-3 py-2 rounded-lg text-[13px] focus:outline-none cursor-text"
+            className="audience-text-input min-w-0 flex-1 cursor-text rounded-lg px-3 py-2 text-base focus:outline-none"
             style={{
               background: "#111120",
               border: "1px solid var(--color-surface-border)",
             }}
           />
           <button
+            type="button"
             onClick={onSignInClick}
             className="px-3 py-2 min-h-[44px] rounded-lg text-xs font-semibold text-white shrink-0 transition-opacity hover:opacity-90"
             style={{ background: "var(--color-brand)" }}
@@ -498,10 +508,79 @@ export default function ChannelView({
   const [camEnabled, setCamEnabled]           = useState(true);
   const [goingLive, setGoingLive]             = useState(false);
   const [mobileTab, setMobileTab]             = useState<"chat" | "join">("join");
+  const [isDesktopAudience, setIsDesktopAudience] = useState(false);
+  const [soundPlaying, setSoundPlaying]       = useState(false);
+  const [expandedVideo, setExpandedVideo]     = useState(false);
 
-  const chatEndRef  = useRef<HTMLDivElement>(null);
+  const audienceRootRef = useRef<HTMLDivElement>(null);
+  const videoFrameRef = useRef<HTMLDivElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
 
+
+  const scrollChatToLatest = useCallback((behavior: ScrollBehavior = "auto") => {
+    const list = chatScrollRef.current;
+    if (!list) return;
+    list.scrollTo({ top: list.scrollHeight, behavior });
+  }, []);
+
+  // A phone in "Desktop site" mode can report a wide CSS viewport. Require a
+  // desktop-class pointer as well as width before mounting the desktop sidebar.
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 768px) and (hover: hover) and (pointer: fine)");
+    const update = () => setIsDesktopAudience(query.matches);
+    update();
+    query.addEventListener?.("change", update);
+    return () => query.removeEventListener?.("change", update);
+  }, []);
+
+  // Resize the live region to the visible viewport, not the layout viewport.
+  // On iOS this is what keeps the composer above the software keyboard.
+  useEffect(() => {
+    const root = audienceRootRef.current;
+    if (!root) return;
+    const viewport = window.visualViewport;
+    let frame = 0;
+
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const rootTop = Math.max(0, root.getBoundingClientRect().top);
+        const viewportHeight = viewport?.height ?? window.innerHeight;
+        root.style.setProperty("--audience-viewport-height", `${Math.max(0, viewportHeight - rootTop)}px`);
+        scrollChatToLatest();
+      });
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", update);
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+    };
+  }, [scrollChatToLatest]);
+
+  useEffect(() => {
+    const onAutoplayFailed = () => setSoundPlaying(false);
+    window.addEventListener("ditch:autoplay-failed", onAutoplayFailed);
+    return () => window.removeEventListener("ditch:autoplay-failed", onAutoplayFailed);
+  }, []);
+
+  // Release Android's orientation lock when native fullscreen closes. iOS does
+  // not expose orientation lock, so this remains a harmless no-op there.
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      if (document.fullscreenElement) return;
+      try { screen.orientation?.unlock?.(); } catch {}
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
   useEffect(() => {
     if (sessionError) setShowSignInModal(false);
   }, [sessionError]);
@@ -561,8 +640,8 @@ export default function ChannelView({
   }, [sessionId, tokenState]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    scrollChatToLatest("smooth");
+  }, [messages, scrollChatToLatest]);
 
   const isLiveParticipant = myParticipant?.status === "live";
 
@@ -684,6 +763,46 @@ export default function ChannelView({
   }
 
   // Derived
+
+  async function handleVideoExpansion() {
+    const frame = videoFrameRef.current;
+    if (!frame) return;
+
+    if (expandedVideo) {
+      setExpandedVideo(false);
+      return;
+    }
+
+    if (document.fullscreenElement) {
+      await document.exitFullscreen().catch(() => {});
+      return;
+    }
+
+    if (frame.requestFullscreen) {
+      try {
+        await frame.requestFullscreen();
+        const orientation = screen.orientation as ScreenOrientation & {
+          lock?: (value: "landscape") => Promise<void>;
+        };
+        await orientation.lock?.("landscape").catch(() => {});
+        return;
+      } catch {}
+    }
+
+    // iPhone Safari only exposes fullscreen on the video element created by
+    // Agora. If that API is absent too, expand the stage in-page.
+    const video = frame.querySelector("video") as (HTMLVideoElement & {
+      webkitEnterFullscreen?: () => void;
+    }) | null;
+    if (video?.webkitEnterFullscreen) {
+      try {
+        video.webkitEnterFullscreen();
+        return;
+      } catch {}
+    }
+
+    setExpandedVideo(true);
+  }
   const creatorVideo   = remoteUsers.find((u) => u.uid === CREATOR_CAM_UID)?.videoTrack ?? null;
   const screenVideo    = remoteUsers.find((u) => u.uid === CREATOR_SCREEN_UID)?.videoTrack ?? null;
   const compositeVideo = remoteUsers.find((u) => u.uid === CREATOR_COMPOSITE_UID)?.videoTrack ?? null;
@@ -699,22 +818,60 @@ export default function ChannelView({
   // or as a fallback when no program feed is being published.
   const hasStrip  = (isLiveParticipant || !compositeVideo) && !!(screenVideo || liveSlots.length > 0);
 
-  // Audio routing follows the same rule: program mode plays ONLY the composite
-  // mix; per-track mode plays everyone individually (the useAgoraRoom default).
+  // Audio routing follows the same rule: passive viewers hear ONLY the program
+  // mix; on-stage guests hear per-track audio and never their delayed program mix.
+  const playableAudioTracks = remoteUsers
+    .filter((u) => isLiveParticipant ? u.uid !== CREATOR_COMPOSITE_UID : u.uid === CREATOR_COMPOSITE_UID)
+    .flatMap((u) => u.audioTrack ? [u.audioTrack] : []);
+
   useEffect(() => {
-    const composite = remoteUsers.find((u) => u.uid === CREATOR_COMPOSITE_UID);
-    const programAudio = !!composite?.audioTrack && !isLiveParticipant;
+    const desired = remoteUsers
+      .filter((u) => isLiveParticipant ? u.uid !== CREATOR_COMPOSITE_UID : u.uid === CREATOR_COMPOSITE_UID)
+      .flatMap((u) => u.audioTrack ? [u.audioTrack] : []);
     for (const u of remoteUsers) {
       if (!u.audioTrack) continue;
-      const shouldPlay = u.uid === CREATOR_COMPOSITE_UID ? programAudio : !programAudio;
+      const shouldPlay = desired.includes(u.audioTrack);
       try {
         if (shouldPlay && !u.audioTrack.isPlaying) u.audioTrack.play();
         if (!shouldPlay && u.audioTrack.isPlaying) u.audioTrack.stop();
       } catch {}
     }
+    const timer = window.setTimeout(() => {
+      setSoundPlaying(desired.length > 0 && desired.every((track) => track.isPlaying));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [remoteUsers, isLiveParticipant]);
 
+  function enableSound(event: React.MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    for (const track of playableAudioTracks) {
+      try { track.play(); } catch {}
+    }
+    requestAnimationFrame(() => {
+      setSoundPlaying(
+        playableAudioTracks.length > 0 && playableAudioTracks.every((track) => track.isPlaying),
+      );
+    });
+  }
+
   // ── Error state ───────────────────────────────────────────────────────────────
+  const chatPanel = (
+    <ChatPanel
+      messages={messages}
+      chatBody={chatBody}
+      chatDraft={chatDraft}
+      connected={connected}
+      tokenState={tokenState}
+      chatEndRef={chatEndRef}
+      chatScrollRef={chatScrollRef}
+      chatInputRef={chatInputRef}
+      onSend={sendChat}
+      onBodyChange={setChatBody}
+      onDraftChange={setChatDraft}
+      onSignInClick={() => setShowSignInModal(true)}
+    />
+  );
+
   if (sessionError) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-5" style={{ background: "#0A0A14" }}>
@@ -759,20 +916,38 @@ export default function ChannelView({
         </div>
       )}
       <div
-        className="flex flex-col md:flex-row overflow-hidden"
-        style={{ height: "calc(100dvh - 57px)", background: "#0A0A14" }}
+        ref={audienceRootRef}
+        className={`audience-shell flex min-h-0 w-full min-w-0 max-w-full flex-1 overflow-hidden ${
+          isDesktopAudience ? "flex-row" : "flex-col"
+        }`}
+        style={{
+          height: "var(--audience-viewport-height, 100%)",
+          maxHeight: "var(--audience-viewport-height, 100%)",
+          background: "#0A0A14",
+        }}
       >
 
         {/* ── LEFT: video + chat ────────────────────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-h-0 min-w-0">
+        <div className="audience-main flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col">
 
           {/* Main video */}
           <div
-            className="relative bg-black flex-shrink-0"
+            ref={videoFrameRef}
+            role="button"
+            tabIndex={0}
+            aria-label={expandedVideo ? "Close expanded video" : "Expand video"}
+            aria-pressed={expandedVideo}
+            onClick={handleVideoExpansion}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") handleVideoExpansion();
+            }}
+            className={`audience-video-stage relative w-full max-w-full flex-shrink-0 cursor-pointer overflow-hidden bg-black ${
+              expandedVideo ? "audience-video-stage-expanded" : ""
+            }`}
             style={{ aspectRatio: "16/9" }}
           >
             {mainVideo ? (
-              <AgoraVideoTile track={mainVideo} />
+              <AgoraVideoTile track={mainVideo} fit="contain" />
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 select-none"
                    style={{ opacity: 0.25 }}>
@@ -783,10 +958,25 @@ export default function ChannelView({
                 <span className="text-xs uppercase tracking-widest">Starting stream…</span>
               </div>
             )}
+            {!isDesktopAudience && playableAudioTracks.length > 0 && !soundPlaying && (
+              <button
+                type="button"
+                onClick={enableSound}
+                className="absolute left-1/2 top-1/2 z-20 flex min-h-[44px] -translate-x-1/2 -translate-y-1/2 items-center rounded-full bg-black/80 px-5 py-2.5 text-sm font-bold text-white shadow-xl backdrop-blur-md"
+                style={{ border: "1px solid rgba(255,255,255,0.35)" }}
+              >
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+                </svg>
+                <span className="ml-2">Tap for sound</span>
+              </button>
+            )}
+
 
             {/* LIVE pill */}
             <div
-              className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+              className="audience-video-top-left absolute flex items-center gap-1.5 rounded-full px-2.5 py-1"
               style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
@@ -796,19 +986,26 @@ export default function ChannelView({
             {/* On-stream count */}
             {onStreamCount > 1 && (
               <div
-                className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                className="audience-video-top-right absolute flex items-center gap-1.5 rounded-full px-2.5 py-1"
                 style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
               >
                 <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--color-brand)" }} />
                 <span className="text-[10px] font-semibold text-white">{onStreamCount} on stream</span>
               </div>
             )}
+            <div className="audience-video-bottom-right pointer-events-none absolute z-10 flex items-center rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold text-white/85 backdrop-blur-sm">
+              <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
+              </svg>
+              <span className="ml-1.5">{expandedVideo ? "Close" : "Fullscreen"}</span>
+            </div>
+
           </div>
 
           {/* Secondary strip - screenshare + live participants */}
           {hasStrip && (
             <div
-              className="flex items-center gap-2 px-3 py-2 overflow-x-auto flex-shrink-0"
+              className="audience-participant-strip flex min-w-0 max-w-full flex-shrink-0 items-center gap-2 overflow-x-auto px-3 py-2"
               style={{ background: "#0D0D1A", borderBottom: "1px solid var(--color-surface-border)" }}
             >
               {screenVideo && (
@@ -843,25 +1040,9 @@ export default function ChannelView({
             </div>
           )}
 
-          {/* Chat - desktop only, fills remaining height */}
-          <div className="hidden md:flex flex-col flex-1 min-h-0">
-            <ChatPanel
-              messages={messages}
-              chatBody={chatBody}
-              chatDraft={chatDraft}
-              connected={connected}
-              tokenState={tokenState}
-              chatEndRef={chatEndRef}
-              chatInputRef={chatInputRef}
-              onSend={sendChat}
-              onBodyChange={setChatBody}
-              onDraftChange={setChatDraft}
-              onSignInClick={() => setShowSignInModal(true)}
-            />
-          </div>
-
           {/* Mobile tabs */}
-          <div className="md:hidden flex flex-col flex-1 min-h-0">
+          {!isDesktopAudience && (
+          <div className="audience-mobile-panel flex min-h-0 flex-1 flex-col">
             <div
               className="flex shrink-0 border-b"
               style={{ borderColor: "var(--color-surface-border)" }}
@@ -886,7 +1067,7 @@ export default function ChannelView({
                 );
               })}
             </div>
-            <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+            <div className={`flex min-h-0 flex-1 flex-col ${mobileTab === "join" ? "overflow-y-auto" : "overflow-hidden"}`}>
               {mobileTab === "join" ? (
                 <JoinPanel
                   isOwner={isOwner}
@@ -907,27 +1088,17 @@ export default function ChannelView({
                   onToggleCam={toggleCam}
                 />
               ) : (
-                <ChatPanel
-                  messages={messages}
-                  chatBody={chatBody}
-                  chatDraft={chatDraft}
-                  connected={connected}
-                  tokenState={tokenState}
-                  chatEndRef={chatEndRef}
-                  chatInputRef={chatInputRef}
-                  onSend={sendChat}
-                  onBodyChange={setChatBody}
-                  onDraftChange={setChatDraft}
-                  onSignInClick={() => setShowSignInModal(true)}
-                />
+                chatPanel
               )}
             </div>
           </div>
+          )}
         </div>
 
         {/* ── RIGHT SIDEBAR (desktop only) ──────────────────────────────────── */}
+        {isDesktopAudience && (
         <div
-          className="hidden md:flex flex-col shrink-0 border-l overflow-hidden"
+          className="audience-sidebar flex w-[300px] min-w-0 shrink-0 flex-col overflow-hidden border-l"
           style={{
             width: 300,
             borderColor: "var(--color-surface-border)",
@@ -1005,21 +1176,10 @@ export default function ChannelView({
                 Chat
               </span>
             </div>
-            <ChatPanel
-              messages={messages}
-              chatBody={chatBody}
-              chatDraft={chatDraft}
-              connected={connected}
-              tokenState={tokenState}
-              chatEndRef={chatEndRef}
-              chatInputRef={chatInputRef}
-              onSend={sendChat}
-              onBodyChange={setChatBody}
-              onDraftChange={setChatDraft}
-              onSignInClick={() => setShowSignInModal(true)}
-            />
+            {chatPanel}
           </div>
         </div>
+        )}
       </div>
 
       {showSignInModal && (

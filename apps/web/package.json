@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "node scripts/check-dashes.mjs && next lint",
     "check-dashes": "node scripts/check-dashes.mjs",
+    "test:mobile-audience": "node scripts/verify-mobile-audience.mjs",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

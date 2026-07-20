@@ -40,6 +40,7 @@ export default async function ChannelPage({
 
   // Default tab: community when offline, live when streaming
   const activeTab = tab === "community" ? "community" : tab === "live" ? "live" : (isLive ? "live" : "community");
+  const isActiveLiveSession = activeTab === "live" && isLive && !!session;
 
   // Fetch community posts when community tab is active
   const { posts: initialPosts } = activeTab === "community"
@@ -49,28 +50,36 @@ export default async function ChannelPage({
     : { posts: [] as CommunityPost[] };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#0A0A14" }}>
+    <div
+      className="flex min-w-0 max-w-full flex-col overflow-x-hidden"
+      style={{
+        background: "#0A0A14",
+        minHeight: "100dvh",
+        height: isActiveLiveSession ? "100dvh" : undefined,
+        overflowY: isActiveLiveSession ? "hidden" : undefined,
+      }}
+    >
       {/* Header */}
-      <header className="border-b border-white/6 px-6 py-3.5 flex items-center gap-3">
-        <a href="/home"><img src="/logo.png" alt="DITCH" className="h-7 w-7 rounded-md" /></a>
-        <span className="text-white/25 text-sm">/</span>
-        <span className="font-semibold text-white text-sm">{channel.display_name}</span>
+      <header className="channel-header flex min-w-0 shrink-0 items-center gap-2.5 border-b border-white/6 sm:gap-3">
+        <a href="/home" className="shrink-0"><img src="/logo.png" alt="DITCH" className="h-7 w-7 rounded-md" /></a>
+        <span className="shrink-0 text-sm text-white/25">/</span>
+        <span className="min-w-0 truncate text-sm font-semibold text-white">{channel.display_name}</span>
         {isLive ? (
-          <span className="flex items-center gap-1.5 text-[11px] font-bold text-[#FF1DB4] bg-[#FF1DB4]/10 px-2 py-0.5 rounded-full border border-[#FF1DB4]/20">
+          <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-[#FF1DB4]/20 bg-[#FF1DB4]/10 px-2 py-0.5 text-[11px] font-bold text-[#FF1DB4]">
             <span className="w-1.5 h-1.5 rounded-full bg-[#FF1DB4] animate-pulse" />
             LIVE
           </span>
         ) : (
-          <span className="text-[11px] text-white/30 bg-white/5 px-2 py-0.5 rounded-full">
+          <span className="shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-white/30">
             Offline
           </span>
         )}
 
         {/* Tab switcher */}
-        <div className="ml-auto flex items-center gap-1 bg-white/5 rounded-lg p-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1 rounded-lg bg-white/5 p-1">
           <a
             href={`/c/${slug}?tab=live`}
-            className="text-xs font-semibold px-3 py-1.5 rounded-md transition-all"
+            className="rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all sm:px-3"
             style={{
               background: activeTab === "live" ? "rgba(255,255,255,0.1)" : "transparent",
               color: activeTab === "live" ? "white" : "rgba(255,255,255,0.35)",
@@ -80,7 +89,7 @@ export default async function ChannelPage({
           </a>
           <a
             href={`/c/${slug}?tab=community`}
-            className="text-xs font-semibold px-3 py-1.5 rounded-md transition-all"
+            className="rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all sm:px-3"
             style={{
               background: activeTab === "community" ? "rgba(255,255,255,0.1)" : "transparent",
               color: activeTab === "community" ? "white" : "rgba(255,255,255,0.35)",
