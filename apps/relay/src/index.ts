@@ -3,10 +3,12 @@ import { createServer, type IncomingMessage, type ServerResponse } from "http";
 import { supabaseAdmin, verifyAccessToken } from "@ditch/db";
 import { validateEnv } from "./lib/env.js";
 import { spawnFfmpeg, sanitizeEncoderParams, type FfmpegSession } from "./lib/ffmpeg.js";
+import { createHlsPublisher, isHlsConfigured, type HlsPublisher } from "./lib/hls.js";
 
 validateEnv();
 
 const PORT = Number(process.env.RELAY_PORT ?? process.env.PORT) || 3003;
+const MAX_ACTIVE_STREAMS = Math.max(1, Number(process.env.MAX_ACTIVE_STREAMS) || 4);
 
 function isOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return false;
@@ -23,8 +25,14 @@ function isOriginAllowed(origin: string | undefined): boolean {
 
 // HTTP server handles Railway health checks; WebSocket server piggybacks on it
 const httpServer = createServer((_req: IncomingMessage, res: ServerResponse) => {
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("ok");
+  res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+  res.end(JSON.stringify({
+    status: "ok",
+    active_streams: activeSessions.size,
+    max_active_streams: MAX_ACTIVE_STREAMS,
+    hls_enabled: isHlsConfigured(),
+    uptime_seconds: Math.round(process.uptime()),
+  }));
 });
 
 const wss = new WebSocketServer({
@@ -41,6 +49,8 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
   let currentSessionId: string | null = null;
   let startReceivedAt: number | null = null;
   let firstMediaReceived = false;
+  let hlsPublisher: HlsPublisher | null = null;
+  let hlsUrl: string | null = null;
 
   ws.on("message", async (data, isBinary) => {
     // Binary frame: raw video chunk — pipe straight to ffmpeg stdin
@@ -111,7 +121,9 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
         return;
       }
 
-      if (!destinations?.length) {
+      // With HLS configured the session still has somewhere to go, so an empty
+      // RTMP destination list is only fatal when HLS is off.
+      if (!destinations?.length && !isHlsConfigured()) {
         send(ws, {
           type: "error",
           message: "No active destinations configured for this session",
@@ -120,12 +132,17 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
         return;
       }
 
-      const rtmpTargets = destinations.map((d) => `${d.rtmp_url}/${d.stream_key}`);
+      const rtmpTargets = (destinations ?? []).map((d) => `${d.rtmp_url}/${d.stream_key}`);
 
       // 4. Kill any stale ffmpeg process for this session before spawning a new one.
       //    Guards against a second connection arriving before the first WS close
       //    propagates (e.g. tab reload, session recovery reconnect).
       const stale = activeSessions.get(session_id);
+      if (!stale && activeSessions.size >= MAX_ACTIVE_STREAMS) {
+        send(ws, { type: "error", code: "relay_capacity", message: "Relay is at capacity; retry another node" });
+        return;
+      }
+
       if (stale) {
         console.log(`[relay] session ${session_id} — killing stale process before respawn`);
         stale.stop();
@@ -134,13 +151,27 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
 
       // 5. Spawn ffmpeg
       let ffmpegSpawnMs = 0;
+      let hlsSetupMs = 0;
+      let publisher: HlsPublisher | null = null;
+      hlsUrl = null;
       try {
+        // HLS setup is awaited before the spawn timer starts so ffmpeg_spawn_ms
+        // keeps measuring only the spawn itself.
+        const hlsSetupStartedAt = Date.now();
+        publisher = await createHlsPublisher(session_id);
+        hlsSetupMs = Date.now() - hlsSetupStartedAt;
+        hlsUrl = publisher?.publicUrl ?? null;
         const ffmpegSpawnStartedAt = Date.now();
-        session = spawnFfmpeg(rtmpTargets, session_id, encoderParams);
+        const ffmpeg = spawnFfmpeg(rtmpTargets, session_id, encoderParams, publisher?.playlistPath);
         ffmpegSpawnMs = Date.now() - ffmpegSpawnStartedAt;
+        session = {
+          ...ffmpeg,
+          stop: () => { ffmpeg.stop(); void publisher?.stop(); },
+        };
         currentSessionId = session_id;
         activeSessions.set(session_id, session);
       } catch (err) {
+        void publisher?.stop();
         send(ws, { type: "error", message: `Failed to spawn ffmpeg: ${String(err)}` });
         return;
       }
@@ -154,6 +185,7 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
         send(ws, { type: "error", message: `ffmpeg spawn error: ${err.message}` });
         if (currentSessionId) activeSessions.delete(currentSessionId);
         session = null;
+        void publisher?.stop();
       });
 
       session.onExit((code, signal) => {
@@ -161,16 +193,17 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
         send(ws, { type: "stopped", code, signal });
         if (currentSessionId) activeSessions.delete(currentSessionId);
         session = null;
+        void publisher?.stop();
       });
 
       const timings = {
         auth_ms: authMs,
         database_ms: databaseMs,
-        hls_setup_ms: 0,
+        hls_setup_ms: hlsSetupMs,
         ffmpeg_spawn_ms: ffmpegSpawnMs,
         total_ms: startReceivedAt ? Date.now() - startReceivedAt : 0,
       };
-      send(ws, { type: "started", timings });
+      send(ws, { type: "started", hls_url: hlsUrl, timings });
       console.log("[relay-perf] start phases", { session_id, ...timings });
       console.log(`[relay] session ${session_id} started → ${rtmpTargets.length} destination(s)`);
     }

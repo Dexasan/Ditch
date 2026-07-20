@@ -9,6 +9,7 @@ const RETRY_DELAY_MS = 2000;
 // Restart instead of allowing encoded video to accumulate indefinitely when
 // the relay or network stops draining the WebSocket send queue.
 const MAX_SOCKET_BUFFER_BYTES = 4 * 1024 * 1024;
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
 const DEFAULT_VIDEO_KBPS = 3000;
 const DEFAULT_AUDIO_KBPS = 128;
@@ -91,7 +92,7 @@ export function useRelayStream({
   useEffect(() => {
     if (!enabled || !stream) return;
 
-    const relayUrl = process.env.NEXT_PUBLIC_RELAY_URL ?? "ws://localhost:3003";
+    let relayUrl = process.env.NEXT_PUBLIC_RELAY_URL ?? "ws://localhost:3003";
     let attempts = 0;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let cancelled = false;
@@ -145,7 +146,7 @@ export function useRelayStream({
       scheduleReconnect(message);
     }
 
-    function connect() {
+    async function connect() {
       if (cancelled) return;
       const connectionId = ++connectionSequence;
       const reconnectAttempt = attempts;
@@ -164,6 +165,21 @@ export function useRelayStream({
         relay: null,
       });
 
+      if (process.env.NEXT_PUBLIC_RELAY_DISCOVERY === "true") {
+        try {
+          const response = await fetch(
+            `${API_BASE}/relay/assignment?session_id=${encodeURIComponent(sessionId)}`,
+            { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
+          );
+          if (response.ok) {
+            const assignment = await response.json() as { relay_url?: string };
+            if (assignment.relay_url) relayUrl = assignment.relay_url;
+          }
+        } catch (error) {
+          console.warn("[relay-stream] relay discovery failed, using configured fallback", error);
+        }
+      }
+      if (cancelled) return;
       const ws = new WebSocket(relayUrl);
       wsRef.current = ws;
 

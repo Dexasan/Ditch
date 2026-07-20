@@ -12,7 +12,7 @@ const TOKEN_TTL_SECS  = 3600; // 1 hour; client renews at the 30-second warning
 //   1-4        → participant publisher, must be authenticated + live in that session's slot
 //   998-999    → creator publisher (screen / cam), must own the session's channel
 //   anything else → 400
-const CREATOR_UIDS     = new Set([998, 999]);
+const CREATOR_UIDS     = new Set([997, 998, 999]);
 const PARTICIPANT_UIDS = new Set([1, 2, 3, 4]);
 
 function makeToken(channelName: string, uid: number, role: number): string | null {

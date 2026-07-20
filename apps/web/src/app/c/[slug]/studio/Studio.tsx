@@ -1,9 +1,9 @@
 "use client";
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { useAgoraRoom } from "@/hooks/useAgoraRoom";
+import { useRtcRoom } from "@/hooks/useRtcRoom";
 import { useClipBuffer } from "@/hooks/useClipBuffer";
-import { useCompositePublish } from "@/hooks/useCompositePublish";
+import { useProgramPublish } from "@/hooks/useProgramPublish";
 import { useCompositor } from "@/hooks/useCompositor";
 import { useMediaSources } from "@/hooks/useMediaSources";
 import { useRecorder } from "@/hooks/useRecorder";
@@ -3782,7 +3782,7 @@ export default function Studio({
     toggleScreenShare,
     switchMicDevice,
     switchCamDevice,
-  } = useAgoraRoom({
+  } = useRtcRoom({
     channelName: sessionId,
     uid: CREATOR_CAM_UID,
     role: "host",
@@ -3926,7 +3926,7 @@ export default function Studio({
 
   // Publish the program mix into the Agora channel so DITCH viewers watch the
   // full composed stream (layers, guests, overlays) - not just the raw camera.
-  useCompositePublish({
+  useProgramPublish({
     stream: compositeStream,
     sessionId,
     authToken: token,

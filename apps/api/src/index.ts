@@ -11,6 +11,8 @@ import { savedDestinationRoutes } from "./routes/saved-destinations";
 import { participantRoutes } from "./routes/participants";
 import { communityRoutes } from "./routes/community";
 import { agoraRoutes } from "./routes/agora";
+import { livekitRoutes } from "./routes/livekit";
+import { relayRoutes } from "./routes/relay";
 
 validateEnv();
 
@@ -65,6 +67,8 @@ async function start() {
   await server.register(participantRoutes);
   await server.register(communityRoutes);
   await server.register(agoraRoutes);
+  await server.register(livekitRoutes);
+  await server.register(relayRoutes);
 
   // ── Start ─────────────────────────────────────────────────────────────────
 

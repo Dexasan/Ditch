@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { getSocket, type SessionJoinAck } from "@/lib/socket";
-import { useAgoraRoom } from "@/hooks/useAgoraRoom";
+import { useRtcRoom } from "@/hooks/useRtcRoom";
 import { slotToUid, CREATOR_CAM_UID, CREATOR_SCREEN_UID, CREATOR_COMPOSITE_UID, AGORA_APP_ID } from "@/lib/agora";
 import { api } from "@/lib/api";
 import type { ChatMessage, Participant } from "@ditch/types";
@@ -11,6 +11,7 @@ import type { ILocalVideoTrack, IRemoteVideoTrack } from "agora-rtc-sdk-ng";
 import SignInModal from "@/components/SignInModal";
 
 const AgoraVideoTile = dynamic(() => import("@/components/AgoraVideoTile"), { ssr: false });
+const HlsPlayer = dynamic(() => import("@/components/HlsPlayer"), { ssr: false });
 
 const MAX_CHAT = 200;
 
@@ -644,15 +645,21 @@ export default function ChannelView({
   }, [messages, scrollChatToLatest]);
 
   const isLiveParticipant = myParticipant?.status === "live";
+  const [hlsFailed, setHlsFailed] = useState(false);
+  const hlsBase = process.env.NEXT_PUBLIC_HLS_BASE_URL?.replace(/\/$/, "");
+  const hlsUrl = hlsBase ? `${hlsBase}/live/${sessionId}/index.m3u8` : null;
+  const useHlsPlayback = Boolean(hlsUrl) && !isLiveParticipant && !hlsFailed;
+  const handleHlsFatal = useCallback(() => setHlsFailed(true), []);
 
-  const { localVideoTrack, localAudioTrack, remoteUsers, joined: agoraJoined, connectionState: agoraConn, error: agoraError, goLiveAsHost, demoteToAudience } = useAgoraRoom({
+
+  const { localVideoTrack, localAudioTrack, remoteUsers, joined: agoraJoined, connectionState: agoraConn, error: agoraError, goLiveAsHost, demoteToAudience } = useRtcRoom({
     channelName: sessionId,
     uid: 0,
     role: "audience",
     publish: false,
     // Tear down the Agora connection once the session ends so viewers don't sit
     // on a frozen "live" stream.
-    enabled: !sessionError,
+    enabled: !sessionError && (!hlsUrl || Boolean(myParticipant) || hlsFailed),
     authToken: tokenState ?? undefined,
   });
 
@@ -946,7 +953,9 @@ export default function ChannelView({
             }`}
             style={{ aspectRatio: "16/9" }}
           >
-            {mainVideo ? (
+            {useHlsPlayback && hlsUrl ? (
+              <HlsPlayer src={hlsUrl} onFatalError={handleHlsFatal} />
+            ) : mainVideo ? (
               <AgoraVideoTile track={mainVideo} fit="contain" />
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 select-none"

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { getSocket, type SessionJoinAck } from "@/lib/socket";
-import { useAgoraRoom } from "@/hooks/useAgoraRoom";
+import { useRtcRoom } from "@/hooks/useRtcRoom";
 import { useCompositor } from "@/hooks/useCompositor";
 import { useRelayStream } from "@/hooks/useRelayStream";
 import { slotToUid, CREATOR_CAM_UID, CREATOR_SCREEN_UID } from "@/lib/agora";
@@ -173,7 +173,7 @@ export default function LiveRoom({
     remoteUsers,
     isScreenSharing,
     toggleScreenShare,
-  } = useAgoraRoom({
+  } = useRtcRoom({
     channelName: sessionId,
     uid: CREATOR_CAM_UID,
     role: "host",

@@ -9,6 +9,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1090.0",
     "@ditch/db": "workspace:*",
     "tsx": "^4.0.0",
     "ws": "^8.17.0"

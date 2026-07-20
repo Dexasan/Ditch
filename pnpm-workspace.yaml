@@ -1,3 +1,6 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+overrides:
+  "livekit-server-sdk>@livekit/protocol": "1.49.0"

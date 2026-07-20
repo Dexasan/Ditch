@@ -80,8 +80,9 @@ export function spawnFfmpeg(
   rtmpTargets: string[],
   sessionId: string,
   params: EncoderParams = DEFAULT_ENCODER_PARAMS,
+  hlsPlaylistPath?: string,
 ): FfmpegSession {
-  const args = buildArgs(rtmpTargets, params);
+  const args = buildArgs(rtmpTargets, params, hlsPlaylistPath);
   const tag = `[ffmpeg ${sessionId.slice(0, 8)}]`;
 
   console.log(tag, "spawning:", FFMPEG_BIN, args.join(" "));
@@ -138,7 +139,11 @@ export function spawnFfmpeg(
   };
 }
 
-export function buildArgs(targets: string[], params: EncoderParams = DEFAULT_ENCODER_PARAMS): string[] {
+export function buildArgs(
+  targets: string[],
+  params: EncoderParams = DEFAULT_ENCODER_PARAMS,
+  hlsPlaylistPath?: string,
+): string[] {
   const inputFlags = [
     "-fflags", "+nobuffer+genpts",
     "-thread_queue_size", "512",
@@ -204,19 +209,31 @@ export function buildArgs(targets: string[], params: EncoderParams = DEFAULT_ENC
   // Escape any literal `|` in the target URL so it isn't parsed as a tee
   // output separator. Defense-in-depth: the API rejects `|` in stream_key,
   // but we sanitize here too in case data arrives from another path.
-  function outputBranch(encodeFlags: string[], branchTargets: string[]): string[] {
+  function outputBranch(encodeFlags: string[], branchTargets: string[], includeHls = false): string[] {
     // A missing audio track must not abort graphics-only or muted broadcasts.
     const mapFlags = ["-map", "0:v", "-map", "0:a?"];
-    if (branchTargets.length === 1) {
+    if (branchTargets.length === 1 && !includeHls) {
       return [...mapFlags, ...encodeFlags, ...outputFlags, "-f", "flv", branchTargets[0]];
     }
     const tee = branchTargets.map((t) => `[onfail=ignore:f=flv]${t.replace(/\|/g, "\\|")}`).join("|");
-    return [...mapFlags, ...encodeFlags, ...outputFlags, "-f", "tee", tee];
+    const outputs = tee ? tee.split("|") : [];
+    if (includeHls && hlsPlaylistPath) {
+      const segmentPath = hlsPlaylistPath.replace(/index\.m3u8$/, "segment-%09d.ts");
+      outputs.push(
+        `[onfail=ignore:f=hls:hls_time=2:hls_list_size=8:` +
+        `hls_flags=independent_segments+program_date_time:` +
+        `hls_segment_filename=${segmentPath}]${hlsPlaylistPath}`,
+      );
+    }
+    const teeWithHls = outputs.join("|");
+    return [...mapFlags, ...encodeFlags, ...outputFlags, "-f", "tee", teeWithHls];
   }
 
+
+  const hasHls = Boolean(hlsPlaylistPath);
   return [
     ...inputFlags,
     ...(copyTargets.length ? outputBranch(copyFlags, copyTargets) : []),
-    ...(reencodeTargets.length ? outputBranch(reencodeFlags, reencodeTargets) : []),
+    ...(reencodeTargets.length || hasHls ? outputBranch(reencodeFlags, reencodeTargets, hasHls) : []),
   ];
 }
