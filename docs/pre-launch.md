@@ -29,9 +29,20 @@ it to the relay only).
 
 **What shipped:** `verifyAccessToken()` in `packages/db/src/auth.ts`, used by
 `apps/relay/src/index.ts`, `apps/api/src/lib/authenticate.ts` and
-`apps/realtime/src/middleware/auth.ts`. It checks the token's HS256 signature
-against `SUPABASE_JWT_SECRET` locally instead of calling
-`supabaseAdmin.auth.getUser(token)` over HTTP.
+`apps/realtime/src/middleware/auth.ts`. It verifies the token's signature
+locally instead of calling `supabaseAdmin.auth.getUser(token)` over HTTP,
+picking key material by algorithm:
+
+- **ES256/RS256/PS256** (what this project uses) — verified against the public
+  JWKS at `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`. `jose` caches the
+  key set in memory, so it is one fetch per process, not per request.
+- **HS256** — verified against the legacy shared `SUPABASE_JWT_SECRET`.
+
+This project has migrated to Supabase's **JWT Signing Keys**, so access tokens
+are signed with ES256 and the JWKS path is the live one. `SUPABASE_JWT_SECRET`
+is not used for verification here; it is kept only for HS256 projects and as a
+fallback. Do not assume the secret alone is enough — check the JWKS endpoint
+(and the token header's `alg`) before concluding which path is active.
 
 **Gain:** ~300ms off stream startup, and no per-request Auth round trip
 anywhere in the stack. Note this runs once in the WebSocket handshake, not in
@@ -56,9 +67,17 @@ verification, authenticated traffic keeps serving through an Auth outage.
 stays valid until the token expires (~1 hour), since we no longer consult
 Supabase's live session state per request.
 
-**Deployment requirement:** `SUPABASE_JWT_SECRET` must be set on the **api**,
-**realtime** and **relay** services (Supabase dashboard → Settings → API → JWT
-Secret). Without it the code silently keeps using the slower network path.
+**Deployment requirement:** `SUPABASE_URL` must be set on the **api**,
+**realtime** and **relay** services (it already is) — that is what the JWKS
+endpoint is derived from. `SUPABASE_JWT_SECRET` is set too but is inert while
+the project signs with ES256.
+
+**Do NOT revoke the legacy JWT secret.** The `anon` and `service_role` API keys
+are themselves JWTs signed with it; revoking it invalidates them and takes down
+the web app and all three services at once. Migrating to the newer
+`sb_publishable_…` / `sb_secret_…` API keys is a prerequisite for ever
+retiring it, and that means a coordinated env-var change across Vercel and
+Railway.
 
 Shipped alongside two resilience fixes from the same incident: an 8s
 `AbortSignal.timeout` in `apps/web/src/lib/api.ts` (so a stalled API rejects

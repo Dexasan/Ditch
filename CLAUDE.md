@@ -175,7 +175,7 @@ The goal of Phase 1 is a working end-to-end session: creator authenticates, conf
 **Relay env vars (Railway):** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `WEB_URL`
 Note: `@ditch/db` requires both anon + service role keys even though relay only uses the admin client.
 
-**Local JWT validation shipped (Jul 20, 2026):** `verifyAccessToken()` in `packages/db/src/auth.ts` verifies Supabase tokens locally via `SUPABASE_JWT_SECRET`, used by relay, api and realtime. Requires that env var on all three Railway services or it silently falls back to the old network call. See `docs/pre-launch.md`.
+**Local JWT validation shipped (Jul 20, 2026):** `verifyAccessToken()` in `packages/db/src/auth.ts` verifies Supabase tokens locally (relay, api, realtime). This project uses Supabase **JWT Signing Keys**, so tokens are ES256 and are verified against the cached public JWKS derived from `SUPABASE_URL`; `SUPABASE_JWT_SECRET` only covers legacy HS256 projects. **Never revoke the legacy JWT secret** - the `anon`/`service_role` keys are signed with it. See `docs/pre-launch.md`.
 
 **One remaining pre-launch optimization:** browser-side key frame control via WebCodecs `VideoEncoder`. See `docs/pre-launch.md`.
 

@@ -11,7 +11,7 @@
 // outage. The network path is retained only for projects using asymmetric
 // signing keys, or when SUPABASE_JWT_SECRET is not configured.
 
-import { decodeProtectedHeader, jwtVerify } from "jose";
+import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify } from "jose";
 import { supabaseAdmin } from "./client";
 
 export interface VerifiedUser {
@@ -22,6 +22,20 @@ export interface VerifiedUser {
 
 const jwtSecret = process.env.SUPABASE_JWT_SECRET;
 const secretKey = jwtSecret ? new TextEncoder().encode(jwtSecret) : null;
+
+// Projects on Supabase's new JWT Signing Keys sign access tokens
+// asymmetrically (ES256/RS256) rather than with the legacy shared secret, so
+// the secret alone cannot verify them. The matching public keys are published
+// at the project's JWKS endpoint. createRemoteJWKSet caches them in memory and
+// only refetches when it sees an unknown `kid`, so this stays a local ~1ms
+// check after the first call - and keeps working during an Auth outage.
+const supabaseUrl = process.env.SUPABASE_URL;
+const jwks = supabaseUrl
+  ? createRemoteJWKSet(new URL(`${supabaseUrl.replace(/\/+$/, "")}/auth/v1/.well-known/jwks.json`), {
+      cacheMaxAge: 10 * 60 * 1000, // 10 min
+      cooldownDuration: 30 * 1000, // don't hammer on unknown kid
+    })
+  : null;
 
 function displayNameFrom(
   metadata: Record<string, unknown> | undefined,
@@ -39,41 +53,51 @@ function displayNameFrom(
 export async function verifyAccessToken(token: string): Promise<VerifiedUser | null> {
   if (!token) return null;
 
-  if (secretKey) {
-    let alg: string | undefined;
-    try {
-      alg = decodeProtectedHeader(token).alg;
-    } catch {
-      return null; // not a JWT at all
-    }
-
-    // HS256 = shared-secret project, which is what SUPABASE_JWT_SECRET verifies.
-    // Projects migrated to asymmetric signing keys (ES256/RS256) fall through
-    // to the network check instead of being wrongly rejected.
-    if (alg === "HS256") {
-      try {
-        const { payload } = await jwtVerify(token, secretKey, {
-          audience: "authenticated",
-        });
-        if (!payload.sub) return null;
-        const email = typeof payload["email"] === "string" ? payload["email"] : null;
-        return {
-          id: payload.sub,
-          email,
-          display_name: displayNameFrom(
-            payload["user_metadata"] as Record<string, unknown> | undefined,
-            email,
-          ),
-        };
-      } catch {
-        // Bad signature or expired - a definitive rejection, so do NOT fall
-        // back to the network (that would only fail slower).
-        return null;
-      }
-    }
+  let alg: string | undefined;
+  try {
+    alg = decodeProtectedHeader(token).alg;
+  } catch {
+    return null; // not a JWT at all
   }
 
-  return verifyViaNetwork(token);
+  // Verify with the key material matching the signing algorithm:
+  //   HS256               -> legacy shared secret (SUPABASE_JWT_SECRET)
+  //   ES256/RS256/PS256   -> project's published JWKS (new JWT Signing Keys)
+  // The two jwtVerify overloads (key vs. key-resolver) are called separately;
+  // a union of both key types matches neither.
+  const useSecret = alg === "HS256" && !!secretKey;
+  const useJwks = !!alg && /^(ES|RS|PS)\d{3}$/.test(alg) && !!jwks;
+
+  if (!useSecret && !useJwks) {
+    // No usable key material for this algorithm (e.g. HS256 with no secret set).
+    return verifyViaNetwork(token);
+  }
+
+  try {
+    const { payload } = useSecret
+      ? await jwtVerify(token, secretKey!, { audience: "authenticated" })
+      : await jwtVerify(token, jwks!, { audience: "authenticated" });
+
+    if (!payload.sub) return null;
+    const email = typeof payload["email"] === "string" ? payload["email"] : null;
+    return {
+      id: payload.sub,
+      email,
+      display_name: displayNameFrom(
+        payload["user_metadata"] as Record<string, unknown> | undefined,
+        email,
+      ),
+    };
+  } catch (err) {
+    // A bad signature or expired token is a definitive rejection. A JWKS
+    // fetch/lookup failure is NOT - fall back to the network check rather than
+    // locking everyone out because the key set could not be loaded.
+    const name = (err as Error)?.name;
+    if (name === "JWKSNoMatchingKey" || name === "JWKSInvalid" || name === "JWKSTimeout") {
+      return verifyViaNetwork(token);
+    }
+    return null;
+  }
 }
 
 async function verifyViaNetwork(token: string): Promise<VerifiedUser | null> {
@@ -94,5 +118,10 @@ async function verifyViaNetwork(token: string): Promise<VerifiedUser | null> {
   }
 }
 
-/** True when tokens are verified locally (no Supabase Auth round trip). */
-export const localJwtVerificationEnabled = !!secretKey;
+/**
+ * True when local verification is possible at all: either the legacy shared
+ * secret is configured (HS256 projects) or the JWKS endpoint is derivable from
+ * SUPABASE_URL (projects on JWT Signing Keys). False means every request pays
+ * an Auth round trip.
+ */
+export const localJwtVerificationEnabled = !!secretKey || !!jwks;
