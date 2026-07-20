@@ -1,6 +1,6 @@
 import type { Socket } from "socket.io";
 import type { ClientToServerEvents, ServerToClientEvents, SocketData } from "../types.js";
-import { supabaseAdmin } from "@ditch/db";
+import { verifyAccessToken } from "@ditch/db";
 
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
@@ -21,28 +21,23 @@ export async function authMiddleware(
     return next();
   }
 
-  if (!supabaseAdmin) {
-    return next(new Error("Server misconfiguration"));
-  }
-
-  // getUser() is a network call to Supabase Auth — if it rejects (transient
-  // outage / timeout) the rejection must not escape this async middleware, or it
-  // becomes an unhandled rejection that crashes the whole realtime process.
+  // verifyAccessToken checks the JWT signature locally when
+  // SUPABASE_JWT_SECRET is set, so a Supabase Auth outage no longer locks
+  // everyone out of the realtime channel. It swallows its own failures, but
+  // keep the guard so nothing can escape this async middleware and become an
+  // unhandled rejection that crashes the whole realtime process.
   try {
-    const { data, error } = await supabaseAdmin.auth.getUser(token);
+    const user = await verifyAccessToken(token);
 
-    if (error || !data.user) {
+    if (!user) {
       return next(new Error("Invalid or expired token"));
     }
 
-    socket.data.user_id = data.user.id;
-    socket.data.display_name =
-      (data.user.user_metadata?.display_name as string | undefined) ??
-      data.user.email?.split("@")[0] ??
-      null;
+    socket.data.user_id = user.id;
+    socket.data.display_name = user.display_name;
     next();
   } catch (err) {
-    console.error("[realtime] auth getUser failed:", err);
+    console.error("[realtime] token verification failed:", err);
     next(new Error("Authentication unavailable"));
   }
 }

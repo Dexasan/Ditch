@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { createServer, type IncomingMessage, type ServerResponse } from "http";
-import { supabaseAdmin } from "@ditch/db";
+import { supabaseAdmin, verifyAccessToken } from "@ditch/db";
 import { validateEnv } from "./lib/env.js";
 import { spawnFfmpeg, sanitizeEncoderParams, type FfmpegSession } from "./lib/ffmpeg.js";
 
@@ -58,13 +58,15 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
       const { session_id, token } = msg as { session_id: string; token: string };
       const encoderParams = sanitizeEncoderParams(msg);
 
-      // 1. Validate JWT
-      const { data: authData, error: authError } = await supabaseAdmin!.auth.getUser(token);
-      if (authError || !authData.user) {
+      // 1. Validate JWT - local signature check when SUPABASE_JWT_SECRET is
+      // set, so stream start neither pays an Auth round trip nor breaks when
+      // Supabase Auth is unreachable.
+      const authUser = await verifyAccessToken(token);
+      if (!authUser) {
         send(ws, { type: "error", message: "Unauthorized" });
         return;
       }
-      const userId = authData.user.id;
+      const userId = authUser.id;
 
       // 2 + 3. Verify ownership and fetch destinations in parallel
       type SessionWithChannel = { id: string; channels: { owner_id: string } };

@@ -1,17 +1,20 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import type { User } from "@ditch/db";
-import { supabaseAdmin } from "@ditch/db";
+import type { VerifiedUser } from "@ditch/db";
+import { verifyAccessToken } from "@ditch/db";
 
 // Augment FastifyRequest so downstream handlers can access request.user
 declare module "fastify" {
   interface FastifyRequest {
-    user: User;
+    user: VerifiedUser;
   }
 }
 
 /**
- * Fastify preHandler — validates the Supabase JWT in the Authorization header
- * and attaches the Supabase User to request.user.
+ * Fastify preHandler — verifies the Supabase access token in the Authorization
+ * header and attaches the caller's identity to request.user.
+ *
+ * Verification is local (JWT signature) whenever SUPABASE_JWT_SECRET is set, so
+ * authenticated routes keep serving even if Supabase Auth is unreachable.
  *
  * Usage:
  *   server.get("/protected", { preHandler: authenticate }, handler)
@@ -26,17 +29,11 @@ export async function authenticate(
     return reply.status(401).send({ error: "Missing or malformed Authorization header" });
   }
 
-  const token = authHeader.slice(7);
+  const user = await verifyAccessToken(authHeader.slice(7));
 
-  if (!supabaseAdmin) {
-    return reply.status(500).send({ error: "Server misconfiguration: admin client unavailable" });
-  }
-
-  const { data, error } = await supabaseAdmin.auth.getUser(token);
-
-  if (error || !data.user) {
+  if (!user) {
     return reply.status(401).send({ error: "Invalid or expired token" });
   }
 
-  request.user = data.user;
+  request.user = user;
 }

@@ -175,7 +175,9 @@ The goal of Phase 1 is a working end-to-end session: creator authenticates, conf
 **Relay env vars (Railway):** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `WEB_URL`
 Note: `@ditch/db` requires both anon + service role keys even though relay only uses the admin client.
 
-**One remaining pre-launch optimization:** local JWT validation in relay (replace `supabaseAdmin.auth.getUser()` HTTP call with `jsonwebtoken.verify()` using `SUPABASE_JWT_SECRET` — saves ~100-500ms on stream start). See `docs/pre-launch.md`.
+**Local JWT validation shipped (Jul 20, 2026):** `verifyAccessToken()` in `packages/db/src/auth.ts` verifies Supabase tokens locally via `SUPABASE_JWT_SECRET`, used by relay, api and realtime. Requires that env var on all three Railway services or it silently falls back to the old network call. See `docs/pre-launch.md`.
+
+**One remaining pre-launch optimization:** browser-side key frame control via WebCodecs `VideoEncoder`. See `docs/pre-launch.md`.
 
 **Next logical step (Day 10):** Sustained stream test — verify 30fps holds with tab backgrounded, auto-reconnect triggers on simulated ffmpeg exit, startup latency in 4-6s range.
 

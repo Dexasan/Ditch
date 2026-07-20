@@ -4,7 +4,9 @@ Items that are identified, understood, and ready to implement — just not done 
 
 ---
 
-## Relay: browser-side key frame control (WebCodecs VideoEncoder)
+## Pending
+
+### Relay: browser-side key frame control (WebCodecs VideoEncoder)
 
 **What:** Replace `MediaRecorder` in `useRelayStream.ts` with `VideoEncoder` (WebCodecs API) so we can call `encode(frame, { keyFrame: true })` on every Nth frame.
 
@@ -18,57 +20,48 @@ Items that are identified, understood, and ready to implement — just not done 
 
 ---
 
-Items that are identified, understood, and ready to implement — just not done yet.
+## Done
 
----
+### Local JWT validation — shipped July 20, 2026
 
-## Relay: local JWT validation
+Landed across the relay, api and realtime services (the original entry scoped
+it to the relay only).
 
-**What:** Replace `supabaseAdmin.auth.getUser(token)` in `apps/relay/src/index.ts` with local JWT verification using `jsonwebtoken`.
+**What shipped:** `verifyAccessToken()` in `packages/db/src/auth.ts`, used by
+`apps/relay/src/index.ts`, `apps/api/src/lib/authenticate.ts` and
+`apps/realtime/src/middleware/auth.ts`. It checks the token's HS256 signature
+against `SUPABASE_JWT_SECRET` locally instead of calling
+`supabaseAdmin.auth.getUser(token)` over HTTP.
 
-**Why:** `getUser()` is an HTTP call from Railway to Supabase (~100-500ms). Local verification is ~1ms and equally secure — the signature is checked against our own secret.
+**Gain:** ~300ms off stream startup, and no per-request Auth round trip
+anywhere in the stack. Note this runs once in the WebSocket handshake, not in
+the video path — ongoing stream latency to YouTube/Twitch is unaffected.
 
-**Expected gain:** ~300ms off stream startup time.
+**Second reason, learned the hard way:** on July 20 a Railway egress incident
+made Supabase unreachable from the API container. Every request hung ~49s on
+`getUser()` (undici's 10s connect timeout plus retries), which blew past
+Vercel's function limit and 500'd every page that touched the API. With local
+verification, authenticated traffic keeps serving through an Auth outage.
 
-**How to implement:**
+**Deviations from the original plan:**
+- Used `jose` rather than `jsonwebtoken` — ESM-native and dependency-free,
+  which avoids CommonJS interop friction in realtime's NodeNext setup.
+- Placed in `@ditch/db` so all three services share one implementation.
+- Also validates the `authenticated` audience, falls back to the network path
+  for projects on asymmetric signing keys, and falls back when
+  `SUPABASE_JWT_SECRET` is unset (so a missing env var degrades instead of
+  locking everyone out).
 
-1. Get the JWT secret: Supabase dashboard → Settings → API → JWT Secret
+**Trade-off:** revocation is no longer instant. A signed-out or banned session
+stays valid until the token expires (~1 hour), since we no longer consult
+Supabase's live session state per request.
 
-2. Add env var to Railway relay service:
-   ```
-   SUPABASE_JWT_SECRET=<your-jwt-secret>
-   ```
-   Also add to `.env` and `.env.example`.
+**Deployment requirement:** `SUPABASE_JWT_SECRET` must be set on the **api**,
+**realtime** and **relay** services (Supabase dashboard → Settings → API → JWT
+Secret). Without it the code silently keeps using the slower network path.
 
-3. Add to `apps/relay/src/lib/env.ts` validation.
-
-4. Install dep:
-   ```bash
-   pnpm --filter @ditch/relay add jsonwebtoken
-   pnpm --filter @ditch/relay add -D @types/jsonwebtoken
-   ```
-
-5. In `apps/relay/src/index.ts`, replace:
-   ```typescript
-   const { data: authData, error: authError } = await supabaseAdmin!.auth.getUser(token);
-   if (authError || !authData.user) {
-     send(ws, { type: "error", message: "Unauthorized" });
-     return;
-   }
-   const userId = authData.user.id;
-   ```
-   With:
-   ```typescript
-   import jwt from "jsonwebtoken";
-
-   let userId: string;
-   try {
-     const payload = jwt.verify(token, process.env.SUPABASE_JWT_SECRET!) as { sub: string };
-     userId = payload.sub;
-   } catch {
-     send(ws, { type: "error", message: "Unauthorized" });
-     return;
-   }
-   ```
-
-**Context:** After this, startup latency hits the floor (~4-5s total). The remainder is YouTube's ingest buffer (~3-4s) plus network physics — nothing left to optimize on our side.
+Shipped alongside two resilience fixes from the same incident: an 8s
+`AbortSignal.timeout` in `apps/web/src/lib/api.ts` (so a stalled API rejects
+and pages render their offline state instead of hard-failing), and an 8s
+ceiling on all Supabase HTTP calls in `packages/db/src/client.ts`
+(`SUPABASE_FETCH_TIMEOUT_MS` to override).
