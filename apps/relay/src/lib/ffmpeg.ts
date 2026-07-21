@@ -26,8 +26,9 @@ const FFMPEG_BIN = resolveFfmpeg();
 console.log("[ffmpeg] resolved binary:", FFMPEG_BIN);
 
 export interface FfmpegSession {
-  write: (chunk: Buffer) => void;
+  write: (chunk: Buffer) => boolean;
   stop: () => void;
+  onDrain: (cb: () => void) => void;
   onExit: (cb: (code: number | null, signal: string | null) => void) => void;
   onError: (cb: (err: Error) => void) => void;
 }
@@ -101,7 +102,8 @@ export function spawnFfmpeg(
 
   return {
     write(chunk: Buffer) {
-      if (proc.stdin && !proc.stdin.destroyed) proc.stdin.write(chunk);
+      if (proc.stdin && !proc.stdin.destroyed) return proc.stdin.write(chunk);
+      return true;
     },
     stop() {
       if (stopped) return;
@@ -118,6 +120,9 @@ export function spawnFfmpeg(
         }
       }, 3000);
       proc.once("exit", () => clearTimeout(killTimer));
+    },
+    onDrain(cb) {
+      proc.stdin?.on("drain", cb);
     },
     onExit(cb) {
       proc.on("exit", (code, signal) => {

@@ -39,11 +39,27 @@ const activeSessions = new Map<string, FfmpegSession>();
 wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
   let session: FfmpegSession | null = null;
   let currentSessionId: string | null = null;
+  let startReceivedAt: number | null = null;
+  let firstMediaReceived = false;
 
   ws.on("message", async (data, isBinary) => {
     // Binary frame: raw video chunk — pipe straight to ffmpeg stdin
     if (isBinary) {
-      session?.write(data as Buffer);
+      if (session) {
+        if (!firstMediaReceived) {
+          firstMediaReceived = true;
+          const relayElapsedMs = startReceivedAt ? Date.now() - startReceivedAt : null;
+          console.log("[relay-perf] first media received", {
+            session_id: currentSessionId,
+            relay_elapsed_ms: relayElapsedMs,
+            bytes: (data as Buffer).byteLength,
+          });
+          send(ws, { type: "first_media", relay_elapsed_ms: relayElapsedMs });
+        }
+        // Pause WebSocket reads while ffmpeg's stdin buffer is full. The drain
+        // event resumes reads and propagates TCP backpressure to the browser.
+        if (!session.write(data as Buffer)) ws.pause();
+      }
       return;
     }
 
@@ -55,21 +71,26 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
     }
 
     if (msg.type === "start") {
+      startReceivedAt = Date.now();
+      firstMediaReceived = false;
       const { session_id, token } = msg as { session_id: string; token: string };
       const encoderParams = sanitizeEncoderParams(msg);
 
       // 1. Validate JWT - local signature check when SUPABASE_JWT_SECRET is
       // set, so stream start neither pays an Auth round trip nor breaks when
       // Supabase Auth is unreachable.
+      const authStartedAt = Date.now();
       const authUser = await verifyAccessToken(token);
+      const authMs = Date.now() - authStartedAt;
       if (!authUser) {
-        send(ws, { type: "error", message: "Unauthorized" });
+        send(ws, { type: "error", message: "Unauthorized", retryable: false });
         return;
       }
       const userId = authUser.id;
 
       // 2 + 3. Verify ownership and fetch destinations in parallel
       type SessionWithChannel = { id: string; channels: { owner_id: string } };
+      const databaseStartedAt = Date.now();
       const [{ data: sessionRow }, { data: destinations }] = await Promise.all([
         supabaseAdmin!
           .from("live_sessions")
@@ -81,16 +102,21 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
           .select("rtmp_url, stream_key")
           .eq("session_id", session_id),
       ]);
+      const databaseMs = Date.now() - databaseStartedAt;
 
       const row = sessionRow as SessionWithChannel | null;
 
       if (!row || row.channels.owner_id !== userId) {
-        send(ws, { type: "error", message: "Forbidden" });
+        send(ws, { type: "error", message: "Forbidden", retryable: false });
         return;
       }
 
       if (!destinations?.length) {
-        send(ws, { type: "error", message: "No active destinations configured for this session" });
+        send(ws, {
+          type: "error",
+          message: "No active destinations configured for this session",
+          retryable: false,
+        });
         return;
       }
 
@@ -107,14 +133,21 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
       }
 
       // 5. Spawn ffmpeg
+      let ffmpegSpawnMs = 0;
       try {
+        const ffmpegSpawnStartedAt = Date.now();
         session = spawnFfmpeg(rtmpTargets, session_id, encoderParams);
+        ffmpegSpawnMs = Date.now() - ffmpegSpawnStartedAt;
         currentSessionId = session_id;
         activeSessions.set(session_id, session);
       } catch (err) {
         send(ws, { type: "error", message: `Failed to spawn ffmpeg: ${String(err)}` });
         return;
       }
+
+      session.onDrain(() => {
+        if (ws.readyState === WebSocket.OPEN) ws.resume();
+      });
 
       session.onError((err) => {
         console.error("[relay] ffmpeg spawn error:", err.message);
@@ -130,7 +163,15 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
         session = null;
       });
 
-      send(ws, { type: "started" });
+      const timings = {
+        auth_ms: authMs,
+        database_ms: databaseMs,
+        hls_setup_ms: 0,
+        ffmpeg_spawn_ms: ffmpegSpawnMs,
+        total_ms: startReceivedAt ? Date.now() - startReceivedAt : 0,
+      };
+      send(ws, { type: "started", timings });
+      console.log("[relay-perf] start phases", { session_id, ...timings });
       console.log(`[relay] session ${session_id} started → ${rtmpTargets.length} destination(s)`);
     }
 
