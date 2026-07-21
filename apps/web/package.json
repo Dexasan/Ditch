@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "node scripts/check-dashes.mjs && next lint",
     "check-dashes": "node scripts/check-dashes.mjs",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:graphics-only-stream": "node scripts/verify-graphics-only-stream.mjs"
   },
   "dependencies": {
     "@ditch/types": "workspace:*",

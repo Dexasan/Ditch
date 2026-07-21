@@ -108,13 +108,16 @@ export function useAgoraRoom(options: {
   uid: number;
   role: "host" | "audience";
   publish: boolean;
+  /** Publish the microphone independently of the camera. Defaults to `publish`.
+   *  The studio sets this true so a graphics-only scene still has audio. */
+  publishAudio?: boolean;
   enabled: boolean;
   /** UID for the screen-share second client. Required to enable screenshare. */
   screenShareUid?: number;
   /** Supabase access token forwarded to the Agora token endpoint. Required when App Certificate is configured. */
   authToken?: string;
 }): AgoraRoomState {
-  const { channelName, uid, role, publish, enabled, screenShareUid, authToken } = options;
+  const { channelName, uid, role, publish, publishAudio, enabled, screenShareUid, authToken } = options;
 
   const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "toggleScreenShare" | "switchMicDevice" | "switchCamDevice" | "goLiveAsHost" | "demoteToAudience">>({
     localVideoTrack: null,
@@ -259,48 +262,75 @@ export function useAgoraRoom(options: {
   }, [enabled, channelName, uid, role]);
 
   // ── Publish toggle ────────────────────────────────────────────────────────────
-  // Publishes/unpublishes mic+camera on the already-joined client. Owns only the
-  // tracks it creates: goLiveAsHost manages its own (effectOwnsTracksRef stays
-  // false there), so a publish=false render can never tear down a promoted
-  // participant's tracks.
+  // Publishes/unpublishes mic and camera independently. A graphics-only or
+  // screen-share scene still needs microphone audio, while changing scenes can
+  // add or remove the camera without reconnecting the Agora room.
   useEffect(() => {
     const client = clientRef.current;
     if (!enabled || !client || !state.joined) return;
     let cancelled = false;
 
-    if (publish && !camTrackRef.current && !publishBusyRef.current) {
+    const wantVideo = publish;
+    const wantAudio = publishAudio ?? publish;
+    const needsWork =
+      (wantVideo && !camTrackRef.current) ||
+      (wantAudio && !localAudioTrackRef.current) ||
+      (!wantVideo && camTrackRef.current && effectOwnsTracksRef.current) ||
+      (!wantAudio && localAudioTrackRef.current && effectOwnsTracksRef.current);
+
+    if (needsWork && !publishBusyRef.current) {
       publishBusyRef.current = true;
       (async () => {
         const AgoraRTC = await getAgoraRTC();
-        const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-        if (cancelled || clientRef.current !== client) {
-          audioTrack.close();
-          videoTrack.close();
-          return;
+
+        if (wantAudio && !localAudioTrackRef.current) {
+          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+          if (cancelled || clientRef.current !== client) {
+            audioTrack.close();
+          } else {
+            await client.publish(audioTrack);
+            localAudioTrackRef.current = audioTrack;
+            effectOwnsTracksRef.current = true;
+            setState((prev) => ({ ...prev, localAudioTrack: audioTrack }));
+          }
         }
-        await client.publish([audioTrack, videoTrack]);
-        camTrackRef.current = videoTrack;
-        localAudioTrackRef.current = audioTrack;
-        effectOwnsTracksRef.current = true;
-        setState((prev) => ({ ...prev, localVideoTrack: videoTrack, localAudioTrack: audioTrack }));
+        if (wantVideo && !camTrackRef.current) {
+          const videoTrack = await AgoraRTC.createCameraVideoTrack();
+          if (cancelled || clientRef.current !== client) {
+            videoTrack.close();
+          } else {
+            await client.publish(videoTrack);
+            camTrackRef.current = videoTrack;
+            effectOwnsTracksRef.current = true;
+            setState((prev) => ({ ...prev, localVideoTrack: videoTrack }));
+          }
+        }
+
+        if (!wantVideo && camTrackRef.current && effectOwnsTracksRef.current) {
+          const camera = camTrackRef.current;
+          camTrackRef.current = null;
+          await client.unpublish(camera).catch(() => {});
+          camera.close();
+          setState((prev) => ({ ...prev, localVideoTrack: null }));
+        }
+        if (!wantAudio && localAudioTrackRef.current && effectOwnsTracksRef.current) {
+          const microphone = localAudioTrackRef.current;
+          localAudioTrackRef.current = null;
+          await client.unpublish(microphone).catch(() => {});
+          microphone.close();
+          setState((prev) => ({ ...prev, localAudioTrack: null }));
+        }
+
+        if (!camTrackRef.current && !localAudioTrackRef.current) {
+          effectOwnsTracksRef.current = false;
+        }
       })()
         .catch((err) => { if (!cancelled) setState((prev) => ({ ...prev, error: String(err) })); })
         .finally(() => { publishBusyRef.current = false; });
-    } else if (!publish && camTrackRef.current && effectOwnsTracksRef.current) {
-      const audioTrack = localAudioTrackRef.current;
-      const camTrack = camTrackRef.current;
-      client.unpublish(audioTrack ? [audioTrack, camTrack] : [camTrack]).catch(() => {});
-      camTrack.close();
-      audioTrack?.close();
-      camTrackRef.current = null;
-      localAudioTrackRef.current = null;
-      effectOwnsTracksRef.current = false;
-      setState((prev) => ({ ...prev, localVideoTrack: null, localAudioTrack: null }));
     }
 
     return () => { cancelled = true; };
-  }, [enabled, publish, state.joined]);
-
+  }, [enabled, publish, publishAudio, state.joined]);
   const toggleScreenShare = useCallback(async () => {
     if (!AGORA_APP_ID || screenShareUid === undefined) return;
 

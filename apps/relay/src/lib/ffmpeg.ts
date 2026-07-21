@@ -200,7 +200,8 @@ export function buildArgs(targets: string[], params: EncoderParams = DEFAULT_ENC
   // output separator. Defense-in-depth: the API rejects `|` in stream_key,
   // but we sanitize here too in case data arrives from another path.
   function outputBranch(encodeFlags: string[], branchTargets: string[]): string[] {
-    const mapFlags = ["-map", "0:v", "-map", "0:a"];
+    // A missing audio track must not abort graphics-only or muted broadcasts.
+    const mapFlags = ["-map", "0:v", "-map", "0:a?"];
     if (branchTargets.length === 1) {
       return [...mapFlags, ...encodeFlags, ...outputFlags, "-f", "flv", branchTargets[0]];
     }

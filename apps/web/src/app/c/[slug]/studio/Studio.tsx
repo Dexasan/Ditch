@@ -3787,6 +3787,8 @@ export default function Studio({
     uid: CREATOR_CAM_UID,
     role: "host",
     publish: !!cameraLayer,
+    // Keep commentary audio live for screen-share-only and graphics-only scenes.
+    publishAudio: true,
     enabled: true,
     screenShareUid: CREATOR_SCREEN_UID,
     authToken: token,
@@ -3916,6 +3918,12 @@ export default function Studio({
     onFps: setFps,
   });
 
+  // The compositor canvas is the program source, not the camera. Text, shapes,
+  // images, markdown, and widgets therefore form a valid graphics-only stream.
+  const programVideoReady = compositeStream?.getVideoTracks().some(
+    (track) => track.readyState === "live",
+  ) ?? false;
+
   // Publish the program mix into the Agora channel so DITCH viewers watch the
   // full composed stream (layers, guests, overlays) - not just the raw camera.
   useCompositePublish({
@@ -3932,7 +3940,7 @@ export default function Studio({
     stream: compositeStream,
     sessionId,
     token,
-    enabled: streamStatus !== "offline",
+    enabled: streamStatus !== "offline" && programVideoReady,
     onBitrate: setBitrateKbps,
     videoBitrateKbps: settings.autoBitrate
       ? recommendedBitrateKbps(settings.outputResolution, targetFps)
