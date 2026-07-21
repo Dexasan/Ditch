@@ -260,6 +260,13 @@ function Header() {
 }
 
 function SignalGraphic() {
+  const activity = [
+    { platform: "YT", tone: "red", text: "kai.a requested to join" },
+    { platform: "TW", tone: "purple", text: "mina_live: THAT CUT WAS WILD" },
+    { platform: "TK", tone: "cyan", text: "+286 viewers in 12 sec" },
+    { platform: "KI", tone: "green", text: "clip shared / 00:24" },
+  ] as const;
+
   return (
     <div
       className={styles.signalGraphic}
@@ -271,6 +278,11 @@ function SignalGraphic() {
           <div className={styles.chromeBrand}>
             <Image src="/logo.png" width={22} height={22} alt="" />
             <span>ditch studio</span>
+          </div>
+          <div className={styles.livePulse} aria-hidden="true">
+            <span>CHAT SURGE +184/MIN</span>
+            <span>JOIN REQUEST IN QUEUE</span>
+            <span>AUDIENCE +23.8%</span>
           </div>
           <div className={styles.sessionStatus}>
             <i />
@@ -290,9 +302,20 @@ function SignalGraphic() {
               priority
             />
             <div className={styles.cameraShade} aria-hidden="true" />
+            <div className={styles.signalCut} aria-hidden="true" />
             <div className={styles.liveOverlay}>
               <span><i /> LIVE</span>
               <b>@jules</b>
+            </div>
+            <div className={styles.activityTicker} aria-hidden="true">
+              <div className={styles.activityTrack}>
+                {[...activity, ...activity].map((item, index) => (
+                  <span key={`${item.platform}-${index}`}>
+                    <b className={styles[item.tone]}>{item.platform}</b>
+                    {item.text}
+                  </span>
+                ))}
+              </div>
             </div>
             <div className={styles.creatorLowerThird}>
               <div>
@@ -310,8 +333,12 @@ function SignalGraphic() {
             </div>
 
             <div className={styles.outputRows}>
-              {destinations.map((destination) => (
-                <div className={styles.outputRow} key={destination.name}>
+              {destinations.map((destination, index) => (
+                <div
+                  className={styles.outputRow}
+                  key={destination.name}
+                  style={{ "--row-delay": `${index * 160}ms` } as CSSProperties}
+                >
                   <span className={`${styles.outputIcon} ${styles[destination.tone]}`}>
                     <PlatformIcon kind={destination.kind} />
                   </span>

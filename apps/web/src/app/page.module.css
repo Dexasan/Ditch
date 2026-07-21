@@ -544,3 +544,123 @@
   .consoleFooter { padding-inline: 10px; }
   .sourceInfo > div { display: none; }
 }
+
+/* Live production motion */
+.hero { column-gap: clamp(34px, 3.4vw, 54px); }
+.consoleHeader { position: relative; }
+.broadcastConsole { position: relative; isolation: isolate; }
+
+.livePulse {
+  position: relative;
+  width: 162px;
+  height: 20px;
+  overflow: hidden;
+  color: var(--mint);
+  font-family: var(--font-jbmono), monospace;
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-align: center;
+}
+.livePulse::before { content: ""; position: absolute; top: 7px; left: 0; width: 5px; height: 5px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 9px rgba(0,212,170,.8); animation: liveDotFlicker .8s infinite steps(2,end); }
+.livePulse span { position: absolute; inset: 0 0 0 12px; display: flex; align-items: center; justify-content: center; opacity: 0; animation: pulseSwap 4.5s infinite; }
+.livePulse span:nth-child(2) { animation-delay: -1.5s; }
+.livePulse span:nth-child(3) { animation-delay: -3s; }
+
+.streamerImage {
+  transform-origin: 58% 45%;
+  animation: cameraCuts 9s infinite cubic-bezier(.2,.8,.2,1);
+}
+.liveOverlay, .creatorLowerThird, .activityTicker { z-index: 3; }
+.liveOverlay span { animation: tallyFlash 1.15s infinite steps(2,end); }
+.signalCut {
+  position: absolute;
+  inset: -2%;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent 0 12%, rgba(0,212,170,.42) 31%, rgba(255,29,180,.48) 68%, transparent 88%);
+  mix-blend-mode: screen;
+  clip-path: inset(43% 0 52% 0);
+  animation: signalTear 4.6s infinite linear;
+}
+
+.activityTicker {
+  position: absolute;
+  right: 14px;
+  bottom: 55px;
+  left: 14px;
+  height: 31px;
+  overflow: hidden;
+  border-top: 1px solid rgba(255,255,255,.13);
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  background: rgba(6,6,14,.72);
+  backdrop-filter: blur(10px);
+}
+.activityTrack { display: flex; align-items: center; gap: 18px; width: max-content; min-width: max-content; height: 100%; padding-right: 18px; animation: activityRush 12s infinite linear; }
+.activityTrack span { display: inline-flex; align-items: center; gap: 7px; color: rgba(255,255,255,.78); font-family: var(--font-jbmono),monospace; font-size: 6px; font-weight: 650; letter-spacing: .02em; white-space: nowrap; }
+.activityTrack b { display: inline-grid; place-items: center; min-width: 23px; height: 17px; padding: 0 4px; border-radius: 4px; color: #fff; font-size: 6px; letter-spacing: .04em; }
+
+.outputRow { position: relative; overflow: hidden; animation: destinationTraffic 3.2s var(--row-delay, 0ms) infinite ease-out; }
+.outputRow::after { content: ""; position: absolute; right: 6px; bottom: 0; left: 6px; height: 1px; background: linear-gradient(90deg,transparent,var(--mint),var(--pink-light),transparent); transform: scaleX(0); transform-origin: left; animation: packetDash 3.2s var(--row-delay, 0ms) infinite ease-out; }
+.outputLive i { animation: liveDotFlicker 1s var(--row-delay, 0ms) infinite steps(2,end); }
+.relaySummary { position: relative; overflow: hidden; }
+.relaySummary::after { content: ""; position: absolute; bottom: 0; left: -38%; width: 36%; height: 1px; background: linear-gradient(90deg,transparent,var(--mint)); box-shadow: 0 0 9px rgba(0,212,170,.6); animation: uplinkRush 1.35s infinite linear; }
+
+@keyframes cameraCuts {
+  0%, 27% { transform: scale(1.018) translate3d(0,0,0); }
+  29% { transform: scale(1.065) translate3d(-.9%,.3%,0); }
+  32%, 62% { transform: scale(1.025) translate3d(-.2%,0,0); }
+  64% { transform: scale(1.072) translate3d(.7%,-.5%,0); }
+  67%, 100% { transform: scale(1.018) translate3d(0,0,0); }
+}
+@keyframes pulseSwap {
+  0%, 27% { opacity: 1; transform: translateY(0); }
+  33%, 94% { opacity: 0; transform: translateY(-115%); }
+  95% { opacity: 0; transform: translateY(115%); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes signalTear {
+  0%, 56%, 100% { opacity: 0; transform: translate3d(-10%,0,0); }
+  57% { opacity: .72; transform: translate3d(-2%,0,0); }
+  58% { opacity: .32; transform: translate3d(8%,0,0); }
+  59% { opacity: 0; transform: translate3d(12%,0,0); }
+}
+@keyframes activityRush { to { transform: translateX(-50%); } }
+@keyframes destinationTraffic {
+  0%, 55%, 72%, 100% { background: transparent; }
+  60% { background: rgba(0,212,170,.075); }
+  66% { background: rgba(255,29,180,.055); }
+}
+@keyframes packetDash {
+  0%, 54% { opacity: 0; transform: scaleX(0); }
+  58% { opacity: 1; transform: scaleX(.18); }
+  70% { opacity: .8; transform: scaleX(1); }
+  74%, 100% { opacity: 0; transform: scaleX(1); }
+}
+@keyframes liveDotFlicker { 0%, 35% { opacity: 1; } 36%, 52% { opacity: .34; } 53%, 100% { opacity: 1; } }
+@keyframes tallyFlash { 0%, 82% { filter: brightness(1); } 83%, 100% { filter: brightness(1.35); } }
+@keyframes uplinkRush { to { left: 108%; } }
+
+@media (max-width: 1120px) {
+  .hero { column-gap: 28px; }
+  .livePulse { width: 132px; }
+}
+
+@media (max-width: 960px) {
+  .hero { column-gap: 0; }
+}
+
+@media (max-width: 700px) {
+  .livePulse { display: none; }
+  .activityTicker { right: 10px; bottom: 53px; left: 10px; }
+  .activityTrack { animation-duration: 10.5s; }
+}
+
+@media (max-width: 430px) {
+  .activityTicker { bottom: 51px; height: 28px; }
+}
+
+.streamerImage, .activityTrack { will-change: transform; }
+.signalCut { will-change: transform, opacity; }
+.activityTrack b.cyan, .activityTrack b.green { color: #07110f; }
