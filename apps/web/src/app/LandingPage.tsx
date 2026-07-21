@@ -4,10 +4,10 @@ import Link from "next/link";
 import styles from "./page.module.css";
 
 const destinations = [
-  { name: "Twitch", code: "TW", tone: "purple" },
-  { name: "YouTube", code: "YT", tone: "red" },
-  { name: "TikTok", code: "TK", tone: "cyan" },
-  { name: "Kick", code: "KI", tone: "green" },
+  { name: "Twitch", code: "TW", tone: "purple", kind: "twitch" },
+  { name: "YouTube", code: "YT", tone: "red", kind: "youtube" },
+  { name: "TikTok", code: "TK", tone: "cyan", kind: "tiktok" },
+  { name: "Kick", code: "KI", tone: "green", kind: "kick" },
 ] as const;
 
 export default function LandingPage() {
@@ -261,107 +261,90 @@ function Header() {
 
 function SignalGraphic() {
   return (
-    <div className={styles.signalGraphic} aria-label="A DITCH live room broadcasting to Twitch, YouTube, TikTok and Kick">
-      <div className={styles.signalHalo} aria-hidden="true" />
-      <svg className={styles.signalMap} viewBox="0 0 700 660" aria-hidden="true">
-        <defs>
-          <linearGradient id="signal-gradient" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#ff1db4" />
-            <stop offset="1" stopColor="#00d4aa" />
-          </linearGradient>
-          <filter id="signal-glow">
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-        <path className={styles.signalTrack} d="M350 132 C232 132 170 137 91 198" />
-        <path className={styles.signalTrack} d="M350 132 C470 132 532 136 610 198" />
-        <path className={styles.signalTrack} d="M350 490 C224 490 166 504 90 568" />
-        <path className={styles.signalTrack} d="M350 490 C474 490 535 506 611 568" />
-        <path className={styles.signalPulse} d="M350 132 C232 132 170 137 91 198" />
-        <path className={styles.signalPulse} d="M350 132 C470 132 532 136 610 198" />
-        <path className={styles.signalPulse} d="M350 490 C224 490 166 504 90 568" />
-        <path className={styles.signalPulse} d="M350 490 C474 490 535 506 611 568" />
-      </svg>
-
-      <div className={`${styles.platformNode} ${styles.twitchNode}`}>
-        <PlatformIcon kind="twitch" />
-        <span><strong>Twitch</strong><small>Live</small></span>
-        <i />
-      </div>
-      <div className={`${styles.platformNode} ${styles.youtubeNode}`}>
-        <PlatformIcon kind="youtube" />
-        <span><strong>YouTube</strong><small>Live</small></span>
-        <i />
-      </div>
-      <div className={`${styles.platformNode} ${styles.tiktokNode}`}>
-        <PlatformIcon kind="tiktok" />
-        <span><strong>TikTok</strong><small>Live</small></span>
-        <i />
-      </div>
-      <div className={`${styles.platformNode} ${styles.kickNode}`}>
-        <PlatformIcon kind="kick" />
-        <span><strong>Kick</strong><small>Live</small></span>
-        <i />
-      </div>
-
-      <div className={styles.studioWindow}>
-        <div className={styles.studioChrome}>
+    <div
+      className={styles.signalGraphic}
+      role="img"
+      aria-label="A streamer broadcasting live through DITCH to Twitch, YouTube, TikTok and Kick"
+    >
+      <div className={styles.broadcastConsole}>
+        <div className={styles.consoleHeader}>
           <div className={styles.chromeBrand}>
-            <Image src="/logo.png" width={20} height={20} alt="" />
+            <Image src="/logo.png" width={22} height={22} alt="" />
             <span>ditch studio</span>
           </div>
-          <div className={styles.liveBadge}><i /> LIVE</div>
+          <div className={styles.sessionStatus}>
+            <i />
+            Live
+            <span>01:42:08</span>
+          </div>
         </div>
 
-        <div className={styles.broadcastFrame}>
-          <div className={styles.hostScene}>
-            <div className={styles.sceneGlow} />
-            <div className={styles.soundBars} aria-hidden="true">
-              {Array.from({ length: 18 }, (_, index) => (
-                <i
-                  key={index}
-                  style={{
-                    "--height": `${8 + index * 1.6}px`,
-                    "--delay": `${index * -70}ms`,
-                  } as CSSProperties}
-                />
+        <div className={styles.consoleBody}>
+          <div className={styles.cameraFeed}>
+            <Image
+              src="/streamer-hero.webp"
+              alt="Streamer speaking into a broadcast microphone in a home studio"
+              fill
+              sizes="(max-width: 960px) 100vw, 42vw"
+              className={styles.streamerImage}
+              priority
+            />
+            <div className={styles.cameraShade} aria-hidden="true" />
+            <div className={styles.liveOverlay}>
+              <span><i /> LIVE</span>
+              <b>@jules</b>
+            </div>
+            <div className={styles.creatorLowerThird}>
+              <div>
+                <strong>Jules Carter</strong>
+                <small>After Hours: Open Room</small>
+              </div>
+              <span>1.2K watching</span>
+            </div>
+          </div>
+
+          <aside className={styles.destinationPanel}>
+            <div className={styles.destinationHeader}>
+              <small>Multistream output</small>
+              <strong>Broadcasting to 4 destinations</strong>
+            </div>
+
+            <div className={styles.outputRows}>
+              {destinations.map((destination) => (
+                <div className={styles.outputRow} key={destination.name}>
+                  <span className={`${styles.outputIcon} ${styles[destination.tone]}`}>
+                    <PlatformIcon kind={destination.kind} />
+                  </span>
+                  <div>
+                    <strong>{destination.name}</strong>
+                    <small>1080p · 30 fps</small>
+                  </div>
+                  <span className={styles.outputLive}><i /> Live</span>
+                </div>
               ))}
             </div>
-            <div className={styles.hostAvatar}>
-              <span>JL</span>
+
+            <div className={styles.relaySummary}>
+              <div><small>Uplink</small><strong>8.4 Mbps</strong></div>
+              <span><i /> Stable</span>
             </div>
-            <div className={styles.showTitle}>
-              <small>NOW STREAMING</small>
-              <strong>AFTER HOURS</strong>
-            </div>
-          </div>
-          <div className={styles.guestScene}>
-            <div className={styles.guestAvatar}>AM</div>
-            <span>Audience guest</span>
-          </div>
-          <div className={styles.frameLowerThird}>
-            <span>Jules + Amara</span>
-            <small>LIVE ON DITCH</small>
-          </div>
+          </aside>
         </div>
 
-        <div className={styles.studioFooter}>
-          <span><MicIcon /> Mic</span>
-          <span><CameraIcon /> Camera</span>
-          <button type="button" tabIndex={-1}>End stream</button>
+        <div className={styles.consoleFooter}>
+          <div className={styles.sourceInfo}>
+            <span>CAM</span>
+            <div><strong>Studio camera</strong><small>1920 × 1080</small></div>
+          </div>
+          <div className={styles.liveControls}>
+            <span><MicIcon /> Mic on</span>
+            <span><CameraIcon /> Camera on</span>
+          </div>
+          <div className={styles.streamHealth}>
+            <i />
+            <div><small>Stream health</small><strong>Excellent</strong></div>
+          </div>
         </div>
-      </div>
-
-      <div className={styles.joinToast}>
-        <div className={styles.joinAvatar}>KA</div>
-        <span><strong>Kai wants to join</strong><small>From YouTube</small></span>
-        <b>Review</b>
-      </div>
-
-      <div className={styles.chatToast}>
-        <span className={styles.chatPlatform}>TW</span>
-        <p><strong>mina_live</strong> bring Kai on!</p>
       </div>
     </div>
   );
