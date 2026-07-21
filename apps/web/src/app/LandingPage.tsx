@@ -25,14 +25,14 @@ export default function LandingPage() {
             </div>
 
             <h1 className={styles.heroTitle}>
-              One live show.
-              <span>Every audience.</span>
-              <em>Anyone can step in.</em>
+              One signal.
+              <span>Everywhere live.</span>
+              <em>Anyone can enter.</em>
             </h1>
 
             <p className={styles.heroLead}>
-              DITCH sends one broadcast everywhere, then turns viewers from any
-              platform into people on the show. One room becomes a network.
+              DITCH turns one live feed into a network: simulcast everywhere,
+              pull any viewer on screen, and keep every audience in the moment.
             </p>
 
             <div className={styles.heroActions}>
@@ -260,117 +260,102 @@ function Header() {
 }
 
 function SignalGraphic() {
-  const activity = [
-    { platform: "YT", tone: "red", text: "kai.a requested to join" },
-    { platform: "TW", tone: "purple", text: "mina_live: THAT CUT WAS WILD" },
-    { platform: "TK", tone: "cyan", text: "+286 viewers in 12 sec" },
-    { platform: "KI", tone: "green", text: "clip shared / 00:24" },
-  ] as const;
+  const tape = [...destinations, ...destinations];
 
   return (
     <div
       className={styles.signalGraphic}
       role="img"
-      aria-label="A streamer broadcasting live through DITCH to Twitch, YouTube, TikTok and Kick"
+      aria-label="A kinetic live signal routing from DITCH to Twitch, YouTube, TikTok and Kick"
     >
-      <div className={styles.broadcastConsole}>
-        <div className={styles.consoleHeader}>
-          <div className={styles.chromeBrand}>
-            <Image src="/logo.png" width={22} height={22} alt="" />
-            <span>ditch studio</span>
+      <div className={styles.signalFilm}>
+        <div className={styles.filmGrid} aria-hidden="true" />
+        <div className={styles.signalNoise} aria-hidden="true" />
+        <div className={styles.filmWipe} aria-hidden="true" />
+
+        <div className={styles.filmTimecode}>
+          <span><i /> Live transmission</span>
+          <b>DITCH / 01:42:08:19</b>
+        </div>
+
+        <div className={styles.kineticWords} aria-hidden="true">
+          <span>LIVE</span>
+          <span>SEND</span>
+          <span>4X</span>
+        </div>
+
+        <svg className={styles.routeField} viewBox="0 0 760 660" aria-hidden="true">
+          <defs>
+            <linearGradient id="route-gradient" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor="#ff1db4" />
+              <stop offset=".55" stopColor="#ff65d0" />
+              <stop offset="1" stopColor="#00d4aa" />
+            </linearGradient>
+          </defs>
+          <g className={styles.routeBase}>
+            <path d="M88 352 H286 L432 126 H742" />
+            <path d="M88 352 H322 L454 268 H742" />
+            <path d="M88 352 H322 L454 410 H742" />
+            <path d="M88 352 H286 L432 552 H742" />
+          </g>
+          <g className={styles.routeBurst}>
+            <path d="M88 352 H286 L432 126 H742" pathLength="100" />
+            <path d="M88 352 H322 L454 268 H742" pathLength="100" />
+            <path d="M88 352 H322 L454 410 H742" pathLength="100" />
+            <path d="M88 352 H286 L432 552 H742" pathLength="100" />
+          </g>
+        </svg>
+
+        <div className={styles.originBlock}>
+          <Image src="/logo.png" width={54} height={54} alt="" />
+          <div>
+            <small>Ditch origin</small>
+            <strong>One signal<br />Open room</strong>
           </div>
-          <div className={styles.livePulse} aria-hidden="true">
-            <span>CHAT SURGE +184/MIN</span>
-            <span>JOIN REQUEST IN QUEUE</span>
-            <span>AUDIENCE +23.8%</span>
+          <span><i /> On air</span>
+        </div>
+
+        <div className={styles.destinationStack}>
+          <div className={styles.stackHeader}>
+            <span>Signal fan-out</span>
+            <b>04 / 04 live</b>
           </div>
-          <div className={styles.sessionStatus}>
-            <i />
-            Live
-            <span>01:42:08</span>
+          {destinations.map((destination, index) => (
+            <div
+              className={styles.signalLane}
+              key={destination.name}
+              style={{ "--lane-delay": `${index * 140}ms` } as CSSProperties}
+            >
+              <span className={`${styles.laneIcon} ${styles[destination.tone]}`}>
+                <PlatformIcon kind={destination.kind} />
+              </span>
+              <strong>{destination.name}</strong>
+              <small>1080P / 30</small>
+              <b><i /> Live</b>
+            </div>
+          ))}
+        </div>
+
+        <div className={styles.cutSequence} aria-hidden="true">
+          <span>Input 01</span>
+          <b>Creator feed locked</b>
+          <i />
+          <b>Participant channel armed</b>
+          <span>8.4 Mbps</span>
+        </div>
+
+        <div className={styles.filmTicker} aria-hidden="true">
+          <div>
+            {tape.map((destination, index) => (
+              <span key={`${destination.name}-${index}`}>
+                {destination.name} <b>Live</b> / signal locked
+              </span>
+            ))}
           </div>
         </div>
 
-        <div className={styles.consoleBody}>
-          <div className={styles.cameraFeed}>
-            <Image
-              src="/streamer-hero.webp"
-              alt="Streamer speaking into a broadcast microphone in a home studio"
-              fill
-              sizes="(max-width: 960px) 100vw, 42vw"
-              className={styles.streamerImage}
-              priority
-            />
-            <div className={styles.cameraShade} aria-hidden="true" />
-            <div className={styles.signalCut} aria-hidden="true" />
-            <div className={styles.liveOverlay}>
-              <span><i /> LIVE</span>
-              <b>@jules</b>
-            </div>
-            <div className={styles.activityTicker} aria-hidden="true">
-              <div className={styles.activityTrack}>
-                {[...activity, ...activity].map((item, index) => (
-                  <span key={`${item.platform}-${index}`}>
-                    <b className={styles[item.tone]}>{item.platform}</b>
-                    {item.text}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className={styles.creatorLowerThird}>
-              <div>
-                <strong>Jules Carter</strong>
-                <small>After Hours: Open Room</small>
-              </div>
-              <span>1.2K watching</span>
-            </div>
-          </div>
-
-          <aside className={styles.destinationPanel}>
-            <div className={styles.destinationHeader}>
-              <small>Multistream output</small>
-              <strong>Broadcasting to 4 destinations</strong>
-            </div>
-
-            <div className={styles.outputRows}>
-              {destinations.map((destination, index) => (
-                <div
-                  className={styles.outputRow}
-                  key={destination.name}
-                  style={{ "--row-delay": `${index * 160}ms` } as CSSProperties}
-                >
-                  <span className={`${styles.outputIcon} ${styles[destination.tone]}`}>
-                    <PlatformIcon kind={destination.kind} />
-                  </span>
-                  <div>
-                    <strong>{destination.name}</strong>
-                    <small>1080p · 30 fps</small>
-                  </div>
-                  <span className={styles.outputLive}><i /> Live</span>
-                </div>
-              ))}
-            </div>
-
-            <div className={styles.relaySummary}>
-              <div><small>Uplink</small><strong>8.4 Mbps</strong></div>
-              <span><i /> Stable</span>
-            </div>
-          </aside>
-        </div>
-
-        <div className={styles.consoleFooter}>
-          <div className={styles.sourceInfo}>
-            <span>CAM</span>
-            <div><strong>Studio camera</strong><small>1920 × 1080</small></div>
-          </div>
-          <div className={styles.liveControls}>
-            <span><MicIcon /> Mic on</span>
-            <span><CameraIcon /> Camera on</span>
-          </div>
-          <div className={styles.streamHealth}>
-            <i />
-            <div><small>Stream health</small><strong>Excellent</strong></div>
-          </div>
+        <div className={styles.frameCorners} aria-hidden="true">
+          <span /><span /><span /><span />
         </div>
       </div>
     </div>
