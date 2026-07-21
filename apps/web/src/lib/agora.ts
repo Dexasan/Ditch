@@ -19,6 +19,7 @@ export async function getAgoraRTC() {
     // SDK resume playback on the next tap.
     AgoraRTC.onAutoplayFailed = () => {
       console.warn("[agora] autoplay blocked; will resume on next user interaction");
+      window.dispatchEvent(new Event("ditch:autoplay-failed"));
     };
   }
   return AgoraRTC;

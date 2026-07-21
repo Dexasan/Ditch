@@ -44,3 +44,129 @@ body {
   color: var(--text-primary);
   font-family: system-ui, sans-serif;
 }
+
+/* Mobile audience layout --------------------------------------------------- */
+.channel-header {
+  padding-block: 0.625rem;
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+}
+
+.audience-shell,
+.audience-main,
+.audience-mobile-panel,
+.audience-sidebar {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.audience-shell {
+  overscroll-behavior: none;
+}
+
+.audience-main {
+  position: relative;
+}
+
+.audience-video-stage:fullscreen,
+.audience-video-stage:-webkit-full-screen,
+.audience-video-stage-expanded {
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  aspect-ratio: auto !important;
+  background: #000;
+}
+
+.audience-video-stage-expanded {
+  position: fixed !important;
+  inset: 0;
+  z-index: 100;
+}
+
+.audience-video-top-left {
+  top: max(0.75rem, env(safe-area-inset-top));
+  left: max(0.75rem, env(safe-area-inset-left));
+}
+
+.audience-video-top-right {
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+}
+
+.audience-video-bottom-right {
+  right: max(0.625rem, env(safe-area-inset-right));
+  bottom: max(0.625rem, env(safe-area-inset-bottom));
+}
+
+.audience-participant-strip {
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+.audience-chat-composer {
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* A 16px input prevents iOS Safari from zooming and destabilising the layout. */
+.audience-text-input {
+  font-size: 16px;
+}
+
+@media (min-width: 640px) {
+  .channel-header {
+    padding-block: 0.875rem;
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
+  }
+}
+
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+  .audience-text-input {
+    font-size: 14px;
+  }
+}
+
+/* Landscape phones become a dedicated player. Chat and join controls return
+   as soon as the device rotates back; the guest strip stays as an overlay. */
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 600px) {
+  .audience-shell {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    background: #000 !important;
+  }
+
+  .audience-main {
+    width: 100%;
+    height: 100%;
+  }
+
+  .audience-video-stage {
+    width: 100%;
+    height: 100%;
+    flex: 1 1 auto;
+    aspect-ratio: auto !important;
+  }
+
+  .audience-mobile-panel {
+    display: none !important;
+  }
+
+  .audience-participant-strip {
+    position: absolute;
+    right: max(0.5rem, env(safe-area-inset-right));
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    left: max(0.5rem, env(safe-area-inset-left));
+    z-index: 15;
+    border: 0 !important;
+    border-radius: 0.75rem;
+    background: rgba(13, 13, 26, 0.78) !important;
+    backdrop-filter: blur(8px);
+  }
+}
