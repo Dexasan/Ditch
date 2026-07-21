@@ -103,7 +103,7 @@ export function useRelayStream({
         bitrateTimerRef.current = null;
       }
       const recorder = recorderRef.current;
-      if (recorder?.state !== "inactive") recorder.stop();
+      if (recorder && recorder.state !== "inactive") recorder.stop();
       recorderRef.current = null;
     }
 
