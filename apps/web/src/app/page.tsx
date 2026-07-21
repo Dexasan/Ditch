@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import LandingPage from "./LandingPage";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -11,7 +12,7 @@ export default async function HomePage() {
     redirect("/home");
   }
 
-  return <HomePageContent />;
+  return <LandingPage />;
 }
 
 const PLATFORMS = ["Twitch", "YouTube", "TikTok", "Kick"];
