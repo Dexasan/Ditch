@@ -39,3 +39,9 @@ Thumbs.db
 *.swp
 *.swo
 .vercel
+
+# Build info
+*.tsbuildinfo
+
+# Claude Code worktrees/session state
+.claude/

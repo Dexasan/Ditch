@@ -1,0 +1,9 @@
+# Normalize all text files to LF in the repo and on checkout.
+* text=auto eol=lf
+
+# Explicit binaries (never touch line endings)
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
