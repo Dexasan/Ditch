@@ -26,14 +26,14 @@ export default function LandingPage() {
             </div>
 
             <h1 className={styles.heroTitle}>
-              Your stream has
-              <span>an audience.</span>
-              <em>Give it a door.</em>
+              DITCH turns
+              <span>livestreams into shows</span>
+              <em>the audience can actually join.</em>
             </h1>
 
             <p className={styles.heroLead}>
-              Open one browser studio. Send it to Twitch, YouTube, TikTok, and
-              Kick. When someone wants in, cue them onto the broadcast.
+              One stream to every platform, where your viewers don&apos;t just
+              watch: they join you on screen.
             </p>
 
             <div className={styles.heroActions}>
