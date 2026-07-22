@@ -1,0 +1,681 @@
+.studioShell {
+  --bg-deep: #07070b;
+  --bg-base: #0d0b12;
+  --bg-mid: #17111a;
+  --bg-hover: #211421;
+  --border: rgba(255, 95, 189, 0.22);
+  --accent-primary: #ff1493;
+  --accent-secondary: #78e8c5;
+  --color-brand-light: #ff5fbd;
+  --text-primary: #eee8da;
+  --text-muted: #918692;
+  --status-live: #ff315d;
+  --status-connecting: #ffb020;
+  --status-offline: #5b5360;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-areas:
+    "topbar topbar topbar"
+    "scenes canvas inspector"
+    "layers canvas inspector"
+    "mixer mixer mixer";
+  grid-template-columns: 236px minmax(0, 1fr) 304px;
+  grid-template-rows: 58px minmax(0, 1fr) minmax(0, 1fr) 94px;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  color: var(--text-primary);
+  background:
+    radial-gradient(circle at 52% 42%, rgba(255, 20, 147, 0.09), transparent 31rem),
+    linear-gradient(125deg, rgba(255, 20, 147, 0.035), transparent 38%),
+    #07070b;
+  font-family: var(--font-jbmono), "Courier New", monospace;
+}
+
+.studioShell::before,
+.studioShell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.studioShell::before {
+  z-index: 60;
+  opacity: 0.095;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(238, 232, 218, 0.16) 4px);
+  mix-blend-mode: soft-light;
+}
+
+.studioShell::after {
+  z-index: 0;
+  opacity: 0.32;
+  background-image:
+    linear-gradient(rgba(255, 95, 189, 0.026) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 95, 189, 0.026) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(circle at 50% 42%, #000, transparent 78%);
+}
+
+.studioShell * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 20, 147, 0.55) rgba(13, 11, 18, 0.75);
+}
+
+.studioShell :global(button),
+.studioShell :global(input),
+.studioShell :global(select),
+.studioShell :global(textarea) {
+  border-radius: 2px !important;
+  font-family: var(--font-jbmono), "Courier New", monospace;
+}
+
+.studioShell :global(button:focus-visible),
+.studioShell :global(input:focus-visible),
+.studioShell :global(select:focus-visible),
+.studioShell :global(textarea:focus-visible) {
+  outline: 1px solid #ff5fbd;
+  outline-offset: 2px;
+}
+
+.topBar,
+.panel,
+.programDeck,
+.mixerPanel {
+  position: relative;
+  z-index: 2;
+}
+
+.topBar {
+  min-width: 0;
+  height: 58px;
+  border-bottom: 1px solid rgba(255, 95, 189, 0.3);
+  color: var(--text-primary);
+  background:
+    linear-gradient(90deg, rgba(255, 20, 147, 0.12), transparent 26%),
+    rgba(8, 7, 11, 0.96);
+  box-shadow: 0 7px 0 rgba(74, 0, 39, 0.32), 0 14px 30px rgba(0, 0, 0, 0.36);
+}
+
+.topBar::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #ff1493 18%, #78e8c5 68%, transparent);
+  opacity: 0.72;
+  animation: routeGlow 4.8s ease-in-out infinite;
+}
+
+.brandCluster,
+.studioBrand,
+.studioBrand > span,
+.channelIdent,
+.topBarCenter,
+.topBarActions,
+.timecodeWrap,
+.frameRate {
+  display: flex;
+  align-items: center;
+}
+
+.brandCluster {
+  min-width: 304px;
+  gap: 15px;
+}
+
+.studioBrand {
+  gap: 9px;
+  color: var(--text-primary);
+}
+
+.studioBrand img {
+  width: 31px;
+  height: 31px;
+  border: 1px solid rgba(255, 95, 189, 0.48);
+  border-radius: 0;
+  box-shadow: 4px 4px 0 rgba(104, 0, 50, 0.65);
+}
+
+.studioBrand > span {
+  align-items: flex-start;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.studioBrand b {
+  font-family: var(--font-bebas), Impact, sans-serif;
+  font-size: 21px;
+  font-weight: 400;
+  letter-spacing: 0.13em;
+}
+
+.studioBrand small,
+.channelIdent small,
+.timecodeWrap small,
+.frameRate small {
+  color: var(--text-muted);
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.channelIdent {
+  align-items: flex-start;
+  flex-direction: column;
+  min-width: 0;
+  padding-left: 15px;
+  border-left: 1px solid rgba(255, 95, 189, 0.24);
+  line-height: 1.15;
+}
+
+.channelIdent strong {
+  max-width: 150px;
+  overflow: hidden;
+  color: #eee8da;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.channelIdent span {
+  color: #ff5fbd;
+  font-size: 7px;
+}
+
+.topBarCenter {
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  gap: 16px;
+}
+
+.statusBug {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 82px;
+  padding: 7px 10px;
+  border: 1px solid rgba(145, 134, 146, 0.25);
+  color: var(--text-muted);
+  background: rgba(13, 11, 18, 0.72);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.statusBug[data-status="live"] {
+  border-color: rgba(255, 49, 93, 0.52);
+  color: #ff6a85;
+  background: rgba(255, 49, 93, 0.1);
+  box-shadow: inset 0 0 18px rgba(255, 49, 93, 0.08);
+}
+
+.statusBug[data-status="connecting"] {
+  border-color: rgba(255, 176, 32, 0.46);
+  color: #ffbf4f;
+}
+
+.statusLamp,
+.recordLamp,
+.programBus i,
+.signalRailTrack i {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.statusBug[data-status="live"] .statusLamp {
+  animation: hardBlink 0.82s steps(2, end) infinite;
+}
+
+.timecodeWrap,
+.frameRate {
+  align-items: flex-start;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.timecode {
+  color: #eee8da;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.frameRate strong {
+  color: #78e8c5;
+  font-size: 9px;
+  letter-spacing: 0.07em;
+}
+
+.headerMeter {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: 48px;
+  height: 18px;
+  padding: 2px;
+  border-bottom: 1px solid rgba(120, 232, 197, 0.35);
+}
+
+.headerMeter i {
+  width: 2px;
+  height: 30%;
+  background: #78e8c5;
+  transform-origin: bottom;
+  animation: meterStep 1.1s steps(4, end) infinite alternate;
+}
+
+.headerMeter i:nth-child(3n) { height: 85%; animation-delay: -0.4s; }
+.headerMeter i:nth-child(4n) { height: 55%; animation-delay: -0.8s; }
+.headerMeter i:nth-child(5n) { background: #ff1493; }
+
+.streamError {
+  max-width: 420px;
+  overflow: hidden;
+  color: #ff6a85;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topBarActions {
+  justify-content: flex-end;
+  min-width: 304px;
+  gap: 7px;
+}
+
+.topBarTool,
+.iconTool,
+.transmitButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 31px;
+  border: 1px solid rgba(255, 95, 189, 0.24);
+  color: var(--text-muted);
+  background: rgba(20, 15, 23, 0.92);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  transition: color 140ms ease, border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.topBarTool { gap: 7px; padding: 0 11px; }
+.iconTool { width: 31px; }
+
+.topBarTool:hover,
+.iconTool:hover {
+  border-color: rgba(255, 95, 189, 0.58);
+  color: #eee8da;
+  background: rgba(255, 20, 147, 0.09);
+}
+
+.recordingButton {
+  border-color: rgba(255, 49, 93, 0.55);
+  color: #ff6a85;
+}
+
+.recordLamp {
+  color: #ff315d;
+  animation: hardBlink 0.82s steps(2, end) infinite;
+}
+
+.transmitButton {
+  min-width: 105px;
+  gap: 7px;
+  padding: 0 15px;
+}
+
+.goLiveButton {
+  border-color: #ff1493;
+  color: #fff;
+  background: #ff1493;
+  box-shadow: 4px 4px 0 #640030;
+}
+
+.goLiveButton:hover {
+  background: #ff3cab;
+  transform: translate(-1px, -1px);
+  box-shadow: 6px 6px 0 #640030;
+}
+
+.endStreamButton {
+  border-color: #ff315d;
+  color: #ff6a85;
+  background: rgba(255, 49, 93, 0.1);
+}
+
+.connectingButton {
+  border-color: #ffb020;
+  color: #ffbf4f;
+  background: rgba(255, 176, 32, 0.1);
+  cursor: wait;
+  pointer-events: none;
+}
+
+.panel {
+  min-width: 0;
+  border-color: rgba(255, 95, 189, 0.19) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 20, 147, 0.035), transparent 44%),
+    rgba(10, 9, 13, 0.96) !important;
+  box-shadow: inset 0 1px 0 rgba(238, 232, 218, 0.025);
+}
+
+.panel > div:first-of-type {
+  position: relative;
+  min-height: 38px;
+  border-color: rgba(255, 95, 189, 0.22) !important;
+  color: #ff5fbd;
+  background: linear-gradient(90deg, rgba(255, 20, 147, 0.12), transparent 72%), #0d0b12;
+}
+
+.panel > div:first-of-type::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  bottom: -1px;
+  left: 10px;
+  height: 1px;
+  background: linear-gradient(90deg, #ff1493, transparent 72%);
+  opacity: 0.48;
+}
+
+.panelCounter {
+  min-width: 22px;
+  padding: 2px 4px;
+  border: 1px solid rgba(255, 95, 189, 0.25);
+  color: #ff5fbd;
+  background: rgba(255, 20, 147, 0.08);
+  font-size: 7px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.sceneCard,
+.layerRow {
+  position: relative;
+  margin: 3px 5px;
+  border: 1px solid transparent;
+  border-left-width: 2px;
+  background: rgba(238, 232, 218, 0.012);
+}
+
+.sceneCard:hover,
+.layerRow:hover {
+  border-color: rgba(255, 95, 189, 0.16);
+  background: rgba(255, 20, 147, 0.055);
+}
+
+.sceneCard[data-active="true"],
+.layerRow[data-active="true"] {
+  border-color: rgba(255, 95, 189, 0.34);
+  border-left-color: #ff1493;
+  background: linear-gradient(90deg, rgba(255, 20, 147, 0.15), rgba(255, 20, 147, 0.025));
+  box-shadow: 3px 0 0 rgba(255, 20, 147, 0.14);
+}
+
+.inspectorPanel > div:nth-of-type(2) {
+  background: rgba(7, 7, 11, 0.94);
+}
+
+.programDeck {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid rgba(255, 95, 189, 0.13);
+  border-left: 1px solid rgba(255, 95, 189, 0.13);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 20, 147, 0.12), transparent 34%),
+    linear-gradient(rgba(255, 95, 189, 0.026) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 95, 189, 0.026) 1px, transparent 1px),
+    #050508;
+  background-size: auto, 26px 26px, 26px 26px, auto;
+}
+
+.programHeader {
+  display: flex;
+  min-height: 43px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 15px;
+  border-bottom: 1px solid rgba(255, 95, 189, 0.18);
+  background: rgba(8, 7, 11, 0.9);
+}
+
+.programIdentity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.programIdentity strong {
+  overflow: hidden;
+  color: #eee8da;
+  font-family: var(--font-bebas), Impact, sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.07em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.programBus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 95, 189, 0.28);
+  color: #ff5fbd;
+  background: rgba(255, 20, 147, 0.08);
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.programBus[data-status="live"] {
+  border-color: rgba(255, 49, 93, 0.56);
+  color: #ff6a85;
+}
+
+.programBus[data-status="live"] i {
+  animation: hardBlink 0.82s steps(2, end) infinite;
+}
+
+.programTelemetry {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.programTelemetry span {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.programTelemetry b {
+  color: #78e8c5;
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.programViewport {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  padding: clamp(12px, 2vw, 24px);
+}
+
+.previewWell {
+  position: relative;
+  background: transparent !important;
+}
+
+.programFrame {
+  border: 1px solid rgba(255, 95, 189, 0.44);
+  background: #040406 !important;
+  box-shadow:
+    0 0 0 7px rgba(10, 8, 12, 0.94),
+    0 0 0 8px rgba(255, 95, 189, 0.13),
+    10px 12px 0 rgba(86, 0, 43, 0.42),
+    0 24px 70px rgba(0, 0, 0, 0.68);
+}
+
+.programFrame::before,
+.programFrame::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.programFrame::before {
+  inset: 0;
+  z-index: 30;
+  opacity: 0.1;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(238, 232, 218, 0.16) 4px);
+  mix-blend-mode: screen;
+}
+
+.programFrame::after {
+  inset: 9px;
+  z-index: 31;
+  border: 1px solid rgba(238, 232, 218, 0.12);
+  box-shadow:
+    11px 0 0 -10px #ff1493,
+    -11px 0 0 -10px #ff1493,
+    0 11px 0 -10px #78e8c5,
+    0 -11px 0 -10px #78e8c5;
+}
+
+.signalRail {
+  height: 25px;
+  overflow: hidden;
+  border-top: 1px solid rgba(255, 95, 189, 0.24);
+  color: #ff5fbd;
+  background: #100911;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.signalRailTrack {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  width: max-content;
+  min-width: max-content;
+  height: 100%;
+  padding-right: 34px;
+  animation: signalTape 17s linear infinite;
+}
+
+.signalRailTrack span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.signalRailTrack i {
+  color: #78e8c5;
+  width: 4px;
+  height: 4px;
+}
+
+.mixerPanel {
+  min-width: 0;
+  border-top: 1px solid rgba(255, 95, 189, 0.3) !important;
+  background: linear-gradient(90deg, rgba(255, 20, 147, 0.08), transparent 24%), #09080c !important;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.34);
+}
+
+.mixerPanel::before {
+  content: "AUDIO / SIGNAL BUS";
+  position: absolute;
+  top: 4px;
+  left: 15px;
+  color: rgba(255, 95, 189, 0.58);
+  font-size: 6px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+}
+
+.mixerChannel {
+  border-color: rgba(255, 95, 189, 0.21) !important;
+  background: linear-gradient(180deg, rgba(255, 20, 147, 0.075), transparent 52%), rgba(13, 11, 18, 0.96) !important;
+  box-shadow: inset 0 1px 0 rgba(238, 232, 218, 0.035);
+}
+
+@keyframes hardBlink {
+  0%, 48% { opacity: 1; }
+  49%, 100% { opacity: 0.28; }
+}
+
+@keyframes meterStep {
+  from { transform: scaleY(0.35); opacity: 0.52; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+
+@keyframes routeGlow {
+  0%, 100% { opacity: 0.3; transform: scaleX(0.74); }
+  50% { opacity: 0.9; transform: scaleX(1); }
+}
+
+@keyframes signalTape {
+  to { transform: translateX(-50%); }
+}
+
+@media (max-width: 1180px) {
+  .studioShell { grid-template-columns: 205px minmax(0, 1fr) 270px; }
+  .brandCluster,
+  .topBarActions { min-width: 270px; }
+  .channelIdent { display: none; }
+  .programTelemetry span:first-child { display: none; }
+}
+
+@media (max-width: 980px) {
+  .studioShell {
+    min-width: 940px;
+    grid-template-columns: 190px minmax(500px, 1fr) 250px;
+  }
+  .brandCluster,
+  .topBarActions { min-width: 240px; }
+  .headerMeter,
+  .frameRate { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studioShell *,
+  .studioShell *::before,
+  .studioShell *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

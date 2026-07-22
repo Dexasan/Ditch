@@ -19,6 +19,7 @@ import type { ChatMessage, Participant, ParticipantStatus, StreamPlatform } from
 import type { ILocalAudioTrack, ILocalVideoTrack } from "agora-rtc-sdk-ng";
 import { ToastManager } from "./Toast";
 import { useStudioShortcuts } from "@/hooks/useStudioShortcuts";
+import studioStyles from "./studio.module.css";
 
 const MAX_CHAT = 200;
 const TOTAL_SLOTS = 4;
@@ -647,7 +648,35 @@ function EndStreamModal({
 
 // ── Top bar ───────────────────────────────────────────────────────────────────
 
-function TopBar({ slug, sessionId, channelId, token, onRecordClick }: { slug: string; sessionId: string; channelId: string; token: string; onRecordClick: () => void }) {
+
+function StudioTimecode({ active, fps }: { active: boolean; fps: number | null }) {
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  useEffect(() => {
+    if (!active) {
+      setElapsedMs(0);
+      return;
+    }
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => setElapsedMs(Date.now() - startedAt), 100);
+    return () => window.clearInterval(timer);
+  }, [active]);
+
+  const frameRate = fps ?? 30;
+  const totalSeconds = Math.floor(elapsedMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, "0");
+  const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  const frames = Math.floor(((elapsedMs % 1000) / 1000) * frameRate).toString().padStart(2, "0");
+
+  return (
+    <span className={studioStyles.timecode} aria-label="Stream timecode">
+      {hours}:{minutes}:{seconds}:{frames}
+    </span>
+  );
+}
+
+function TopBar({ slug, channelName, sessionId, channelId, token, onRecordClick }: { slug: string; channelName: string; sessionId: string; channelId: string; token: string; onRecordClick: () => void }) {
   const { streamStatus, streamError, fps, setStreamStatus, isRecording, streamDuration } = useStudioStore();
   const [showGoLiveModal,    setShowGoLiveModal]    = useState(false);
   const [showEndModal,       setShowEndModal]       = useState(false);
@@ -677,10 +706,10 @@ function TopBar({ slug, sessionId, channelId, token, onRecordClick }: { slug: st
     : "Go Live";
 
   const goLiveCls = streamStatus === "live"
-    ? "border-2 border-red-500 text-red-400 hover:bg-red-500/10"
+    ? studioStyles.endStreamButton
     : streamStatus === "connecting"
-    ? "bg-red-700/60 text-red-200 cursor-wait pointer-events-none"
-    : "bg-[var(--accent-primary)] hover:bg-[var(--color-brand-light)] text-white";
+      ? studioStyles.connectingButton
+      : studioStyles.goLiveButton;
 
   return (
     <>
@@ -715,74 +744,86 @@ function TopBar({ slug, sessionId, channelId, token, onRecordClick }: { slug: st
       )}
       {showSettingsModal && <SettingsModal onClose={() => setShowSettingsModal(false)} />}
       <div
-        className="flex items-center border-b border-[var(--border)] bg-[var(--bg-base)] px-3 gap-3"
-        style={{ gridArea: "topbar", height: 44 }}
+        className={`${studioStyles.topBar} flex items-center px-3 gap-3`}
+        style={{ gridArea: "topbar" }}
       >
-        {/* Logo */}
-        <a href="/dashboard" className="shrink-0">
-          <img src="/logo.png" alt="DITCH" className="h-6 w-6 rounded-md" />
-        </a>
+        <div className={studioStyles.brandCluster}>
+          <a href="/dashboard" className={studioStyles.studioBrand} aria-label="Back to dashboard">
+            <img src="/logo.png" alt="" />
+            <span>
+              <b>DITCH</b>
+              <small>Transmission control</small>
+            </span>
+          </a>
+          <div className={studioStyles.channelIdent}>
+            <small>Channel</small>
+            <strong>{channelName}</strong>
+            <span>/{slug}</span>
+          </div>
+        </div>
 
-        <span className="text-[var(--border)]">|</span>
-
-        {/* Center: status / counters */}
-        <div className="flex items-center gap-4 flex-1 justify-center">
+        <div className={studioStyles.topBarCenter}>
           {streamError ? (
-            <span className="text-[10px] text-red-400 truncate max-w-xs">{streamError}</span>
+            <span className={studioStyles.streamError}>{streamError}</span>
           ) : (
             <>
-              {streamStatus === "live" && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-[10px] font-bold text-red-400 tracking-widest">LIVE</span>
-                </div>
-              )}
-              <span className="text-[10px] font-mono text-[var(--text-muted)] tabular-nums">
-                FPS <span className="text-[var(--text-primary)]">{fps ?? "--"}</span>
-              </span>
+              <div className={studioStyles.statusBug} data-status={streamStatus}>
+                <i className={studioStyles.statusLamp} />
+                <span>
+                  {streamStatus === "live" ? "On air" : streamStatus === "connecting" ? "Linking" : "Standby"}
+                </span>
+              </div>
+              <div className={studioStyles.timecodeWrap}>
+                <small>TC</small>
+                <StudioTimecode active={streamStatus === "live"} fps={fps} />
+              </div>
+              <div className={studioStyles.frameRate}>
+                <small>Frame rate</small>
+                <strong>{fps ?? "--"} FPS</strong>
+              </div>
+              <div className={studioStyles.headerMeter} aria-hidden="true">
+                {Array.from({ length: 12 }, (_, index) => <i key={index} />)}
+              </div>
             </>
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className={studioStyles.topBarActions}>
           {streamStatus === "live" && (
             <button
               onClick={() => setShowInviteModal(true)}
-              className="h-7 px-3 rounded text-[11px] font-semibold border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-1.5"
+              className={studioStyles.topBarTool}
               title="Invite viewers"
             >
               <IconLink />
-              Invite
+              <span>Invite</span>
             </button>
           )}
           <button
             onClick={() => setShowSettingsModal(true)}
-            className="h-7 w-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            className={studioStyles.iconTool}
             title="Settings"
+            aria-label="Studio settings"
           >
             <IconSettings />
           </button>
           <button
             onClick={onRecordClick}
-            className={`h-7 px-3 rounded text-[11px] font-semibold border transition-colors ${
-              isRecording
-                ? "border-red-500/50 bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                : "border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            }`}
+            className={`${studioStyles.topBarTool} ${isRecording ? studioStyles.recordingButton : ""}`}
             title={isRecording ? "Stop recording" : "Start recording"}
           >
             {isRecording ? (
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-                {fmtElapsed(streamDuration)}
-              </span>
-            ) : "Record"}
+              <>
+                <i className={studioStyles.recordLamp} />
+                <span>{fmtElapsed(streamDuration)}</span>
+              </>
+            ) : <span>Record</span>}
           </button>
           <button
             onClick={handleGoLiveClick}
-            className={`h-7 px-4 rounded text-[11px] font-bold flex items-center gap-1.5 transition-all ${goLiveCls}`}
+            className={`${studioStyles.transmitButton} ${goLiveCls}`}
             title={goLiveLabel}
+            data-state={streamStatus}
           >
             <IconRadio />
             {goLiveLabel}
@@ -875,7 +916,8 @@ function LayerRow({
   return (
     <div
       onClick={onSelect}
-      className={`relative flex items-center gap-2 px-2 group cursor-pointer transition-colors border-l-2 ${
+      data-active={isActive}
+      className={`${studioStyles.layerRow} relative flex items-center gap-2 px-2 group cursor-pointer transition-colors border-l-2 ${
         isActive
           ? "border-[var(--accent-secondary,#00D4AA)] bg-[var(--bg-mid,#1A1A3E)]"
           : "border-transparent hover:bg-[var(--bg-mid)]"
@@ -1170,7 +1212,7 @@ function LayersPanel({
     "w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 hover:bg-[var(--bg-base)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
 
   return (
-    <div className="flex flex-col overflow-hidden border-r border-[var(--border)]" style={{ gridArea: "layers" }}>
+    <div className={`${studioStyles.panel} flex flex-col overflow-hidden border-r border-[var(--border)]`} style={{ gridArea: "layers" }}>
       <input
         ref={imageInputRef}
         type="file"
@@ -1201,6 +1243,7 @@ function LayersPanel({
         <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex-1">
           Layers
         </span>
+        <span className={studioStyles.panelCounter}>{activeScene.layers.length.toString().padStart(2, "0")}</span>
         <div className="relative">
           <button
             onClick={() => setMenuOpen((v) => !v)}
@@ -1335,11 +1378,12 @@ function SceneCard({
 
   return (
     <div
-      className={`group relative flex items-center gap-2 px-2 py-1.5 cursor-pointer border-l-2 transition-colors ${
+      className={`${studioStyles.sceneCard} group relative flex items-center gap-2 px-2 py-1.5 cursor-pointer border-l-2 transition-colors ${
         isActive
           ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
           : "border-transparent hover:bg-[var(--bg-mid)]"
       }`}
+      data-active={isActive}
       onClick={() => { if (!isRenaming) onSelect(); }}
     >
       {/* Thumbnail 40×24 */}
@@ -1466,7 +1510,7 @@ function ScenesPanel() {
 
   return (
     <div
-      className="flex flex-col overflow-hidden border-b border-r border-[var(--border)]"
+      className={`${studioStyles.panel} flex flex-col overflow-hidden border-b border-r border-[var(--border)]`}
       style={{ gridArea: "scenes" }}
     >
       <div
@@ -1477,6 +1521,7 @@ function ScenesPanel() {
         <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex-1">
           Scenes
         </span>
+        <span className={studioStyles.panelCounter}>{scenes.length.toString().padStart(2, "0")}</span>
         <button
           onClick={handleAddScene}
           className="w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--bg-mid)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
@@ -1934,10 +1979,10 @@ const PreviewCanvas = forwardRef<PreviewCanvasHandle, {
   const visibleLayers = layers.filter((l) => l.visible);
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-black overflow-hidden min-w-0">
+    <div className={`${studioStyles.previewWell} flex-1 flex items-center justify-center bg-black overflow-hidden min-w-0`}>
       <div
         ref={containerRef}
-        className="relative overflow-hidden"
+        className={`${studioStyles.programFrame} relative overflow-hidden`}
         style={{ background: "var(--bg-deep)", aspectRatio: "16/9", maxWidth: "100%", maxHeight: "100%", width: "100%" }}
         onClick={() => onSelectLayer(null)}
         onDragOver={handleDragOver}
@@ -2988,7 +3033,7 @@ function Inspector({
 
   return (
     <div
-      className="flex flex-col overflow-hidden border-l border-[var(--border)]"
+      className={`${studioStyles.panel} ${studioStyles.inspectorPanel} flex flex-col overflow-hidden border-l border-[var(--border)]`}
       style={{ gridArea: "inspector", background: "var(--bg-base, #111122)" }}
     >
       {/* Header */}
@@ -3386,7 +3431,7 @@ function AudioMixer({
         return (
           <div
             key={src.id}
-            className="flex flex-col gap-1 shrink-0 px-2 py-1.5 rounded bg-[var(--bg-base)] border border-[var(--border)]"
+            className={`${studioStyles.mixerChannel} flex flex-col gap-1 shrink-0 px-2 py-1.5 rounded bg-[var(--bg-base)] border border-[var(--border)]`}
             style={{ width: isMic && audioInputs.length > 1 ? 160 : 108 }}
           >
             <div className="flex items-center justify-between gap-1">
@@ -3504,7 +3549,7 @@ function StreamPulse({
 
   return (
     <div
-      className="flex items-center gap-3 px-4 border-t border-[var(--border)]"
+      className={`${studioStyles.mixerPanel} flex items-center gap-3 px-4 border-t border-[var(--border)]`}
       style={{ gridArea: "mixer", background: "var(--bg-deep, #0D0D1A)" }}
     >
       {/* Scene filmstrip */}
@@ -3617,7 +3662,7 @@ export default function Studio({
   const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([]);
 
   const {
-    streamStatus, setStreamStatus, setStreamError, setFps,
+    streamStatus, setStreamStatus, setStreamError, fps, setFps,
     targetFps,
     settings,
     setBitrateKbps,
@@ -4049,21 +4094,27 @@ export default function Studio({
     reader.readAsDataURL(file);
   }, [activeSceneId, addLayerRoot]);
 
+
+  const visibleLayerCount = activeScene.layers.filter((layer) => layer.visible).length;
+  const signalMessages = [
+    cameraLayer?.visible ? "INPUT 01 / CAMERA LOCKED" : "INPUT 01 / GRAPHICS BUS",
+    "COMPOSITOR / " + visibleLayerCount.toString().padStart(2, "0") + " SOURCES",
+    streamStatus === "live"
+      ? "UPLINK / TRANSMITTING"
+      : streamStatus === "connecting"
+        ? "UPLINK / HANDSHAKE"
+        : "UPLINK / STANDBY",
+    "ROOM / " + liveParticipants.length.toString().padStart(2, "0") + " ON STAGE",
+  ];
+  const signalTape = [...signalMessages, ...signalMessages];
+
   return (
     <>
       <div
-        className="text-[var(--text-primary)]"
-        style={{
-          display: "grid",
-          gridTemplateAreas: `"topbar topbar topbar" "scenes canvas inspector" "layers canvas inspector" "mixer mixer mixer"`,
-          gridTemplateColumns: "220px 1fr 280px",
-          gridTemplateRows: "48px 1fr 1fr 72px",
-          height: "100vh",
-          overflow: "hidden",
-          background: "var(--bg-deep, #0D0D1A)",
-        }}
+        className={`${studioStyles.studioShell} text-[var(--text-primary)]`}
+        data-stream-status={streamStatus}
       >
-        <TopBar slug={slug} sessionId={sessionId} channelId={channelId} token={token} onRecordClick={handleRecordClick} />
+        <TopBar slug={slug} channelName={channelName} sessionId={sessionId} channelId={channelId} token={token} onRecordClick={handleRecordClick} />
         <ScenesPanel />
         <LayersPanel
           localVideoTrack={localVideoTrack}
@@ -4073,6 +4124,7 @@ export default function Studio({
           onAddImage={handleFileDrop}
         />
         <div
+          className={studioStyles.programDeck}
           style={{
             gridArea: "canvas",
             display: "flex",
@@ -4083,19 +4135,42 @@ export default function Studio({
               : {}),
           }}
         >
-          <PreviewCanvas
-            ref={previewRef}
-            stream={compositeStream}
-            layers={activeScene.layers}
-            selectedLayerId={selectedLayerId}
-            onSelectLayer={setSelectedLayerId}
-            onLayerTransformLive={(id, patch) => setLayerTransformLive(id, patch)}
-            onLayerTransformCommit={(id, patch) => {
-              const layer = activeScene.layers.find((l) => l.id === id);
-              if (layer) updateLayerRoot(activeScene.id, id, { transform: { ...layer.transform, ...patch } });
-            }}
-            onFileDrop={handleFileDrop}
-          />
+          <div className={studioStyles.programHeader}>
+            <div className={studioStyles.programIdentity}>
+              <span className={studioStyles.programBus} data-status={streamStatus}>
+                <i />
+                Program output
+              </span>
+              <strong>{activeScene.name}</strong>
+            </div>
+            <div className={studioStyles.programTelemetry}>
+              <span>Canvas <b>1280 X 720</b></span>
+              <span>Frame <b>{fps ?? "--"} FPS</b></span>
+              <span>Stage <b>{liveParticipants.length}/4</b></span>
+            </div>
+          </div>
+          <div className={studioStyles.programViewport}>
+            <PreviewCanvas
+              ref={previewRef}
+              stream={compositeStream}
+              layers={activeScene.layers}
+              selectedLayerId={selectedLayerId}
+              onSelectLayer={setSelectedLayerId}
+              onLayerTransformLive={(id, patch) => setLayerTransformLive(id, patch)}
+              onLayerTransformCommit={(id, patch) => {
+                const layer = activeScene.layers.find((l) => l.id === id);
+                if (layer) updateLayerRoot(activeScene.id, id, { transform: { ...layer.transform, ...patch } });
+              }}
+              onFileDrop={handleFileDrop}
+            />
+          </div>
+          <div className={studioStyles.signalRail} aria-label="Live signal path">
+            <div className={studioStyles.signalRailTrack}>
+              {signalTape.map((message, index) => (
+                <span key={message + index}><i />{message}</span>
+              ))}
+            </div>
+          </div>
         </div>
         <Inspector
           chatProps={{ messages, chatBody, onChange: setChatBody, onSend: sendChat }}
