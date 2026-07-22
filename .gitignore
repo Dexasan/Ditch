@@ -43,5 +43,8 @@ Thumbs.db
 # Build info
 *.tsbuildinfo
 
+# Static ffmpeg downloaded by the relay build script
+apps/relay/vendor/
+
 # Claude Code worktrees/session state
 .claude/
