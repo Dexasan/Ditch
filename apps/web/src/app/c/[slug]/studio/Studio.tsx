@@ -1315,7 +1315,7 @@ function LayersPanel({
       </div>
 
       {/* Layer list - reversed so index 0 (bottom of stack) appears at bottom of list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={`${studioStyles.layerList} flex-1 min-h-0 overflow-y-auto`}>
         {[...activeScene.layers].reverse().map((layer, revIdx) => (
           <div key={layer.id}>
             <LayerRow
@@ -4106,8 +4106,6 @@ export default function Studio({
         : "UPLINK / STANDBY",
     "ROOM / " + liveParticipants.length.toString().padStart(2, "0") + " ON STAGE",
   ];
-  const signalTape = [...signalMessages, ...signalMessages];
-
   return (
     <>
       <div
@@ -4166,7 +4164,7 @@ export default function Studio({
           </div>
           <div className={studioStyles.signalRail} aria-label="Live signal path">
             <div className={studioStyles.signalRailTrack}>
-              {signalTape.map((message, index) => (
+              {signalMessages.map((message, index) => (
                 <span key={message + index}><i />{message}</span>
               ))}
             </div>
