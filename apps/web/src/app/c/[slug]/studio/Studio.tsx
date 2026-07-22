@@ -1212,7 +1212,7 @@ function LayersPanel({
     "w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 hover:bg-[var(--bg-base)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
 
   return (
-    <div className={`${studioStyles.panel} flex flex-col overflow-hidden border-r border-[var(--border)]`} style={{ gridArea: "layers" }}>
+    <div className={`${studioStyles.panel} ${studioStyles.layersPanel} flex flex-col overflow-hidden border-r border-[var(--border)]`} style={{ gridArea: "layers" }}>
       <input
         ref={imageInputRef}
         type="file"

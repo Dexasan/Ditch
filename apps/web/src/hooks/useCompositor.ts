@@ -223,6 +223,8 @@ export function useCompositor({
   const connectedTrackIdRef = useRef<Map<string, string>>(new Map());
   const gainNodesRef       = useRef<Map<string, GainNode>>(new Map());
   const analyserNodesRef   = useRef<Map<string, AnalyserNode>>(new Map());
+  // Re-render once graph nodes exist so VU meters receive their analysers immediately.
+  const [, refreshAudioGraph] = useState(0);
   const imageCacheRef      = useRef<Map<string, HTMLImageElement>>(new Map());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const frameWriterRef    = useRef<WritableStreamDefaultWriter<any> | null>(null);
@@ -240,6 +242,16 @@ export function useCompositor({
     const audioDest = audioCtx.createMediaStreamDestination();
     audioCtxRef.current  = audioCtx;
     audioDestRef.current = audioDest;
+
+    // Browsers commonly create AudioContext in a suspended state after a route
+    // navigation. Resume on the first studio interaction so the destination
+    // track contains real samples before recording/publishing begins.
+    function resumeAudioContext() {
+      if (audioCtx.state !== "running") audioCtx.resume().catch(() => {});
+    }
+    resumeAudioContext();
+    document.addEventListener("pointerdown", resumeAudioContext, true);
+    document.addEventListener("keydown", resumeAudioContext, true);
 
     const useBreakout = supportsBreakoutBox();
     console.log(`[compositor] breakout box available: ${useBreakout}`);
@@ -268,14 +280,14 @@ export function useCompositor({
     // Resume AudioContext when tab regains focus (Chrome suspends it on hide)
     function onVisibility() {
       console.log(`[compositor] visibility: ${document.visibilityState}`);
-      if (document.visibilityState === "visible" && audioCtx.state === "suspended") {
-        audioCtx.resume().catch(() => {});
-      }
+      if (document.visibilityState === "visible") resumeAudioContext();
     }
     document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("pointerdown", resumeAudioContext, true);
+      document.removeEventListener("keydown", resumeAudioContext, true);
       workerRef.current?.postMessage({ type: "stop" });
       workerRef.current?.terminate();
       workerRef.current = null;
@@ -825,6 +837,7 @@ export function useCompositor({
       }
       try {
         const ctx     = audioCtxRef.current!;
+        if (ctx.state !== "running") ctx.resume().catch(() => {});
         const src     = ctx.createMediaStreamSource(new MediaStream([nativeTrack]));
         const gain    = ctx.createGain();
         const analyser = ctx.createAnalyser();
@@ -864,6 +877,7 @@ export function useCompositor({
       if (extraAudioTracks.some((t) => t.id === id)) continue;
       disconnectSource(id);
     }
+    refreshAudioGraph((version) => version + 1);
   }, [enabled, localAudioTrack, remoteUsers, extraAudioTracks]);
 
   function setLayerTransformLive(layerId: string, patch: Partial<Transform>) {
