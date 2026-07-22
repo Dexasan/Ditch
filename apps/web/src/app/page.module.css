@@ -1250,3 +1250,170 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Cursor-reactive transmission layer and brighter broadcast palette -------- */
+.page {
+  --pink: #ff1493;
+  --pink-light: #ff5fbd;
+  --mint: #78e8c5;
+  background:
+    linear-gradient(105deg, rgba(255, 20, 147, 0.075), transparent 34%),
+    radial-gradient(circle at 78% 7%, rgba(120, 232, 197, 0.075), transparent 24rem),
+    #08080c;
+}
+
+.transmissionField {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.page main,
+.footer {
+  position: relative;
+  z-index: 2;
+}
+
+.page::before { opacity: 0.11; }
+.page::after { opacity: 0.055; }
+
+.nav {
+  border-color: rgba(255, 95, 189, 0.3);
+  box-shadow: 7px 7px 0 rgba(105, 0, 54, 0.72);
+}
+
+.wordmark img,
+.originBlock img,
+.controlWordmark img,
+.ctaLogo {
+  filter: contrast(1.12) saturate(1.08);
+}
+
+.navCta,
+.primaryButton {
+  color: #ffffff;
+  background: #ff1493;
+  box-shadow: 5px 5px 0 #680032;
+}
+
+.navCta:hover,
+.primaryButton:hover {
+  background: #ff3cab;
+  box-shadow: 8px 8px 0 #680032;
+}
+
+.heroTitle {
+  text-shadow: 4px 4px 0 rgba(112, 0, 58, 0.92);
+}
+
+.heroTitle span { color: #ff43ad; }
+
+.kicker,
+.sectionMarker span:first-child,
+.textLink { color: #ff5fbd; }
+
+.signalFilm {
+  border-color: rgba(255, 95, 189, 0.28);
+  background:
+    radial-gradient(circle at 44% 49%, rgba(255, 20, 147, 0.22), transparent 29%),
+    radial-gradient(circle at 82% 22%, rgba(120, 232, 197, 0.075), transparent 23%),
+    #09090e;
+  box-shadow: 9px 9px 0 rgba(96, 0, 50, 0.72);
+  filter: contrast(1.08);
+}
+
+.kineticWords span:nth-child(2) { color: rgba(255, 20, 147, 0.13); }
+
+.originBlock {
+  border-color: rgba(255, 20, 147, 0.76);
+  background: linear-gradient(90deg, rgba(255, 20, 147, 0.3), rgba(12, 12, 18, 0.92) 72%, transparent);
+}
+
+.filmTicker {
+  color: #17000c;
+  background: #ff1493;
+  border-top-color: rgba(255, 255, 255, 0.38);
+  opacity: 1;
+}
+
+.filmTicker b {
+  color: #ffffff;
+  background: #210011;
+}
+
+.controlRoom {
+  filter: contrast(1.04) saturate(1.04);
+}
+
+.productProofs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 30px 0 28px;
+  border: 1px solid rgba(255, 95, 189, 0.22);
+  background: rgba(255, 95, 189, 0.2);
+  box-shadow: 6px 6px 0 rgba(90, 0, 47, 0.48);
+}
+
+.productProof {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  min-height: 140px;
+  padding: 25px;
+  background: rgba(11, 10, 15, 0.96);
+}
+
+.productProof > span {
+  color: #ff5fbd;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+}
+
+.productProof h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-bebas), Impact, sans-serif;
+  font-size: 27px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.productProof p {
+  max-width: 280px;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.finalCta {
+  background:
+    radial-gradient(circle at 50% 0, rgba(255, 20, 147, 0.34), transparent 48%),
+    radial-gradient(circle at 88% 90%, rgba(120, 232, 197, 0.09), transparent 32%),
+    #10101c;
+}
+
+.ctaLogo { box-shadow: 0 0 48px rgba(255, 20, 147, 0.55); }
+
+@media (hover: hover) and (pointer: fine) {
+  .page { cursor: auto; }
+  .page a,
+  .page button,
+  .page summary { cursor: pointer; }
+  .cursorRing,
+  .cursorDot { display: none; }
+}
+
+@media (max-width: 760px) {
+  .productProofs { grid-template-columns: 1fr; }
+  .productProof { min-height: 0; }
+  .transmissionField { opacity: 0.72; }
+}

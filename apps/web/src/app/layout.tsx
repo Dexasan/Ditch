@@ -49,6 +49,14 @@ export const metadata: Metadata = {
       "DITCH | Livestreams your audience can actually join",
     description:
       "Run the show in your browser, multistream anywhere for free, and bring viewers from the chat onto the screen.",
+    images: [
+      {
+        url: "https://ditchlive.app/og-v2.png",
+        width: 1536,
+        height: 1024,
+        alt: "DITCH - Your stream has an audience. Give it a door.",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -56,6 +64,7 @@ export const metadata: Metadata = {
       "DITCH | Livestreams your audience can actually join",
     description:
       "Run the show in your browser, multistream anywhere for free, and bring viewers from the chat onto the screen.",
+    images: ["https://ditchlive.app/og-v2.png"],
   },
   robots: {
     index: true,

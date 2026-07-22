@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
-import SignalCursor from "./SignalCursor";
+import TransmissionField from "./TransmissionField";
 
 const destinations = [
   { name: "Twitch", code: "TW", tone: "purple", kind: "twitch" },
@@ -14,8 +14,7 @@ const destinations = [
 export default function LandingPage() {
   return (
     <div className={styles.page}>
-      <SignalCursor />
-      <div className={styles.ambient} aria-hidden="true" />
+      <TransmissionField />
       <Header />
 
       <main>
@@ -23,20 +22,18 @@ export default function LandingPage() {
           <div className={styles.heroCopy}>
             <div className={styles.eyebrow}>
               <span className={styles.liveDot} />
-              Browser-based studio / Free multistreaming
+              One live room / Every platform
             </div>
 
             <h1 className={styles.heroTitle}>
-              DITCH turns
-              <span>livestreams into shows</span>
-              <em>
-                the audience can<br />actually join.
-              </em>
+              Your stream has
+              <span>an audience.</span>
+              <em>Give it a door.</em>
             </h1>
 
             <p className={styles.heroLead}>
-              Run the show in your browser, multistream anywhere for free, and
-              bring viewers from the chat onto the screen.
+              Open one browser studio. Send it to Twitch, YouTube, TikTok, and
+              Kick. When someone wants in, cue them onto the broadcast.
             </p>
 
             <div className={styles.heroActions}>
@@ -46,7 +43,7 @@ export default function LandingPage() {
               </Link>
               <a href="#product" className={styles.secondaryButton}>
                 <PlayIcon />
-                See how viewers join
+                Step inside the studio
               </a>
             </div>
 
@@ -58,8 +55,8 @@ export default function LandingPage() {
                 <span>+</span>
               </div>
               <p>
-                <strong>No download. No platform lock-in.</strong>
-                <span>Browser studio, or connect the OBS setup you already use.</span>
+                <strong>Free during public beta.</strong>
+                <span>Use the browser studio or bring the OBS setup you already trust.</span>
               </p>
             </div>
           </div>
@@ -69,40 +66,40 @@ export default function LandingPage() {
 
         <PlatformRail />
 
-        <section className={styles.manifesto} id="why">
-          <div className={styles.sectionMarker}>
-            <span>01</span>
-            <span>Why DITCH</span>
-          </div>
-          <div className={styles.manifestoCopy}>
-            <p className={styles.kicker}>The old live model is a dead end.</p>
-            <h2>
-              Most livestreams end at the chat.
-              <span> DITCH gives viewers a way onto the screen.</span>
-            </h2>
-            <div className={styles.manifestoDetails}>
-              <p>
-                Audiences are fragmented across platforms. Creators perform into
-                four separate rooms. Participation stops at the comment box.
-              </p>
-              <p>
-                DITCH changes the shape of live media: one origin, every
-                destination, and a direct path from watching to being seen.
-              </p>
-            </div>
-          </div>
-        </section>
-
         <section className={styles.productSection} id="product">
           <div className={styles.sectionIntro}>
             <div className={styles.sectionMarker}>
-              <span>02</span>
-              <span>Inside the product</span>
+              <span>01</span>
+              <span>The control room</span>
             </div>
             <div>
-              <p className={styles.kicker}>Browser-based. Multistreaming. Free.</p>
-              <h2>Everything you need to run a show people can join.</h2>
+              <p className={styles.kicker}>One place to run the whole live.</p>
+              <h2>Produce the broadcast, route the signal, and cue the room.</h2>
             </div>
+          </div>
+
+          <div className={styles.productProofs}>
+            <article className={styles.productProof}>
+              <span>TX.01</span>
+              <div>
+                <h3>Route</h3>
+                <p>Connect destinations once. Every output launches together.</p>
+              </div>
+            </article>
+            <article className={styles.productProof}>
+              <span>TX.02</span>
+              <div>
+                <h3>Produce</h3>
+                <p>Run camera, mic, screen, and layouts in the browser or OBS.</p>
+              </div>
+            </article>
+            <article className={styles.productProof}>
+              <span>RX.01</span>
+              <div>
+                <h3>Cue</h3>
+                <p>Pull a request from chat onto the stage in one move.</p>
+              </div>
+            </article>
           </div>
 
           <ControlRoom />
@@ -111,102 +108,25 @@ export default function LandingPage() {
         <section className={styles.flywheelSection} id="network">
           <div className={styles.flywheelCopy}>
             <div className={styles.sectionMarker}>
-              <span>03</span>
-              <span>The network effect</span>
+              <span>02</span>
+              <span>What changes</span>
             </div>
-            <p className={styles.kicker}>Every participant is distribution.</p>
-            <h2>The audience acquisition loop built into the show.</h2>
+            <p className={styles.kicker}>Viewers stop being a counter.</p>
+            <h2>The live audience becomes the format.</h2>
             <p className={styles.sectionBody}>
-              A viewer discovers the stream anywhere, moves into the DITCH room,
-              joins the broadcast, and gives the next wave of viewers a reason to
-              follow. The format carries its own growth.
+              A viewer discovers the show anywhere, enters your DITCH room, and
+              steps into the broadcast. The moment they become part of it, the
+              show gains a new reason to travel.
             </p>
             <Link href="/auth" className={styles.textLink}>
-              Start the loop <ArrowIcon />
+              Claim your channel <ArrowIcon />
             </Link>
           </div>
 
           <FlywheelGraphic />
         </section>
 
-        <section className={styles.layersSection}>
-          <div className={styles.sectionIntro}>
-            <div className={styles.sectionMarker}>
-              <span>04</span>
-              <span>The platform</span>
-            </div>
-            <div>
-              <p className={styles.kicker}>More than multistreaming.</p>
-              <h2>Three layers. One category-defining product.</h2>
-            </div>
-          </div>
-
-          <div className={styles.layerGrid}>
-            <article className={`${styles.layerCard} ${styles.distributionCard}`}>
-              <div className={styles.layerNumber}>01</div>
-              <SignalIcon />
-              <div className={styles.layerContent}>
-                <p>Distribution</p>
-                <h3>Multistream anywhere. Free.</h3>
-                <span>
-                  Go live from the browser or OBS and send one broadcast to every
-                  major platform at no cost during beta.
-                </span>
-              </div>
-              <div className={styles.miniDestinations} aria-hidden="true">
-                {destinations.map((destination, index) => (
-                  <span
-                    key={destination.code}
-                    style={{
-                      "--offset": `${(index - 1) * 8}px`,
-                      "--delay": `${index * -800}ms`,
-                    } as CSSProperties}
-                  >
-                    {destination.code}
-                  </span>
-                ))}
-              </div>
-            </article>
-
-            <article className={`${styles.layerCard} ${styles.participationCard}`}>
-              <div className={styles.layerNumber}>02</div>
-              <PeopleIcon />
-              <div className={styles.layerContent}>
-                <p>Participation</p>
-                <h3>Turn viewers into co-stars.</h3>
-                <span>
-                  Approve a request and bring anyone on screen across every
-                  destination at the same time.
-                </span>
-              </div>
-              <div className={styles.participantPreview} aria-hidden="true">
-                <div><span>JL</span><small>Host</small></div>
-                <div><span>AM</span><small>Guest</small></div>
-                <b>ON AIR</b>
-              </div>
-            </article>
-
-            <article className={`${styles.layerCard} ${styles.networkCard}`}>
-              <div className={styles.layerNumber}>03</div>
-              <SparkIcon />
-              <div className={styles.layerContent}>
-                <p>Network</p>
-                <h3>Make the moment the media.</h3>
-                <span>
-                  Participatory formats create culture, distribution, and new
-                  surfaces for brands in one motion.
-                </span>
-              </div>
-              <div className={styles.networkRings} aria-hidden="true">
-                <i />
-                <i />
-                <span>DITCH</span>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section className={styles.finalCta}>
+        <section className={styles.finalCta} id="start">
           <div className={styles.ctaSignal} aria-hidden="true">
             <span />
             <span />
@@ -219,8 +139,8 @@ export default function LandingPage() {
             alt=""
             className={styles.ctaLogo}
           />
-          <p>Broadcasting is becoming participatory.</p>
-          <h2>Make a show your audience can actually join.</h2>
+          <p>Your next great guest is already watching.</p>
+          <h2>Open the room.</h2>
           <div className={styles.ctaActions}>
             <Link href="/auth" className={styles.primaryButton}>
               Start streaming free
@@ -247,8 +167,8 @@ function Header() {
 
         <div className={styles.navLinks}>
           <a href="#product">Product</a>
-          <a href="#network">Network effect</a>
-          <a href="#why">Why DITCH</a>
+          <a href="#network">The live loop</a>
+          <a href="#start">Public beta</a>
         </div>
 
         <div className={styles.navActions}>
