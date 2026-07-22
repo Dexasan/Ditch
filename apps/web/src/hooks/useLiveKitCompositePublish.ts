@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { LocalAudioTrack, LocalVideoTrack, Room, Track } from "livekit-client";
+import type { Room } from "livekit-client";
 import { CREATOR_COMPOSITE_UID } from "@/lib/agora";
+import { loadLiveKit } from "@/lib/livekit";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
@@ -26,15 +27,20 @@ export function useLiveKitCompositePublish({
     void (async () => {
       const headers: Record<string, string> = {};
       if (authToken) headers.Authorization = `Bearer ${authToken}`;
-      const response = await fetch(
-        `${API_BASE}/livekit/token?session_id=${encodeURIComponent(sessionId)}&uid=${CREATOR_COMPOSITE_UID}`,
-        { headers, cache: "no-store" },
-      );
+      // Pull the SDK chunk alongside the token request so the lazy import does
+      // not add a round trip before the program feed goes up.
+      const [lk, response] = await Promise.all([
+        loadLiveKit(),
+        fetch(
+          `${API_BASE}/livekit/token?session_id=${encodeURIComponent(sessionId)}&uid=${CREATOR_COMPOSITE_UID}`,
+          { headers, cache: "no-store" },
+        ),
+      ]);
       if (!response.ok) throw new Error("LiveKit composite token request failed");
       const credentials = await response.json() as { token: string; url: string };
       if (cancelled) return;
 
-      const nextRoom = new Room({ dynacast: true });
+      const nextRoom = new lk.Room({ dynacast: true });
       await nextRoom.connect(credentials.url, credentials.token);
       room = nextRoom;
 
@@ -43,16 +49,16 @@ export function useLiveKitCompositePublish({
       if (!sourceVideo) return;
       const videoClone = sourceVideo.clone();
       clones.push(videoClone);
-      await nextRoom.localParticipant.publishTrack(new LocalVideoTrack(videoClone), {
-        source: Track.Source.Camera,
+      await nextRoom.localParticipant.publishTrack(new lk.LocalVideoTrack(videoClone), {
+        source: lk.Track.Source.Camera,
         videoCodec: "h264",
         simulcast: true,
       });
       if (sourceAudio) {
         const audioClone = sourceAudio.clone();
         clones.push(audioClone);
-        await nextRoom.localParticipant.publishTrack(new LocalAudioTrack(audioClone), {
-          source: Track.Source.Microphone,
+        await nextRoom.localParticipant.publishTrack(new lk.LocalAudioTrack(audioClone), {
+          source: lk.Track.Source.Microphone,
         });
       }
       console.log("[composite] LiveKit program feed published as uid", CREATOR_COMPOSITE_UID);
