@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Bebas_Neue, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -14,15 +14,22 @@ const jbMono = JetBrains_Mono({
   display: "swap",
 });
 
+const bebasNeue = Bebas_Neue({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-bebas",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://ditchlive.app"),
   title: {
     default:
-      "DITCH | Multistream to Twitch, YouTube, TikTok and Kick from your browser",
+      "DITCH | Livestreams your audience can actually join",
     template: "%s | DITCH",
   },
   description:
-    "DITCH is a browser multistream studio. Go live once, broadcast to Twitch, YouTube, TikTok and Kick at the same time, and cue viewers from any platform onto your stream.",
+    "Run your livestream in the browser, multistream anywhere for free, and bring viewers from the chat onto the screen with DITCH.",
   keywords: [
     "multistream",
     "multistreaming",
@@ -39,16 +46,16 @@ export const metadata: Metadata = {
     url: "https://ditchlive.app",
     siteName: "DITCH",
     title:
-      "DITCH | Multistream to Twitch, YouTube, TikTok and Kick from your browser",
+      "DITCH | Livestreams your audience can actually join",
     description:
-      "One stream, every platform, anyone can join. Go live from your browser and cue viewers from any platform onto your stream.",
+      "Run the show in your browser, multistream anywhere for free, and bring viewers from the chat onto the screen.",
   },
   twitter: {
     card: "summary_large_image",
     title:
-      "DITCH | Multistream to Twitch, YouTube, TikTok and Kick from your browser",
+      "DITCH | Livestreams your audience can actually join",
     description:
-      "One stream, every platform, anyone can join. Go live from your browser and cue viewers from any platform onto your stream.",
+      "Run the show in your browser, multistream anywhere for free, and bring viewers from the chat onto the screen.",
   },
   robots: {
     index: true,
@@ -65,7 +72,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jbMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${jbMono.variable} ${bebasNeue.variable}`}>
       <body className="min-h-screen bg-[var(--color-surface)] text-[var(--color-text)]">
         {children}
       </body>

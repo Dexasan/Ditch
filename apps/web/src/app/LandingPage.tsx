@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
+import SignalCursor from "./SignalCursor";
 
 const destinations = [
   { name: "Twitch", code: "TW", tone: "purple", kind: "twitch" },
@@ -13,6 +14,7 @@ const destinations = [
 export default function LandingPage() {
   return (
     <div className={styles.page}>
+      <SignalCursor />
       <div className={styles.ambient} aria-hidden="true" />
       <Header />
 
@@ -21,28 +23,30 @@ export default function LandingPage() {
           <div className={styles.heroCopy}>
             <div className={styles.eyebrow}>
               <span className={styles.liveDot} />
-              The participatory broadcast network
+              Browser-based studio / Free multistreaming
             </div>
 
             <h1 className={styles.heroTitle}>
-              One signal.
-              <span>Everywhere live.</span>
-              <em>Anyone can enter.</em>
+              DITCH turns
+              <span>livestreams into shows</span>
+              <em>
+                the audience can<br />actually join.
+              </em>
             </h1>
 
             <p className={styles.heroLead}>
-              DITCH turns one live feed into a network: simulcast everywhere,
-              pull any viewer on screen, and keep every audience in the moment.
+              Run the show in your browser, multistream anywhere for free, and
+              bring viewers from the chat onto the screen.
             </p>
 
             <div className={styles.heroActions}>
               <Link href="/auth" className={styles.primaryButton}>
-                Claim your channel
+                Start streaming free
                 <ArrowIcon />
               </Link>
               <a href="#product" className={styles.secondaryButton}>
                 <PlayIcon />
-                See the signal flow
+                See how viewers join
               </a>
             </div>
 
@@ -54,8 +58,8 @@ export default function LandingPage() {
                 <span>+</span>
               </div>
               <p>
-                <strong>Built for participation.</strong>
-                <span>From first click to on-screen in one live room.</span>
+                <strong>No download. No platform lock-in.</strong>
+                <span>Browser studio, or connect the OBS setup you already use.</span>
               </p>
             </div>
           </div>
@@ -73,8 +77,8 @@ export default function LandingPage() {
           <div className={styles.manifestoCopy}>
             <p className={styles.kicker}>The old live model is a dead end.</p>
             <h2>
-              Streaming made everyone a viewer.
-              <span> DITCH turns the audience into the show.</span>
+              Most livestreams end at the chat.
+              <span> DITCH gives viewers a way onto the screen.</span>
             </h2>
             <div className={styles.manifestoDetails}>
               <p>
@@ -96,8 +100,8 @@ export default function LandingPage() {
               <span>Inside the product</span>
             </div>
             <div>
-              <p className={styles.kicker}>The whole live stack. One browser.</p>
-              <h2>Your control room for the open internet.</h2>
+              <p className={styles.kicker}>Browser-based. Multistreaming. Free.</p>
+              <h2>Everything you need to run a show people can join.</h2>
             </div>
           </div>
 
@@ -143,10 +147,10 @@ export default function LandingPage() {
               <SignalIcon />
               <div className={styles.layerContent}>
                 <p>Distribution</p>
-                <h3>Go live once. Be everywhere.</h3>
+                <h3>Multistream anywhere. Free.</h3>
                 <span>
-                  One high-quality source becomes a native broadcast across every
-                  major platform.
+                  Go live from the browser or OBS and send one broadcast to every
+                  major platform at no cost during beta.
                 </span>
               </div>
               <div className={styles.miniDestinations} aria-hidden="true">
@@ -216,10 +220,10 @@ export default function LandingPage() {
             className={styles.ctaLogo}
           />
           <p>Broadcasting is becoming participatory.</p>
-          <h2>Build the room everyone wants to be in.</h2>
+          <h2>Make a show your audience can actually join.</h2>
           <div className={styles.ctaActions}>
             <Link href="/auth" className={styles.primaryButton}>
-              Claim your channel
+              Start streaming free
               <ArrowIcon />
             </Link>
             <span>Free during public beta</span>
@@ -293,16 +297,16 @@ function SignalGraphic() {
             </linearGradient>
           </defs>
           <g className={styles.routeBase}>
-            <path d="M88 352 H286 L432 126 H742" />
-            <path d="M88 352 H322 L454 268 H742" />
-            <path d="M88 352 H322 L454 410 H742" />
-            <path d="M88 352 H286 L432 552 H742" />
+            <path d="M88 352 H278 L420 150 H742" />
+            <path d="M88 352 H304 L442 206 H742" />
+            <path d="M88 352 H304 L442 262 H742" />
+            <path d="M88 352 H278 L420 318 H742" />
           </g>
           <g className={styles.routeBurst}>
-            <path d="M88 352 H286 L432 126 H742" pathLength="100" />
-            <path d="M88 352 H322 L454 268 H742" pathLength="100" />
-            <path d="M88 352 H322 L454 410 H742" pathLength="100" />
-            <path d="M88 352 H286 L432 552 H742" pathLength="100" />
+            <path d="M88 352 H278 L420 150 H742" pathLength="100" />
+            <path d="M88 352 H304 L442 206 H742" pathLength="100" />
+            <path d="M88 352 H304 L442 262 H742" pathLength="100" />
+            <path d="M88 352 H278 L420 318 H742" pathLength="100" />
           </g>
         </svg>
 
@@ -334,6 +338,18 @@ function SignalGraphic() {
               <b><i /> Live</b>
             </div>
           ))}
+        </div>
+
+        <div className={styles.audienceReturn}>
+          <span>Audience return path</span>
+          <div>
+            <b>Watch</b>
+            <i aria-hidden="true">-&gt;</i>
+            <b>Request</b>
+            <i aria-hidden="true">-&gt;</i>
+            <b>On screen</b>
+          </div>
+          <small>Platform viewer enters the DITCH room</small>
         </div>
 
         <div className={styles.cutSequence} aria-hidden="true">
@@ -371,7 +387,9 @@ function PlatformRail() {
         <div className={styles.railTrack}>
           {items.map((destination, index) => (
             <span key={`${destination.name}-${index}`}>
-              <i className={styles[destination.tone]} />
+              <i className={`${styles.railPlatformIcon} ${styles[destination.tone]}`}>
+                <PlatformIcon kind={destination.kind} />
+              </i>
               {destination.name}
               <b>LIVE</b>
             </span>
