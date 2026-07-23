@@ -226,12 +226,14 @@ type SavedDestination = {
 function GoLiveModal({
   onClose,
   onGoLive,
+  onPrepareAudio,
   sessionId,
   channelId,
   token,
 }: {
   onClose: () => void;
   onGoLive: () => void;
+  onPrepareAudio: () => Promise<boolean>;
   sessionId: string;
   channelId: string;
   token: string;
@@ -320,8 +322,15 @@ function GoLiveModal({
   async function handleGoLive() {
     const ids = saved.filter((d) => d.enabled).map((d) => d.id);
     if (ids.length === 0) return;
+    const audioReadyPromise = onPrepareAudio();
     setGoingLive(true);
     try {
+      const audioReady = await audioReadyPromise;
+      if (!audioReady) {
+        addToast("Microphone permission is required before going live", "error");
+        setGoingLive(false);
+        return;
+      }
       await api.post("/sessions/" + sessionId + "/apply-destinations", {
         token,
         body: { saved_destination_ids: ids },
@@ -676,7 +685,7 @@ function StudioTimecode({ active, fps }: { active: boolean; fps: number | null }
   );
 }
 
-function TopBar({ slug, channelName, sessionId, channelId, token, onRecordClick }: { slug: string; channelName: string; sessionId: string; channelId: string; token: string; onRecordClick: () => void }) {
+function TopBar({ slug, channelName, sessionId, channelId, token, onRecordClick, onPrepareAudio }: { slug: string; channelName: string; sessionId: string; channelId: string; token: string; onRecordClick: () => void; onPrepareAudio: () => Promise<boolean> }) {
   const { streamStatus, streamError, fps, setStreamStatus, isRecording, streamDuration } = useStudioStore();
   const [showGoLiveModal,    setShowGoLiveModal]    = useState(false);
   const [showEndModal,       setShowEndModal]       = useState(false);
@@ -717,6 +726,7 @@ function TopBar({ slug, channelName, sessionId, channelId, token, onRecordClick 
         <GoLiveModal
           onClose={() => setShowGoLiveModal(false)}
           onGoLive={beginGoLive}
+          onPrepareAudio={onPrepareAudio}
           sessionId={sessionId}
           channelId={channelId}
           token={token}
@@ -1212,7 +1222,7 @@ function LayersPanel({
     "w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 hover:bg-[var(--bg-base)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
 
   return (
-    <div className={`${studioStyles.panel} ${studioStyles.layersPanel} flex flex-col overflow-hidden border-r border-[var(--border)]`} style={{ gridArea: "layers" }}>
+    <div className={`${studioStyles.panel} ${studioStyles.layersPanel} flex flex-col overflow-hidden border-r border-[var(--border)]`}>
       <input
         ref={imageInputRef}
         type="file"
@@ -1510,8 +1520,7 @@ function ScenesPanel() {
 
   return (
     <div
-      className={`${studioStyles.panel} flex flex-col overflow-hidden border-b border-r border-[var(--border)]`}
-      style={{ gridArea: "scenes" }}
+      className={`${studioStyles.panel} ${studioStyles.scenesPanel} flex flex-col overflow-hidden border-b border-r border-[var(--border)]`}
     >
       <div
         className="flex items-center gap-2 px-3 border-b border-[var(--border)] shrink-0"
@@ -3361,6 +3370,8 @@ type MixerChannel = { volume: number; muted: boolean };
 
 function AudioMixer({
   localAudioTrack,
+  programAudioTrack,
+  onEnableMic,
   liveParticipants,
   setTrackGain,
   getAnalyser,
@@ -3370,6 +3381,8 @@ function AudioMixer({
   extraSources,
 }: {
   localAudioTrack: ILocalAudioTrack | null;
+  programAudioTrack: MediaStreamTrack | null;
+  onEnableMic: () => void;
   liveParticipants: Participant[];
   setTrackGain: (sourceId: string, volume: number, muted: boolean) => void;
   getAnalyser: (sourceId: string) => AnalyserNode | null;
@@ -3383,18 +3396,19 @@ function AudioMixer({
   });
   const [activeMicId, setActiveMicId] = useState<string>("");
 
-  // Sync activeMicId when localAudioTrack first becomes available
+  // Sync activeMicId when either the RTC mic or direct program mic is available.
   useEffect(() => {
-    if (!localAudioTrack) return;
+    if (!programAudioTrack) return;
     try {
-      const id = localAudioTrack.getMediaStreamTrack().getSettings().deviceId ?? "";
+      const id = programAudioTrack.getSettings().deviceId ?? "";
       setActiveMicId(id);
     } catch {}
-  }, [localAudioTrack]);
+  }, [programAudioTrack]);
 
   const sources = useMemo(() => {
-    const list: { id: string; label: string; participantId?: string }[] = [];
-    if (localAudioTrack) list.push({ id: "mic", label: "Mic" });
+    const list: { id: string; label: string; participantId?: string }[] = [
+      { id: "mic", label: programAudioTrack ? "Mic" : "Mic offline" },
+    ];
     for (const p of liveParticipants) {
       list.push({
         id: `participant-${p.slot_index ?? 0}`,
@@ -3406,21 +3420,20 @@ function AudioMixer({
       list.push({ id: s.id, label: s.label });
     }
     return list;
-  }, [localAudioTrack, liveParticipants, extraSources]);
+  }, [programAudioTrack, liveParticipants, extraSources]);
 
   function update(sourceId: string, patch: Partial<MixerChannel>) {
     setChannels((prev) => {
       const cur  = prev[sourceId] ?? { volume: 1.0, muted: false };
       const next = { ...cur, ...patch };
       setTrackGain(sourceId, next.volume, next.muted);
-      if (sourceId === "mic" && localAudioTrack) {
-        localAudioTrack.setEnabled(!next.muted).catch(() => {});
+      if (sourceId === "mic") {
+        if (programAudioTrack) programAudioTrack.enabled = !next.muted;
+        localAudioTrack?.setEnabled(!next.muted).catch(() => {});
       }
       return { ...prev, [sourceId]: next };
     });
   }
-
-  if (sources.length === 0) return null;
 
   return (
     <div className="flex items-center gap-1.5 overflow-x-auto">
@@ -3432,7 +3445,7 @@ function AudioMixer({
           <div
             key={src.id}
             className={`${studioStyles.mixerChannel} flex flex-col gap-1 shrink-0 px-2 py-1.5 rounded bg-[var(--bg-base)] border border-[var(--border)]`}
-            style={{ width: isMic && audioInputs.length > 1 ? 160 : 108 }}
+            style={{ width: isMic && (audioInputs.length > 1 || !programAudioTrack) ? 160 : 108 }}
           >
             <div className="flex items-center justify-between gap-1">
               <span className="text-[9px] font-semibold uppercase tracking-wide truncate"
@@ -3463,6 +3476,15 @@ function AudioMixer({
               </div>
             </div>
             <VUMeter analyser={getAnalyser(src.id)} muted={ch.muted} />
+            {isMic && !programAudioTrack && (
+              <button
+                type="button"
+                onClick={onEnableMic}
+                className="h-5 border border-[var(--accent-primary)]/50 bg-[var(--accent-primary)]/10 px-2 text-[8px] font-bold uppercase tracking-wider text-[var(--color-brand-light)] hover:bg-[var(--accent-primary)]/20"
+              >
+                Enable microphone
+              </button>
+            )}
             <div className="flex items-center gap-1">
               <input
                 type="range" min={0} max={1} step={0.01}
@@ -3501,6 +3523,8 @@ function AudioMixer({
 
 function StreamPulse({
   localAudioTrack,
+  programAudioTrack,
+  onEnableMic,
   liveParticipants,
   setTrackGain,
   getAnalyser,
@@ -3511,6 +3535,8 @@ function StreamPulse({
   extraAudioSources,
 }: {
   localAudioTrack: ILocalAudioTrack | null;
+  programAudioTrack: MediaStreamTrack | null;
+  onEnableMic: () => void;
   liveParticipants: Participant[];
   setTrackGain: (sourceId: string, volume: number, muted: boolean) => void;
   getAnalyser: (sourceId: string) => AnalyserNode | null;
@@ -3577,6 +3603,8 @@ function StreamPulse({
       <div className="flex-1 min-w-0 overflow-x-auto">
         <AudioMixer
           localAudioTrack={localAudioTrack}
+          programAudioTrack={programAudioTrack}
+          onEnableMic={onEnableMic}
           liveParticipants={liveParticipants}
           setTrackGain={setTrackGain}
           getAnalyser={getAnalyser}
@@ -3839,6 +3867,26 @@ export default function Studio({
     authToken: token,
   });
 
+  const [fallbackProgramAudioTrack, setFallbackProgramAudioTrack] = useState<MediaStreamTrack | null>(null);
+  const rtcProgramAudioTrack = useMemo(() => {
+    try { return localAudioTrack?.getMediaStreamTrack() ?? null; } catch { return null; }
+  }, [localAudioTrack]);
+  const programAudioTrack = rtcProgramAudioTrack?.readyState === "live"
+    ? rtcProgramAudioTrack
+    : fallbackProgramAudioTrack?.readyState === "live"
+      ? fallbackProgramAudioTrack
+      : null;
+
+  useEffect(() => {
+    if (rtcProgramAudioTrack?.readyState !== "live" || !fallbackProgramAudioTrack) return;
+    fallbackProgramAudioTrack.stop();
+    setFallbackProgramAudioTrack(null);
+  }, [rtcProgramAudioTrack, fallbackProgramAudioTrack]);
+
+  useEffect(() => () => {
+    fallbackProgramAudioTrack?.stop();
+  }, [fallbackProgramAudioTrack]);
+
   useStudioShortcuts({ localAudioTrack });
 
   // Auto-name PRIMARY camera layers using the real device label + mark
@@ -3866,11 +3914,11 @@ export default function Studio({
 
   // Enumerate input devices once permissions are granted (the tracks are the signal).
   useEffect(() => {
-    if (!localAudioTrack || !navigator.mediaDevices?.enumerateDevices) return;
+    if (!programAudioTrack || !navigator.mediaDevices?.enumerateDevices) return;
     navigator.mediaDevices.enumerateDevices().then((devices) => {
       setAudioInputs(devices.filter((d) => d.kind === "audioinput"));
     });
-  }, [localAudioTrack]);
+  }, [programAudioTrack]);
   useEffect(() => {
     if (!localVideoTrack || !navigator.mediaDevices?.enumerateDevices) return;
     navigator.mediaDevices.enumerateDevices().then((devices) => {
@@ -3947,10 +3995,11 @@ export default function Studio({
   );
 
   // Compositor always runs so the preview canvas is live regardless of stream state.
-  const { stream: compositeStream, setLayerTransformLive, setTrackGain, getAnalyser } = useCompositor({
+  const { stream: compositeStream, setLayerTransformLive, setTrackGain, getAnalyser, resumeAudio } = useCompositor({
     localVideoTrack,
     localScreenTrack,
     localAudioTrack,
+    programAudioTrack,
     remoteUsers,
     liveParticipants,
     enabled: true,
@@ -3962,6 +4011,71 @@ export default function Studio({
     targetFps,
     onFps: setFps,
   });
+
+  const prepareProgramAudio = useCallback(async () => {
+    const resumePromise = resumeAudio();
+    if (programAudioTrack?.readyState === "live") {
+      const running = await resumePromise;
+      if (!running) addToast("Browser audio is blocked. Click Enable microphone and try again.", "error");
+      return running;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      await resumePromise;
+      addToast("This browser cannot capture a microphone", "error");
+      return false;
+    }
+
+    // Start getUserMedia before the first await so browsers keep the button
+    // gesture attached to the permission request. This path does not depend on
+    // the RTC room joining successfully.
+    const capturePromise = navigator.mediaDevices.getUserMedia({
+      video: false,
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    });
+    try {
+      const [running, capture] = await Promise.all([resumePromise, capturePromise]);
+      const microphone = capture.getAudioTracks()[0] ?? null;
+      if (!running || !microphone) {
+        capture.getTracks().forEach((track) => track.stop());
+        addToast("Microphone could not be added to the program mix", "error");
+        return false;
+      }
+      setFallbackProgramAudioTrack((previous) => {
+        if (previous && previous !== microphone) previous.stop();
+        return microphone;
+      });
+      navigator.mediaDevices.enumerateDevices?.().then((devices) => {
+        setAudioInputs(devices.filter((device) => device.kind === "audioinput"));
+      }).catch(() => {});
+      addToast("Microphone connected to the program mix", "success");
+      return true;
+    } catch {
+      addToast("Microphone permission was denied or no microphone is available", "error");
+      return false;
+    }
+  }, [programAudioTrack, resumeAudio, addToast]);
+
+  const switchProgramMicDevice = useCallback(async (deviceId: string) => {
+    if (localAudioTrack) {
+      await switchMicDevice(deviceId);
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) return;
+    void resumeAudio();
+    const capture = await navigator.mediaDevices.getUserMedia({
+      video: false,
+      audio: { deviceId: { exact: deviceId }, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    });
+    const microphone = capture.getAudioTracks()[0];
+    if (!microphone) {
+      capture.getTracks().forEach((track) => track.stop());
+      throw new Error("Selected microphone is unavailable");
+    }
+    setFallbackProgramAudioTrack((previous) => {
+      previous?.stop();
+      return microphone;
+    });
+  }, [localAudioTrack, switchMicDevice, resumeAudio]);
 
   // The compositor canvas is the program source, not the camera. Text, shapes,
   // images, markdown, and widgets therefore form a valid graphics-only stream.
@@ -4112,15 +4226,17 @@ export default function Studio({
         className={`${studioStyles.studioShell} text-[var(--text-primary)]`}
         data-stream-status={streamStatus}
       >
-        <TopBar slug={slug} channelName={channelName} sessionId={sessionId} channelId={channelId} token={token} onRecordClick={handleRecordClick} />
-        <ScenesPanel />
-        <LayersPanel
-          localVideoTrack={localVideoTrack}
-          isScreenSharing={isScreenSharing}
-          toggleScreenShare={toggleScreenShare}
-          attachFile={attachFile}
-          onAddImage={handleFileDrop}
-        />
+        <TopBar slug={slug} channelName={channelName} sessionId={sessionId} channelId={channelId} token={token} onRecordClick={handleRecordClick} onPrepareAudio={prepareProgramAudio} />
+        <div className={studioStyles.leftRail} style={{ gridArea: "left" }}>
+          <ScenesPanel />
+          <LayersPanel
+            localVideoTrack={localVideoTrack}
+            isScreenSharing={isScreenSharing}
+            toggleScreenShare={toggleScreenShare}
+            attachFile={attachFile}
+            onAddImage={handleFileDrop}
+          />
+        </div>
         <div
           className={studioStyles.programDeck}
           style={{
@@ -4177,11 +4293,13 @@ export default function Studio({
         />
         <StreamPulse
           localAudioTrack={localAudioTrack}
+          programAudioTrack={programAudioTrack}
+          onEnableMic={() => { void prepareProgramAudio(); }}
           liveParticipants={liveParticipants}
           setTrackGain={setTrackGain}
           getAnalyser={getAnalyser}
           audioInputs={audioInputs}
-          switchMicDevice={switchMicDevice}
+          switchMicDevice={switchProgramMicDevice}
           onClipClick={handleClipClick}
           onRemoveParticipant={(id) => changeParticipantStatus(id, "removed")}
           extraAudioSources={extraAudioSources}

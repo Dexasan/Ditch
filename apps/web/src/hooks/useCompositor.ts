@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { IAgoraRTCRemoteUser, ILocalVideoTrack, ILocalAudioTrack } from "agora-rtc-sdk-ng";
 import type { ChatMessage, Participant } from "@ditch/types";
 import type { Layer } from "@/lib/studio-store";
@@ -125,6 +125,9 @@ interface CompositorOptions {
   localVideoTrack: ILocalVideoTrack | null;
   localScreenTrack?: ILocalVideoTrack | null;
   localAudioTrack: ILocalAudioTrack | null;
+  /** Native microphone track used by the program mix. This can fall back to a
+   * direct getUserMedia capture when the RTC room has not produced a mic yet. */
+  programAudioTrack?: MediaStreamTrack | null;
   remoteUsers: IAgoraRTCRemoteUser[];
   liveParticipants: Participant[];
   enabled: boolean;
@@ -146,6 +149,7 @@ export function useCompositor({
   localVideoTrack,
   localScreenTrack = null,
   localAudioTrack,
+  programAudioTrack = null,
   remoteUsers,
   liveParticipants,
   enabled,
@@ -161,6 +165,7 @@ export function useCompositor({
   setLayerTransformLive: (layerId: string, patch: Partial<Transform>) => void;
   setTrackGain: (sourceId: string, volume: number, muted: boolean) => void;
   getAnalyser: (sourceId: string) => AnalyserNode | null;
+  resumeAudio: () => Promise<boolean>;
 } {
   const [stream, setStream] = useState<MediaStream | null>(null);
 
@@ -229,6 +234,15 @@ export function useCompositor({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const frameWriterRef    = useRef<WritableStreamDefaultWriter<any> | null>(null);
 
+  const resumeAudio = useCallback(async () => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return false;
+    if (ctx.state !== "running") {
+      try { await ctx.resume(); } catch { return false; }
+    }
+    return ctx.state === "running";
+  }, []);
+
   // ── Setup: canvas, AudioContext, composite stream ────────────────────────────
   useEffect(() => {
     if (!enabled) return;
@@ -247,7 +261,7 @@ export function useCompositor({
     // navigation. Resume on the first studio interaction so the destination
     // track contains real samples before recording/publishing begins.
     function resumeAudioContext() {
-      if (audioCtx.state !== "running") audioCtx.resume().catch(() => {});
+      void resumeAudio();
     }
     resumeAudioContext();
     document.addEventListener("pointerdown", resumeAudioContext, true);
@@ -855,8 +869,9 @@ export function useCompositor({
       } catch {}
     }
 
-    if (localAudioTrack) {
-      try { ensureConnected("mic", localAudioTrack.getMediaStreamTrack()); } catch {}
+    const microphoneTrack = programAudioTrack ?? localAudioTrack?.getMediaStreamTrack() ?? null;
+    if (microphoneTrack) {
+      try { ensureConnected("mic", microphoneTrack); } catch {}
     }
     for (const user of remoteUsers) {
       if (!user.audioTrack) continue;
@@ -878,7 +893,7 @@ export function useCompositor({
       disconnectSource(id);
     }
     refreshAudioGraph((version) => version + 1);
-  }, [enabled, localAudioTrack, remoteUsers, extraAudioTracks]);
+  }, [enabled, localAudioTrack, programAudioTrack, remoteUsers, extraAudioTracks]);
 
   function setLayerTransformLive(layerId: string, patch: Partial<Transform>) {
     const cur = liveTransformsRef.current.get(layerId);
@@ -897,5 +912,5 @@ export function useCompositor({
     return analyserNodesRef.current.get(sourceId) ?? null;
   }
 
-  return { stream, setLayerTransformLive, setTrackGain, getAnalyser };
+  return { stream, setLayerTransformLive, setTrackGain, getAnalyser, resumeAudio };
 }
