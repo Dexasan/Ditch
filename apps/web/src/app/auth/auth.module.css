@@ -2,9 +2,10 @@
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(0, 1.12fr) minmax(460px, 0.88fr);
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100vh;
-  overflow: hidden;
+  min-height: 100dvh;
+  overflow-x: hidden;
   color: #f1ede5;
   background: #11100f;
   font-family: var(--font-inter), system-ui, sans-serif;
@@ -586,42 +587,11 @@
   to { left: 100%; opacity: 0; }
 }
 
-@media (max-width: 1050px) {
-  .page { grid-template-columns: minmax(0, 0.85fr) minmax(440px, 1fr); }
-  .signalMap { grid-template-columns: 125px minmax(40px, 1fr) 180px; }
-  .posterCopy h1 { font-size: clamp(70px, 9vw, 112px); }
-}
-
 @media (max-width: 860px) {
-  .page {
-    display: block;
-    min-height: 100dvh;
-    overflow: auto;
-  }
-
-  .poster {
-    position: absolute;
-    z-index: 5;
-    top: 0;
-    right: 0;
-    left: 0;
-    min-height: 0;
-    padding: 22px 24px;
-    border: 0;
-    background: transparent;
-  }
-
-  .poster::before,
-  .posterCopy,
-  .signalMap,
-  .posterFooter {
-    display: none;
-  }
-
   .access {
     min-height: 100dvh;
-    justify-content: flex-start;
-    padding: 92px 24px 32px;
+    justify-content: center;
+    padding: 32px 24px;
     border: 0;
   }
 
@@ -635,9 +605,7 @@
 }
 
 @media (max-width: 520px) {
-  .poster { padding: 20px 18px; }
-  .posterHeader p { display: none; }
-  .access { min-height: 100dvh; padding: 80px 16px 28px; }
+  .access { min-height: 100dvh; padding: 32px 16px 28px; }
   .accessPanel { box-shadow: 6px 6px 0 #090808; }
   .formIntro { padding: 29px 23px 21px; }
   .modeSwitch { margin: 0 23px; }
@@ -650,7 +618,6 @@
 @media (min-width: 861px) and (max-height: 760px) {
   .access {
     justify-content: flex-start;
-    overflow-y: auto;
     padding-top: 18px;
     padding-bottom: 18px;
   }
@@ -661,15 +628,6 @@
 
   .accessFooter {
     margin-top: 16px;
-  }
-
-  .posterCopy {
-    margin-top: 52px;
-  }
-
-  .signalMap {
-    padding-top: 22px;
-    padding-bottom: 20px;
   }
 }
 

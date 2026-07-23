@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -64,57 +63,6 @@ export default function AuthExperience() {
     <main className={styles.page}>
       <div className={styles.noise} aria-hidden="true" />
       <div className={styles.cornerMarks} aria-hidden="true"><i /><i /><i /><i /></div>
-
-      <section className={styles.poster}>
-        <header className={styles.posterHeader}>
-          <Link href="/" className={styles.brand} aria-label="Back to DITCH">
-            <span className={styles.logoFrame}>
-              <Image src="/logo.png" alt="" width={38} height={38} priority />
-            </span>
-            <span>
-              <strong>DITCH</strong>
-              <small>Live broadcast network</small>
-            </span>
-          </Link>
-          <p><i /> Network online</p>
-        </header>
-
-        <div className={styles.posterCopy}>
-          <p className={styles.eyebrow}>ACCESS POINT / 01</p>
-          <h1>
-            SIGNAL IN.
-            <span>TAKE THE ROOM.</span>
-          </h1>
-          <p className={styles.posterLead}>
-            Your studio, every destination, and the audience on one frequency.
-          </p>
-        </div>
-
-        <div className={styles.signalMap} aria-label="DITCH signal routing illustration">
-          <div className={styles.signalOrigin}>
-            <Image src="/logo.png" alt="" width={50} height={50} />
-            <span>
-              <small>ORIGIN</small>
-              <strong>YOUR ROOM</strong>
-            </span>
-          </div>
-          <div className={styles.routeLines} aria-hidden="true">
-            <i /><i /><i /><i />
-          </div>
-          <div className={styles.destinations}>
-            <SignalDestination code="TW" label="Twitch" tone="purple" />
-            <SignalDestination code="YT" label="YouTube" tone="red" />
-            <SignalDestination code="TK" label="TikTok" tone="cyan" />
-            <SignalDestination code="KI" label="Kick" tone="green" />
-          </div>
-        </div>
-
-        <footer className={styles.posterFooter}>
-          <span>ONE ROOM</span>
-          <div><i /> Browser studio armed</div>
-          <span>EVERY AUDIENCE</span>
-        </footer>
-      </section>
 
       <section className={styles.access}>
         <div className={styles.accessPanel}>
@@ -232,24 +180,6 @@ export default function AuthExperience() {
         </div>
       </section>
     </main>
-  );
-}
-
-function SignalDestination({
-  code,
-  label,
-  tone,
-}: {
-  code: string;
-  label: string;
-  tone: "purple" | "red" | "cyan" | "green";
-}) {
-  return (
-    <div className={styles.destination}>
-      <i className={styles[tone]}>{code}</i>
-      <span><strong>{label}</strong><small>Signal ready</small></span>
-      <b />
-    </div>
   );
 }
 
