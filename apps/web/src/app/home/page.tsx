@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import HomeCards from "./HomeCards";
-import SignOutButton from "@/app/dashboard/SignOutButton";
+import ConsoleHeader from "@/components/ConsoleHeader";
+import HomeActions from "./HomeActions";
+import styles from "./home.module.css";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -10,28 +10,56 @@ export default async function HomePage() {
   if (!session) redirect("/auth");
 
   const displayName = session.user.user_metadata?.display_name as string | undefined;
-  const firstName = displayName?.split(" ")[0] ?? null;
+  const firstName = displayName?.trim().split(" ")[0] || "operator";
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#080810" }}>
-      <header className="px-6 py-5 flex items-center justify-between border-b border-white/5">
-        <Link href="/home" className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="DITCH" className="h-7 w-7 rounded-md" />
-          <span className="text-lg font-bold tracking-tight text-[#FF1DB4]">DITCH</span>
-        </Link>
-        <SignOutButton />
-      </header>
+    <div className={styles.page}>
+      <div className={styles.grid} aria-hidden="true" />
+      <div className={styles.glow} aria-hidden="true" />
+      <ConsoleHeader active="home" />
 
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
-        <div className="w-full max-w-2xl space-y-10">
-          <div className="text-center space-y-1">
-            <h1 className="text-2xl font-bold text-white">
-              {firstName ? `Hey, ${firstName}.` : "Welcome back."}
+      <main className={styles.main}>
+        <section className={styles.intro}>
+          <div className={styles.introCopy}>
+            <p className={styles.eyebrow}>
+              <span>HOME FEED</span>
+              <i />
+              System 01 / Ready
+            </p>
+            <h1>
+              Welcome back,
+              <strong>{firstName}.</strong>
             </h1>
-            <p className="text-sm text-white/40">What do you want to do?</p>
+            <p className={styles.lead}>
+              The room is open. Choose what happens next.
+            </p>
           </div>
-          <HomeCards />
-        </div>
+
+          <div className={styles.readiness} aria-label="Broadcast system status">
+            <div className={styles.readinessTop}>
+              <span>TX READY</span>
+              <div className={styles.meter} aria-hidden="true">
+                {Array.from({ length: 14 }).map((_, index) => <i key={index} />)}
+              </div>
+            </div>
+            <div className={styles.readinessBody}>
+              <span className={styles.readyLamp} />
+              <div>
+                <strong>Studio standing by</strong>
+                <small>Browser capture / destinations / audience return</small>
+              </div>
+              <b>100%</b>
+            </div>
+          </div>
+        </section>
+
+        <HomeActions />
+
+        <footer className={styles.telemetry} aria-label="System telemetry">
+          <span><i /> Network online</span>
+          <span>DITCH / BROADCAST DESK</span>
+          <span>Signal path: browser to everywhere</span>
+        </footer>
       </main>
     </div>
   );
