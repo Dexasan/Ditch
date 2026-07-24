@@ -86,6 +86,7 @@ export function useLiveKitRoom(options: {
   const [state, setState] = useState<AgoraRoomState>({
     localVideoTrack: null,
     localScreenTrack: null,
+    localScreenAudioTrack: null,
     localAudioTrack: null,
     remoteUsers: [],
     joined: false,

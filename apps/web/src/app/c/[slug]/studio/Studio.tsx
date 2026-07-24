@@ -3849,6 +3849,7 @@ export default function Studio({
   const {
     localVideoTrack,
     localScreenTrack,
+    localScreenAudioTrack,
     localAudioTrack,
     remoteUsers,
     isScreenSharing,
@@ -3985,13 +3986,25 @@ export default function Studio({
 
   // Media-file + extra-device + tab-capture sources (compositor-only handles)
   const { attachFile, attachDisplayCapture, getSource, mediaAudioSources } = useMediaSources();
+  // Desktop/tab audio captured with the screen share, if the user shared audio.
+  const screenAudioNativeTrack = useMemo(() => {
+    try { return localScreenAudioTrack?.getMediaStreamTrack() ?? null; } catch { return null; }
+  }, [localScreenAudioTrack]);
   const extraAudioTracks = useMemo(
-    () => mediaAudioSources.map(({ id, track }) => ({ id, track })),
-    [mediaAudioSources],
+    () => {
+      const tracks = mediaAudioSources.map(({ id, track }) => ({ id, track }));
+      if (screenAudioNativeTrack) tracks.push({ id: "screen-audio", track: screenAudioNativeTrack });
+      return tracks;
+    },
+    [mediaAudioSources, screenAudioNativeTrack],
   );
   const extraAudioSources = useMemo(
-    () => mediaAudioSources.map(({ id, label }) => ({ id, label })),
-    [mediaAudioSources],
+    () => {
+      const sources = mediaAudioSources.map(({ id, label }) => ({ id, label }));
+      if (screenAudioNativeTrack) sources.push({ id: "screen-audio", label: "Desktop Audio" });
+      return sources;
+    },
+    [mediaAudioSources, screenAudioNativeTrack],
   );
 
   // Compositor always runs so the preview canvas is live regardless of stream state.

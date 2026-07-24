@@ -80,6 +80,9 @@ async function fetchAgoraToken(sessionId: string, uid: number, authToken?: strin
 export interface AgoraRoomState {
   localVideoTrack: ILocalVideoTrack | null;   // camera
   localScreenTrack: ILocalVideoTrack | null;  // screen share (second client)
+  /** Desktop/tab audio captured alongside the screen share, if the user opted
+   *  to share audio in the browser picker. Null when not sharing audio. */
+  localScreenAudioTrack: ILocalAudioTrack | null;
   localAudioTrack: ILocalAudioTrack | null;
   remoteUsers: IAgoraRTCRemoteUser[];
   joined: boolean;
@@ -119,7 +122,7 @@ export function useAgoraRoom(options: {
 }): AgoraRoomState {
   const { channelName, uid, role, publish, publishAudio, enabled, screenShareUid, authToken } = options;
 
-  const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "toggleScreenShare" | "switchMicDevice" | "switchCamDevice" | "goLiveAsHost" | "demoteToAudience">>({
+  const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "localScreenAudioTrack" | "toggleScreenShare" | "switchMicDevice" | "switchCamDevice" | "goLiveAsHost" | "demoteToAudience">>({
     localVideoTrack: null,
     localAudioTrack: null,
     remoteUsers: [],
@@ -129,6 +132,7 @@ export function useAgoraRoom(options: {
     isScreenSharing: false,
   });
   const [localScreenTrack, setLocalScreenTrack] = useState<ILocalVideoTrack | null>(null);
+  const [localScreenAudioTrack, setLocalScreenAudioTrack] = useState<ILocalAudioTrack | null>(null);
 
   const clientRef = useRef<IAgoraRTCClient | null>(null);
   const joinedRef = useRef(false);
@@ -141,6 +145,7 @@ export function useAgoraRoom(options: {
   // Second client + track used exclusively for screen share
   const screenClientRef = useRef<IAgoraRTCClient | null>(null);
   const screenTrackRef = useRef<ILocalVideoTrack | null>(null);
+  const screenAudioTrackRef = useRef<ILocalAudioTrack | null>(null);
   // Stable ref so toggleScreenShare closure can read current channelName
   const channelNameRef = useRef(channelName);
   useEffect(() => { channelNameRef.current = channelName; }, [channelName]);
@@ -360,8 +365,14 @@ export function useAgoraRoom(options: {
         if (newToken) await screenClient.renewToken(newToken);
       });
 
-      const result = await AgoraRTC.createScreenVideoTrack({}, "disable");
+      // "auto" makes the browser offer a "share audio" checkbox in the picker.
+      // When the user ticks it, Agora returns [videoTrack, audioTrack]; the
+      // desktop/tab audio track is mixed into the program by the compositor
+      // (it is not published on the screen client - the composite feed already
+      // carries it to viewers and to the RTMP relay).
+      const result = await AgoraRTC.createScreenVideoTrack({}, "auto");
       const track = Array.isArray(result) ? result[0] : result;
+      const audioTrack = Array.isArray(result) ? result[1] : null;
 
       // Handle the browser's native "Stop sharing" button
       track.on("track-ended", () => {
@@ -369,14 +380,19 @@ export function useAgoraRoom(options: {
         screenClientRef.current = null;
         track.close();
         screenTrackRef.current = null;
+        screenAudioTrackRef.current?.close();
+        screenAudioTrackRef.current = null;
         setLocalScreenTrack(null);
+        setLocalScreenAudioTrack(null);
         setState((prev) => ({ ...prev, isScreenSharing: false }));
       });
 
       await screenClient.publish(track);
       screenClientRef.current = screenClient;
       screenTrackRef.current = track;
+      screenAudioTrackRef.current = audioTrack;
       setLocalScreenTrack(track);
+      setLocalScreenAudioTrack(audioTrack);
       setState((prev) => ({ ...prev, isScreenSharing: true }));
     } else {
       // ── Stop screenshare ───────────────────────────────────────────────────
@@ -385,9 +401,12 @@ export function useAgoraRoom(options: {
         screenTrackRef.current.close();
         screenTrackRef.current = null;
       }
+      screenAudioTrackRef.current?.close();
+      screenAudioTrackRef.current = null;
       await screenClientRef.current.leave().catch(() => {});
       screenClientRef.current = null;
       setLocalScreenTrack(null);
+      setLocalScreenAudioTrack(null);
       setState((prev) => ({ ...prev, isScreenSharing: false }));
     }
   }, [screenShareUid]);
@@ -519,5 +538,5 @@ export function useAgoraRoom(options: {
     }
   }, []);
 
-  return { ...state, localScreenTrack, toggleScreenShare, switchMicDevice, switchCamDevice, goLiveAsHost, demoteToAudience };
+  return { ...state, localScreenTrack, localScreenAudioTrack, toggleScreenShare, switchMicDevice, switchCamDevice, goLiveAsHost, demoteToAudience };
 }

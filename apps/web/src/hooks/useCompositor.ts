@@ -886,9 +886,10 @@ export function useCompositor({
     for (const { id, track } of extraAudioTracks) {
       ensureConnected(id, track);
     }
-    // Drop graph nodes for media sources whose layer or file went away.
+    // Drop graph nodes for extra sources whose layer/file/share went away
+    // (media files and the desktop-audio track from a stopped screen share).
     for (const id of [...connectedAudioRef.current]) {
-      if (!id.startsWith("media-")) continue;
+      if (!id.startsWith("media-") && id !== "screen-audio") continue;
       if (extraAudioTracks.some((t) => t.id === id)) continue;
       disconnectSource(id);
     }
