@@ -277,7 +277,7 @@ export const useStudioStore = create<StudioStore>()(
     streamTitle: "",
     autoBitrate: true,
     videoBitrateKbps: 4000,
-    audioBitrateKbps: 128,
+    audioBitrateKbps: 192,
     encoderPreset: "balanced" as EncoderPreset,
     outputResolution: "720p" as OutputResolution,
   },

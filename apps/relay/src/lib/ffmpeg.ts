@@ -44,7 +44,7 @@ export interface EncoderParams {
 
 export const DEFAULT_ENCODER_PARAMS: EncoderParams = {
   videoBitrateKbps: 3000,
-  audioBitrateKbps: 128,
+  audioBitrateKbps: 192,
   preset: "balanced",
   fps: 30,
 };
@@ -166,10 +166,13 @@ export function buildArgs(
   const copyTargets = targets.filter((t) => !needsReencode(t));
 
   // Audio is always transcoded Opus → AAC since RTMP does not carry Opus.
+  // Keep the native 48kHz sample rate (Opus is 48kHz; both Twitch and YouTube
+  // ingest 48kHz AAC) so we don't resample, and carry stereo through.
   const audioFlags = [
     "-c:a", "aac",
     "-b:a", `${params.audioBitrateKbps}k`,
-    "-ar", "44100",
+    "-ar", "48000",
+    "-ac", "2",
   ];
 
   // Pass H264 NAL units from the browser straight into FLV (no re-encode).

@@ -12,7 +12,7 @@ const MAX_SOCKET_BUFFER_BYTES = 4 * 1024 * 1024;
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
 const DEFAULT_VIDEO_KBPS = 3000;
-const DEFAULT_AUDIO_KBPS = 128;
+const DEFAULT_AUDIO_KBPS = 192;
 
 interface RelayStreamOptions {
   stream: MediaStream | null;

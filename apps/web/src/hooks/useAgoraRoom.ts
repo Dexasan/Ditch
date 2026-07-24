@@ -284,7 +284,18 @@ export function useAgoraRoom(options: {
         const AgoraRTC = await getAgoraRTC();
 
         if (wantAudio && !localAudioTrackRef.current) {
-          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+            // 48kHz stereo @ 192kbps, matching the AudioContext rate so nothing
+            // resamples on the way into the compositor mixer.
+            encoderConfig: "high_quality_stereo",
+            // Keep echo cancellation on: some creators/participants monitor
+            // through speakers, and AEC prevents feedback there. But disable
+            // auto-gain (AGC) and noise suppression (ANS): both are aggressive
+            // DSP passes that muffle the signal and cause level pumping.
+            AEC: true,
+            AGC: false,
+            ANS: false,
+          });
           if (cancelled || clientRef.current !== client) {
             audioTrack.close();
           } else {
