@@ -365,12 +365,21 @@ export function useAgoraRoom(options: {
         if (newToken) await screenClient.renewToken(newToken);
       });
 
-      // "auto" makes the browser offer a "share audio" checkbox in the picker.
-      // When the user ticks it, Agora returns [videoTrack, audioTrack]; the
-      // desktop/tab audio track is mixed into the program by the compositor
-      // (it is not published on the screen client - the composite feed already
-      // carries it to viewers and to the RTMP relay).
-      const result = await AgoraRTC.createScreenVideoTrack({}, "auto");
+      // Capture desktop/tab audio with the voice-DSP turned OFF. Agora's
+      // default screen-audio processing (AEC/AGC/ANS) is tuned for speech and
+      // makes music/desktop audio sound "groggy" - warbly and pumping. Passing
+      // an explicit config disables all three for clean, full-range audio.
+      // When the user ticks "share audio", Agora returns [videoTrack,
+      // audioTrack]; the audio is mixed into the program by the compositor (it
+      // is not published on the screen client - the composite feed already
+      // carries it to viewers and to the RTMP relay). If a browser can't
+      // capture screen audio at all, fall back to a video-only share.
+      let result: Awaited<ReturnType<typeof AgoraRTC.createScreenVideoTrack>>;
+      try {
+        result = await AgoraRTC.createScreenVideoTrack({}, { AEC: false, AGC: false, ANS: false });
+      } catch {
+        result = await AgoraRTC.createScreenVideoTrack({}, "disable");
+      }
       const track = Array.isArray(result) ? result[0] : result;
       const audioTrack = Array.isArray(result) ? result[1] : null;
 
