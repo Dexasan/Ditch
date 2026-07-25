@@ -386,11 +386,25 @@ export function useAgoraRoom(options: {
       // is not published on the screen client - the composite feed already
       // carries it to viewers and to the RTMP relay). If a browser can't
       // capture screen audio at all, fall back to a video-only share.
+      // Capture the screen at 1080p30 with "detail" optimization: desktops and
+      // UIs are full of thin text and sharp edges, so favor resolution/detail
+      // over frame rate (the default "motion" mode blurs static text to chase
+      // fps). Higher bitrate than Agora's ~3 Mbps default so text stays crisp.
+      const screenConfig = {
+        encoderConfig: {
+          width: 1920,
+          height: 1080,
+          frameRate: 30,
+          bitrateMin: 2000,
+          bitrateMax: 5000,
+        },
+        optimizationMode: "detail" as const,
+      };
       let result: Awaited<ReturnType<typeof AgoraRTC.createScreenVideoTrack>>;
       try {
-        result = await AgoraRTC.createScreenVideoTrack({}, { AEC: false, AGC: false, ANS: false });
+        result = await AgoraRTC.createScreenVideoTrack(screenConfig, { AEC: false, AGC: false, ANS: false });
       } catch {
-        result = await AgoraRTC.createScreenVideoTrack({}, "disable");
+        result = await AgoraRTC.createScreenVideoTrack(screenConfig, "disable");
       }
       const track = Array.isArray(result) ? result[0] : result;
       const audioTrack = Array.isArray(result) ? result[1] : null;

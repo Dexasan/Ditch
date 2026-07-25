@@ -141,6 +141,9 @@ export function useMediaSources(): {
 
     const track = stream.getVideoTracks()[0];
     if (track) {
+      // Tab/window captures are usually text-heavy: hint the browser to favor
+      // detail (sharp text) over motion smoothness.
+      try { track.contentHint = "detail"; } catch {}
       track.addEventListener("ended", () => {
         // User clicked the browser's native "Stop sharing"
         const scId = findSceneIdForLayer(layerId);

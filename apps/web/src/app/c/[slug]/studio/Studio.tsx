@@ -2290,7 +2290,13 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
                 {(["720p", "1080p"] as const).map((res) => (
                   <button
                     key={res}
-                    onClick={() => updateSettings({ outputResolution: res })}
+                    onClick={() => {
+                      updateSettings({ outputResolution: res });
+                      // 1080p60 is capped for now: the browser can't sustain 60fps
+                      // at 1080p (it lands ~45fps, so ffmpeg duplicates ~20% of
+                      // frames, which reads as judder/tearing). Force 30fps.
+                      if (res === "1080p" && targetFps === 60) setTargetFps(30);
+                    }}
                     className={pill(settings.outputResolution === res)}
                   >
                     {res}
@@ -2302,11 +2308,21 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             <div className={row}>
               <span className="text-[11px] text-[var(--text-primary)]">Frame rate</span>
               <div className="flex gap-1">
-                {([30, 60] as const).map((fps) => (
-                  <button key={fps} onClick={() => setTargetFps(fps)} className={pill(targetFps === fps)}>
-                    {fps} fps
-                  </button>
-                ))}
+                {([30, 60] as const).map((fps) => {
+                  // 60fps is disabled at 1080p for now (see resolution handler).
+                  const disabled = fps === 60 && settings.outputResolution === "1080p";
+                  return (
+                    <button
+                      key={fps}
+                      disabled={disabled}
+                      onClick={() => !disabled && setTargetFps(fps)}
+                      title={disabled ? "1080p runs at 30fps for now" : undefined}
+                      className={pill(targetFps === fps, disabled)}
+                    >
+                      {fps} fps
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </section>
