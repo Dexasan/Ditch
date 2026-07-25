@@ -311,7 +311,19 @@ export function useAgoraRoom(options: {
           }
         }
         if (wantVideo && !camTrackRef.current) {
-          const videoTrack = await AgoraRTC.createCameraVideoTrack();
+          // Capture at 1080p30. Agora's default is 480p, which the compositor
+          // then stretches across a 720p/1080p canvas: more pixels, no real
+          // detail. Capturing at 1080p gives the compositor genuine detail to
+          // downscale from (supersampled and sharp at 720p, native at 1080p).
+          const videoTrack = await AgoraRTC.createCameraVideoTrack({
+            encoderConfig: {
+              width: 1920,
+              height: 1080,
+              frameRate: 30,
+              bitrateMin: 1500,
+              bitrateMax: 5000,
+            },
+          });
           if (cancelled || clientRef.current !== client) {
             videoTrack.close();
           } else {

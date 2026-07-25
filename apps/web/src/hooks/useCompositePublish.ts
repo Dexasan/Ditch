@@ -71,7 +71,10 @@ export function useCompositePublish({
 
       const localVideo = AgoraRTC.createCustomVideoTrack({
         mediaStreamTrack: videoTrack,
-        bitrateMax: 3000,
+        // ~5 Mbps (Agora's recommended 1080p upper range). The old 3000 cap
+        // crushed desktop text and detailed UIs on the DITCH viewer feed.
+        bitrateMin: 2000,
+        bitrateMax: 5000,
       });
       const localAudio = audioTrack
         ? AgoraRTC.createCustomAudioTrack({ mediaStreamTrack: audioTrack })
