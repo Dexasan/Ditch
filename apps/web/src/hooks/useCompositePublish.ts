@@ -45,6 +45,7 @@ export function useCompositePublish({
     let cancelled = false;
     let client: IAgoraRTCClient | null = null;
     let tracks: Array<ILocalVideoTrack | ILocalAudioTrack> = [];
+    let statsTimer: ReturnType<typeof setInterval> | null = null;
 
     (async () => {
       const AgoraRTC = await getAgoraRTC();
@@ -89,10 +90,26 @@ export function useCompositePublish({
       await c.publish(tracks);
       client = c;
       console.log("[composite] program feed published as uid", CREATOR_COMPOSITE_UID);
+
+      // Diagnostics: what DITCH viewers actually receive. sendResolution +
+      // sendBitrate reveal whether the composite is degraded on the Agora hop;
+      // captureFrameRate vs sendFrameRate reveals dropped frames.
+      statsTimer = setInterval(() => {
+        try {
+          const v = localVideo.getStats();
+          console.info("[diag] composite send", {
+            sendResolution: `${v.sendResolutionWidth}x${v.sendResolutionHeight}`,
+            sendBitrateKbps: Math.round((v.sendBitrate ?? 0) / 1000),
+            sendFrameRate: v.sendFrameRate,
+            captureFrameRate: v.captureFrameRate,
+          });
+        } catch {}
+      }, 5000);
     })().catch((err) => console.warn("[composite] publish failed:", err));
 
     return () => {
       cancelled = true;
+      if (statsTimer) { clearInterval(statsTimer); statsTimer = null; }
       tracks.forEach((t) => { try { t.close(); } catch {} });
       client?.leave().catch(() => {});
       client = null;

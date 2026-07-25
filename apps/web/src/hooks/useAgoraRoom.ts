@@ -331,6 +331,10 @@ export function useAgoraRoom(options: {
             camTrackRef.current = videoTrack;
             effectOwnsTracksRef.current = true;
             setState((prev) => ({ ...prev, localVideoTrack: videoTrack }));
+            try {
+              const s = videoTrack.getMediaStreamTrack().getSettings();
+              console.info("[diag] camera capture", { width: s.width, height: s.height, frameRate: s.frameRate });
+            } catch {}
           }
         }
 
@@ -408,6 +412,10 @@ export function useAgoraRoom(options: {
       }
       const track = Array.isArray(result) ? result[0] : result;
       const audioTrack = Array.isArray(result) ? result[1] : null;
+      try {
+        const s = track.getMediaStreamTrack().getSettings();
+        console.info("[diag] screen capture", { width: s.width, height: s.height, frameRate: s.frameRate });
+      } catch {}
 
       // Handle the browser's native "Stop sharing" button
       track.on("track-ended", () => {

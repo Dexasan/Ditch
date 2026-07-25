@@ -821,7 +821,7 @@ export function useCompositor({
       const now = Date.now();
       if (now - fps.lastLog >= 5000) {
         const measured = fps.frames / ((now - fps.lastLog) / 1000);
-        console.log(`[compositor] fps: ${measured.toFixed(1)} | tab: ${document.visibilityState}`);
+        console.log(`[compositor] fps: ${measured.toFixed(1)} | ${canvas!.width}x${canvas!.height} | target: ${targetFps} | tab: ${document.visibilityState}`);
         onFps?.(Math.round(measured));
         fps.frames = 0;
         fps.lastLog = now;
