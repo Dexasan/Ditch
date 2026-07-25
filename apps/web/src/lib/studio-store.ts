@@ -69,6 +69,10 @@ export interface Destination {
 
 export type EncoderPreset = "quality" | "balanced" | "performance";
 export type OutputResolution = "720p" | "1080p";
+// Content mode drives frame rate + optimization across the whole pipeline.
+// "detail": 30fps, "detail" optimization (camera / desktop / text-heavy).
+// "motion": unlocks 60fps, "motion" optimization (gameplay).
+export type ContentMode = "detail" | "motion";
 
 interface StudioSettings {
   destinations: Destination[];
@@ -78,6 +82,7 @@ interface StudioSettings {
   audioBitrateKbps: number;
   encoderPreset: EncoderPreset;
   outputResolution: OutputResolution;
+  contentMode: ContentMode;
 }
 
 // Platform-guidance bitrate table (kbps). With autoBitrate on (the default)
@@ -133,6 +138,10 @@ interface StudioStore {
   fps: number | null;
   targetFps: 30 | 60;
   bitrateKbps: number;
+  // True once the composite program feed is actually publishing to Agora. The
+  // creator camera video is published to Agora only as a fallback while this is
+  // false (guests watch the composite otherwise); see useAgoraRoom.
+  compositeVideoLive: boolean;
   setStreamStatus: (status: "offline" | "connecting" | "live") => void;
   setStreamDuration: (seconds: number) => void;
   setIsRecording: (v: boolean) => void;
@@ -140,6 +149,7 @@ interface StudioStore {
   setFps: (v: number) => void;
   setTargetFps: (v: 30 | 60) => void;
   setBitrateKbps: (v: number) => void;
+  setCompositeVideoLive: (v: boolean) => void;
 
   // Scenes
   scenes: Scene[];
@@ -219,12 +229,14 @@ export const useStudioStore = create<StudioStore>()(
   fps: null,
   targetFps: 30,
   bitrateKbps: 0,
+  compositeVideoLive: false,
   setStreamStatus: (status) => set({ streamStatus: status }),
   setStreamDuration: (seconds) => set({ streamDuration: seconds }),
   setIsRecording: (v) => set({ isRecording: v }),
   setStreamError: (v) => set({ streamError: v }),
   setFps: (v) => set({ fps: v }),
   setTargetFps: (v) => set({ targetFps: v }),
+  setCompositeVideoLive: (v) => set({ compositeVideoLive: v }),
   setBitrateKbps: (v) => set({ bitrateKbps: v }),
 
   // Scenes
@@ -280,6 +292,7 @@ export const useStudioStore = create<StudioStore>()(
     audioBitrateKbps: 192,
     encoderPreset: "balanced" as EncoderPreset,
     outputResolution: "720p" as OutputResolution,
+    contentMode: "detail" as ContentMode,
   },
   updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
   addDestination: (dest) =>

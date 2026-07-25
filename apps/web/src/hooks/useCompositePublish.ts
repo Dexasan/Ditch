@@ -28,16 +28,34 @@ async function fetchToken(sessionId: string, authToken?: string): Promise<string
   }
 }
 
+// The Agora (DITCH viewer) profile is INDEPENDENT of the broadcast canvas: the
+// composite is downscaled to this for interactive delivery, so a 1080p60
+// broadcast never forces 1080p60 onto Agora. label is for diagnostics only.
+export interface AgoraProfile {
+  width: number;
+  height: number;
+  frameRate: number;
+  bitrateMax: number;
+  optimizationMode: "detail" | "motion";
+  label: string;
+}
+
 export function useCompositePublish({
   stream,
   sessionId,
   authToken,
   enabled,
+  agoraProfile,
+  onLiveChange,
 }: {
   stream: MediaStream | null;
   sessionId: string;
   authToken?: string;
   enabled: boolean;
+  agoraProfile: AgoraProfile;
+  /** Called true once the composite is publishing to Agora, false on teardown/
+   *  failure. Drives the creator-camera fallback publish in useAgoraRoom. */
+  onLiveChange?: (live: boolean) => void;
 }): void {
   useEffect(() => {
     if (!enabled || !stream || !AGORA_APP_ID) return;
@@ -70,12 +88,17 @@ export function useCompositePublish({
         if (t) await c.renewToken(t);
       });
 
+      // Downscale the composite to the interactive Agora profile, independent of
+      // the broadcast canvas (720p30@3M default, or 1080p30@5M "detail" while a
+      // live desktop share is up). Agora resizes the source frames to this.
       const localVideo = AgoraRTC.createCustomVideoTrack({
         mediaStreamTrack: videoTrack,
-        // ~5 Mbps (Agora's recommended 1080p upper range). The old 3000 cap
-        // crushed desktop text and detailed UIs on the DITCH viewer feed.
-        bitrateMin: 2000,
-        bitrateMax: 5000,
+        width: agoraProfile.width,
+        height: agoraProfile.height,
+        frameRate: agoraProfile.frameRate,
+        bitrateMin: Math.round(agoraProfile.bitrateMax * 0.6),
+        bitrateMax: agoraProfile.bitrateMax,
+        optimizationMode: agoraProfile.optimizationMode,
       });
       const localAudio = audioTrack
         ? AgoraRTC.createCustomAudioTrack({ mediaStreamTrack: audioTrack })
@@ -89,7 +112,9 @@ export function useCompositePublish({
       }
       await c.publish(tracks);
       client = c;
+      onLiveChange?.(true);
       console.log("[composite] program feed published as uid", CREATOR_COMPOSITE_UID);
+      console.info("[diag] agora profile", { profile: agoraProfile.label });
 
       // Diagnostics: what DITCH viewers actually receive. sendResolution +
       // sendBitrate reveal whether the composite is degraded on the Agora hop;
@@ -98,6 +123,7 @@ export function useCompositePublish({
         try {
           const v = localVideo.getStats();
           console.info("[diag] composite send", {
+            profile: agoraProfile.label,
             sendResolution: `${v.sendResolutionWidth}x${v.sendResolutionHeight}`,
             sendBitrateKbps: Math.round((v.sendBitrate ?? 0) / 1000),
             sendFrameRate: v.sendFrameRate,
@@ -105,14 +131,17 @@ export function useCompositePublish({
           });
         } catch {}
       }, 5000);
-    })().catch((err) => console.warn("[composite] publish failed:", err));
+    })().catch((err) => { onLiveChange?.(false); console.warn("[composite] publish failed:", err); });
 
     return () => {
       cancelled = true;
+      onLiveChange?.(false);
       if (statsTimer) { clearInterval(statsTimer); statsTimer = null; }
       tracks.forEach((t) => { try { t.close(); } catch {} });
       client?.leave().catch(() => {});
       client = null;
     };
-  }, [enabled, stream, sessionId, authToken]);
+    // agoraProfile.label uniquely identifies the profile; changing it (live
+    // desktop-detail toggling, content-mode switch) republishes with the new config.
+  }, [enabled, stream, sessionId, authToken, agoraProfile.label, onLiveChange]);
 }

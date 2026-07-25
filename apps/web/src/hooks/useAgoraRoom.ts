@@ -9,6 +9,7 @@ import type {
   IMicrophoneAudioTrack,
 } from "agora-rtc-sdk-ng";
 import { AGORA_APP_ID, CREATOR_COMPOSITE_UID, getAgoraRTC } from "@/lib/agora";
+import type { ContentMode } from "@/lib/studio-store";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
@@ -115,12 +116,27 @@ export function useAgoraRoom(options: {
    *  The studio sets this true so a graphics-only scene still has audio. */
   publishAudio?: boolean;
   enabled: boolean;
-  /** UID for the screen-share second client. Required to enable screenshare. */
+  /** Enables screenshare capture (formerly the screen-share client UID). */
   screenShareUid?: number;
   /** Supabase access token forwarded to the Agora token endpoint. Required when App Certificate is configured. */
   authToken?: string;
+  /** Drives capture frame rate + optimization: "detail" (30fps) or "motion" (60fps). */
+  contentMode?: ContentMode;
+  /** When the composite program feed is publishing to Agora, the raw creator
+   *  camera video is NOT published (guests watch the composite). It publishes
+   *  only as a fallback while this is false. */
+  compositeVideoLive?: boolean;
+  /** Reports the actual capture frame rate of an active source, so the caller can
+   *  drop a nominal 60fps target to 30 when the device can't sustain it. */
+  onCaptureFps?: (info: { source: "camera" | "screen"; frameRate: number | undefined }) => void;
 }): AgoraRoomState {
   const { channelName, uid, role, publish, publishAudio, enabled, screenShareUid, authToken } = options;
+  const contentMode: ContentMode = options.contentMode ?? "detail";
+  // Fail-safe default false ⇒ publish the fallback camera. Any uncertainty
+  // degrades to today's always-publish behavior, never "guest sees nothing".
+  const compositeVideoLive = options.compositeVideoLive ?? false;
+  const onCaptureFps = options.onCaptureFps;
+  const captureFrameRate = contentMode === "motion" ? 60 : 30;
 
   const [state, setState] = useState<Omit<AgoraRoomState, "localScreenTrack" | "localScreenAudioTrack" | "toggleScreenShare" | "switchMicDevice" | "switchCamDevice" | "goLiveAsHost" | "demoteToAudience">>({
     localVideoTrack: null,
@@ -141,6 +157,10 @@ export function useAgoraRoom(options: {
   // True only while the publish-toggle effect owns camTrackRef/localAudioTrackRef.
   // goLiveAsHost never sets it, so its tracks are never auto-unpublished.
   const effectOwnsTracksRef = useRef(false);
+  // Publication state of the camera VIDEO, tracked separately from the track
+  // itself: the compositor keeps consuming camTrackRef even when the video is
+  // unpublished (composite feed live), so unpublish must never close the track.
+  const camVideoPublishedRef = useRef(false);
   const publishBusyRef = useRef(false);
   // Second client + track used exclusively for screen share
   const screenClientRef = useRef<IAgoraRTCClient | null>(null);
@@ -277,9 +297,14 @@ export function useAgoraRoom(options: {
 
     const wantVideo = publish;
     const wantAudio = publishAudio ?? publish;
+    // Camera VIDEO is published only as a fallback: when the composite feed is
+    // NOT live. When it is live, guests watch the composite and we keep the
+    // camera captured-but-unpublished (no redundant encode).
+    const wantCamVideoPublished = wantVideo && !compositeVideoLive;
     const needsWork =
       (wantVideo && !camTrackRef.current) ||
       (wantAudio && !localAudioTrackRef.current) ||
+      (wantVideo && camTrackRef.current && wantCamVideoPublished !== camVideoPublishedRef.current) ||
       (!wantVideo && camTrackRef.current && effectOwnsTracksRef.current) ||
       (!wantAudio && localAudioTrackRef.current && effectOwnsTracksRef.current);
 
@@ -311,15 +336,17 @@ export function useAgoraRoom(options: {
           }
         }
         if (wantVideo && !camTrackRef.current) {
-          // Capture at 1080p30. Agora's default is 480p, which the compositor
-          // then stretches across a 720p/1080p canvas: more pixels, no real
-          // detail. Capturing at 1080p gives the compositor genuine detail to
-          // downscale from (supersampled and sharp at 720p, native at 1080p).
+          // Capture at 1080p (30 or 60fps per content mode). Agora's default is
+          // 480p, which the compositor would stretch across the canvas: more
+          // pixels, no real detail. This track is the COMPOSITOR source and is
+          // created (captured) here but NOT published - the composite feed
+          // carries the camera to viewers. It publishes only as a fallback,
+          // reconciled just below.
           const videoTrack = await AgoraRTC.createCameraVideoTrack({
             encoderConfig: {
               width: 1920,
               height: 1080,
-              frameRate: 30,
+              frameRate: captureFrameRate,
               bitrateMin: 1500,
               bitrateMax: 5000,
             },
@@ -327,21 +354,37 @@ export function useAgoraRoom(options: {
           if (cancelled || clientRef.current !== client) {
             videoTrack.close();
           } else {
-            await client.publish(videoTrack);
             camTrackRef.current = videoTrack;
+            camVideoPublishedRef.current = false;
             effectOwnsTracksRef.current = true;
             setState((prev) => ({ ...prev, localVideoTrack: videoTrack }));
             try {
               const s = videoTrack.getMediaStreamTrack().getSettings();
               console.info("[diag] camera capture", { width: s.width, height: s.height, frameRate: s.frameRate });
+              onCaptureFps?.({ source: "camera", frameRate: s.frameRate });
             } catch {}
+          }
+        }
+
+        // Reconcile camera VIDEO publication (fallback only). Never closes the
+        // track - the compositor keeps consuming it either way.
+        if (wantVideo && camTrackRef.current) {
+          if (wantCamVideoPublished && !camVideoPublishedRef.current) {
+            await client.publish(camTrackRef.current).catch(() => {});
+            camVideoPublishedRef.current = true;
+          } else if (!wantCamVideoPublished && camVideoPublishedRef.current) {
+            await client.unpublish(camTrackRef.current).catch(() => {});
+            camVideoPublishedRef.current = false;
           }
         }
 
         if (!wantVideo && camTrackRef.current && effectOwnsTracksRef.current) {
           const camera = camTrackRef.current;
           camTrackRef.current = null;
-          await client.unpublish(camera).catch(() => {});
+          if (camVideoPublishedRef.current) {
+            await client.unpublish(camera).catch(() => {});
+            camVideoPublishedRef.current = false;
+          }
           camera.close();
           setState((prev) => ({ ...prev, localVideoTrack: null }));
         }
@@ -362,47 +405,32 @@ export function useAgoraRoom(options: {
     }
 
     return () => { cancelled = true; };
-  }, [enabled, publish, publishAudio, state.joined]);
+  }, [enabled, publish, publishAudio, compositeVideoLive, captureFrameRate, state.joined]);
   const toggleScreenShare = useCallback(async () => {
     if (!AGORA_APP_ID || screenShareUid === undefined) return;
 
     const AgoraRTC = await getAgoraRTC();
 
-    if (!screenClientRef.current) {
-      // ── Start screenshare ──────────────────────────────────────────────────
-      // Create a dedicated second client so the camera client is untouched.
-      const screenClient = AgoraRTC.createClient({ mode: "live", codec: chosenCodec() });
-      await screenClient.setClientRole("host");
-      const screenToken = await fetchAgoraToken(channelNameRef.current, screenShareUid, authTokenRef.current);
-      applyProxyIfNeeded(screenClient);
-      await screenClient.join(AGORA_APP_ID, channelNameRef.current, screenToken, screenShareUid);
-      screenClient.on("token-privilege-will-expire", async () => {
-        const newToken = await fetchAgoraToken(channelNameRef.current, screenShareUid, authTokenRef.current);
-        if (newToken) await screenClient.renewToken(newToken);
-      });
-
-      // Capture desktop/tab audio with the voice-DSP turned OFF. Agora's
-      // default screen-audio processing (AEC/AGC/ANS) is tuned for speech and
-      // makes music/desktop audio sound "groggy" - warbly and pumping. Passing
-      // an explicit config disables all three for clean, full-range audio.
-      // When the user ticks "share audio", Agora returns [videoTrack,
-      // audioTrack]; the audio is mixed into the program by the compositor (it
-      // is not published on the screen client - the composite feed already
-      // carries it to viewers and to the RTMP relay). If a browser can't
-      // capture screen audio at all, fall back to a video-only share.
-      // Capture the screen at 1080p30 with "detail" optimization: desktops and
-      // UIs are full of thin text and sharp edges, so favor resolution/detail
-      // over frame rate (the default "motion" mode blurs static text to chase
-      // fps). Higher bitrate than Agora's ~3 Mbps default so text stays crisp.
+    if (!screenTrackRef.current) {
+      // ── Start screenshare (CAPTURE ONLY) ───────────────────────────────────
+      // The screen is NOT published to Agora as a separate video stream: guests
+      // and viewers see it through the composite program feed. We only capture
+      // it here to feed the compositor (localScreenTrack), so there is no second
+      // client and no extra encode. Start/stop is keyed off screenTrackRef.
+      //
+      // Capture config follows content mode: Detail = 1080p30 "detail" (desktop
+      // text stays sharp), Motion = 1080p60 "motion" (gameplay). Desktop/tab
+      // audio is captured with the voice DSP OFF (AEC/AGC/ANS muffle music and
+      // pump levels) and mixed into the program by the compositor.
       const screenConfig = {
         encoderConfig: {
           width: 1920,
           height: 1080,
-          frameRate: 30,
+          frameRate: captureFrameRate,
           bitrateMin: 2000,
           bitrateMax: 5000,
         },
-        optimizationMode: "detail" as const,
+        optimizationMode: contentMode === "motion" ? ("motion" as const) : ("detail" as const),
       };
       let result: Awaited<ReturnType<typeof AgoraRTC.createScreenVideoTrack>>;
       try {
@@ -415,12 +443,11 @@ export function useAgoraRoom(options: {
       try {
         const s = track.getMediaStreamTrack().getSettings();
         console.info("[diag] screen capture", { width: s.width, height: s.height, frameRate: s.frameRate });
+        onCaptureFps?.({ source: "screen", frameRate: s.frameRate });
       } catch {}
 
-      // Handle the browser's native "Stop sharing" button
+      // Native "Stop sharing" button: just tear down the capture (no client).
       track.on("track-ended", () => {
-        screenClientRef.current?.leave().catch(() => {});
-        screenClientRef.current = null;
         track.close();
         screenTrackRef.current = null;
         screenAudioTrackRef.current?.close();
@@ -430,8 +457,6 @@ export function useAgoraRoom(options: {
         setState((prev) => ({ ...prev, isScreenSharing: false }));
       });
 
-      await screenClient.publish(track);
-      screenClientRef.current = screenClient;
       screenTrackRef.current = track;
       screenAudioTrackRef.current = audioTrack;
       setLocalScreenTrack(track);
@@ -439,20 +464,15 @@ export function useAgoraRoom(options: {
       setState((prev) => ({ ...prev, isScreenSharing: true }));
     } else {
       // ── Stop screenshare ───────────────────────────────────────────────────
-      if (screenTrackRef.current) {
-        await screenClientRef.current.unpublish(screenTrackRef.current).catch(() => {});
-        screenTrackRef.current.close();
-        screenTrackRef.current = null;
-      }
+      screenTrackRef.current.close();
+      screenTrackRef.current = null;
       screenAudioTrackRef.current?.close();
       screenAudioTrackRef.current = null;
-      await screenClientRef.current.leave().catch(() => {});
-      screenClientRef.current = null;
       setLocalScreenTrack(null);
       setLocalScreenAudioTrack(null);
       setState((prev) => ({ ...prev, isScreenSharing: false }));
     }
-  }, [screenShareUid]);
+  }, [screenShareUid, contentMode, captureFrameRate, onCaptureFps]);
 
   const switchMicDevice = useCallback(async (deviceId: string) => {
     if (!localAudioTrackRef.current) return;

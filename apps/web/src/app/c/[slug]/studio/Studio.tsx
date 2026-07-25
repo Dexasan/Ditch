@@ -2290,13 +2290,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
                 {(["720p", "1080p"] as const).map((res) => (
                   <button
                     key={res}
-                    onClick={() => {
-                      updateSettings({ outputResolution: res });
-                      // 1080p60 is capped for now: the browser can't sustain 60fps
-                      // at 1080p (it lands ~45fps, so ffmpeg duplicates ~20% of
-                      // frames, which reads as judder/tearing). Force 30fps.
-                      if (res === "1080p" && targetFps === 60) setTargetFps(30);
-                    }}
+                    onClick={() => updateSettings({ outputResolution: res })}
                     className={pill(settings.outputResolution === res)}
                   >
                     {res}
@@ -2306,17 +2300,40 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
 
             <div className={row}>
+              <span className="text-[11px] text-[var(--text-primary)]">Content</span>
+              <div className="flex gap-1">
+                {(["detail", "motion"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => {
+                      updateSettings({ contentMode: mode });
+                      // Detail is always 30fps; Motion leaves the fps toggle free.
+                      if (mode === "detail" && targetFps === 60) setTargetFps(30);
+                    }}
+                    title={mode === "detail"
+                      ? "Camera / desktop / text - 30fps, prioritizes sharpness"
+                      : "Gameplay / motion - unlocks 60fps"}
+                    className={pill(settings.contentMode === mode) + " capitalize"}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={row}>
               <span className="text-[11px] text-[var(--text-primary)]">Frame rate</span>
               <div className="flex gap-1">
                 {([30, 60] as const).map((fps) => {
-                  // 60fps is disabled at 1080p for now (see resolution handler).
-                  const disabled = fps === 60 && settings.outputResolution === "1080p";
+                  // 60fps only in Motion. Detail stays 30 for sharpness, and
+                  // 1080p60 needs Motion so we never fake 60 from a ~45fps capture.
+                  const disabled = fps === 60 && settings.contentMode !== "motion";
                   return (
                     <button
                       key={fps}
                       disabled={disabled}
                       onClick={() => !disabled && setTargetFps(fps)}
-                      title={disabled ? "1080p runs at 30fps for now" : undefined}
+                      title={disabled ? "Switch Content to Motion for 60fps" : undefined}
                       className={pill(targetFps === fps, disabled)}
                     >
                       {fps} fps
@@ -3705,7 +3722,8 @@ export default function Studio({
 
   const {
     streamStatus, setStreamStatus, setStreamError, fps, setFps,
-    targetFps,
+    targetFps, setTargetFps,
+    compositeVideoLive, setCompositeVideoLive,
     settings,
     setBitrateKbps,
     setIsRecording: storeSetIsRecording,
@@ -3721,6 +3739,16 @@ export default function Studio({
   } = useStudioStore();
 
   const previewRef = useRef<PreviewCanvasHandle>(null);
+
+  // Real-60 guard: Motion requests 60fps capture, but if the active source can't
+  // sustain it, drop the broadcast target to 30 rather than duplicate frames to
+  // fake 60. (getSettings().frameRate reflects the capture mode the device gave us.)
+  const onCaptureFps = useCallback((info: { source: "camera" | "screen"; frameRate: number | undefined }) => {
+    if (useStudioStore.getState().settings.contentMode === "motion" && (info.frameRate ?? 0) < 50) {
+      console.info(`[diag] motion 60fps unavailable → 30fps (${info.source} @ ${info.frameRate ?? "?"}fps)`);
+      setTargetFps(30);
+    }
+  }, [setTargetFps]);
 
   // ── Reset scene/layer state when a new session starts ──────────────────────
   // The Zustand store is persisted to localStorage. Without this, opening a new
@@ -3880,6 +3908,9 @@ export default function Studio({
     enabled: true,
     screenShareUid: CREATOR_SCREEN_UID,
     authToken: token,
+    contentMode: settings.contentMode,
+    compositeVideoLive,
+    onCaptureFps,
   });
 
   const [fallbackProgramAudioTrack, setFallbackProgramAudioTrack] = useState<MediaStreamTrack | null>(null);
@@ -4111,6 +4142,42 @@ export default function Studio({
     (track) => track.readyState === "live",
   ) ?? false;
 
+  // Agora desktop-detail profile activates ONLY while a live desktop/screen
+  // capture is visible AND Content=Detail. Requires an actually-live backing
+  // track (not just a visible layer) so idle/unavailable layers never trigger
+  // needless 1080p Agora billing; reverts to 720p the instant capture ends.
+  const agoraDetail = settings.contentMode === "detail" && activeScene.layers.some((l) => {
+    if (!l.visible || l.sourceUnavailable) return false;
+    if (l.type === "screenshare") {
+      try { return localScreenTrack?.getMediaStreamTrack().readyState === "live"; } catch { return false; }
+    }
+    if (l.type === "browser") {
+      const el = getSource(l.id);
+      const src = el?.srcObject;
+      const t = src instanceof MediaStream ? src.getVideoTracks()[0] : null;
+      return t?.readyState === "live";
+    }
+    return false;
+  });
+
+  // The interactive (Agora) profile is INDEPENDENT of the broadcast canvas.
+  const agoraProfile = useMemo(() => (agoraDetail
+    ? { width: 1920, height: 1080, frameRate: 30, bitrateMax: 5000, optimizationMode: "detail" as const, label: "desktop-detail 1080p30 @5Mbps" }
+    : { width: 1280, height: 720, frameRate: 30, bitrateMax: 3000,
+        optimizationMode: settings.contentMode === "motion" ? ("motion" as const) : ("detail" as const),
+        label: `720p30 @3Mbps (${settings.contentMode})` }
+  ), [agoraDetail, settings.contentMode]);
+
+  // Diagnostics: name the active broadcast profile so it's comparable against
+  // the Agora profile and the local preview.
+  useEffect(() => {
+    const kbps = recommendedBitrateKbps(settings.outputResolution, targetFps);
+    console.info("[diag] broadcast profile", {
+      profile: `${settings.outputResolution}${targetFps} @${Math.round(kbps / 1000)}Mbps`,
+      contentMode: settings.contentMode,
+    });
+  }, [settings.outputResolution, targetFps, settings.contentMode]);
+
   // Publish the program mix into the Agora channel so DITCH viewers watch the
   // full composed stream (layers, guests, overlays) - not just the raw camera.
   useProgramPublish({
@@ -4118,6 +4185,8 @@ export default function Studio({
     sessionId,
     authToken: token,
     enabled: !!compositeStream,
+    agoraProfile,
+    onLiveChange: setCompositeVideoLive,
   });
 
   // Relay stream - only active when streamStatus !== 'offline'.
