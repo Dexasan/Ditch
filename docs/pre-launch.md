@@ -6,17 +6,45 @@ Items that are identified, understood, and ready to implement — just not done 
 
 ## Pending
 
-### Relay: browser-side key frame control (WebCodecs VideoEncoder)
+### Relay: browser-side key frame control (WebCodecs) — IMPLEMENTED, awaiting sustained live verification
 
-**What:** Replace `MediaRecorder` in `useRelayStream.ts` with `VideoEncoder` (WebCodecs API) so we can call `encode(frame, { keyFrame: true })` on every Nth frame.
+**Status (2026-07-25):** Code shipped behind a capability gate with a MediaRecorder
+fallback. **Not yet marked Done** — it moves to the Done section only after a sustained
+live test confirms key frames on a real YouTube/Twitch ingest and 30fps holds with the
+tab backgrounded. Until then the relay keeps transcoding YouTube/Twitch.
 
-**Why:** With `-c:v copy` in ffmpeg, key frames come from the browser encoder on its own schedule — random 0-4s gap at stream start. YouTube can't decode until it sees the first key frame, so startup feels slow. We tried forcing key frames via `-c:v libx264 -g 30` on the server but it causes double-transcode generation loss: the browser's encoder drops to ~200-500 Kbps on static scenes, ffmpeg decodes that degraded signal and re-encodes it, producing pixelated video at 221 Kbps. Not acceptable.
+**Why:** With `-c:v copy` in ffmpeg, key frames came from the browser's `MediaRecorder`
+on its own schedule — a random 0-4s gap at stream start (YouTube can't decode until it
+sees the first key frame). Forcing key frames via `-c:v libx264 -g` on the server causes
+double-transcode generation loss (browser drops to ~200-500 Kbps on static scenes; ffmpeg
+decodes that and re-encodes it → pixelated). So: encode once, in the browser, with
+explicit key frame control.
 
-**The correct fix:** Encode once, in the browser, with explicit key frame control. Pull frames from the compositor's `MediaStreamTrackGenerator` output via `MediaStreamTrackProcessor`, encode each frame with `VideoEncoder` (requesting a key frame every 60 frames = 2s at 30fps), mux the encoded chunks into WebM clusters manually, send to relay. Keep `-c:v copy` on the server.
+**What shipped:**
+- `apps/web/src/lib/webcodecsRelay.ts` — wraps **Mediabunny** (not `webm-muxer`, which
+  can't carry H264 and ignores audio). `MediaStreamVideoTrackSource` pulls frames from the
+  compositor's output track and encodes **H264** with a key frame every 2s; audio is
+  encoded to **Opus**; both are muxed into **fragmented MP4** and streamed to the relay via
+  `AppendOnlyStreamTarget` (append-only, low latency — not the 16 MiB chunked target).
+- `useRelayStream.ts` — probes capability (`canUseWebCodecsRelay`) at the *actual*
+  resolution/fps/bitrate before connecting, sends `container: "mp4" | "webm"` in the start
+  message, and on any WebCodecs runtime failure latches to MediaRecorder for the rest of
+  the session.
+- Relay `ffmpeg.ts` — selects the demuxer by `container` (`-f mp4` with a larger probesize
+  for the fMP4 moov, else `-f webm`). Copy/re-encode branches are unchanged.
+- Relay `RELAY_REENCODE_PLATFORMS` env (default `youtube,twitch`) replaces the hardcoded
+  re-encode set, so a destination verified on the key-frame path can be moved to `-c:v
+  copy` one at a time without a deploy.
+- Selectable **1080p** output enabled (720p default): the compositor renders the 1280x720
+  design space scaled up to 1920x1080; `recommendedBitrateKbps` targets 6-8 Mbps.
 
-**Expected gain:** First key frame at t=0 (guaranteed), startup drops to ~4-5s. No generation loss.
+**Latency note:** Mediabunny finalizes an fMP4 fragment only on a key frame boundary, so
+first-key-frame delivery is deterministic at ~2s (vs the old random 0-4s) and steady-state
+relay latency tracks the 2s key frame interval — acceptable on the broadcast-out RTMP path
+(destinations buffer; the interactive path runs over Agora, not this relay).
 
-**Complexity:** Medium. Requires a WebM muxer in the browser (the `webm-muxer` npm package handles this). `VideoEncoder` is available in all modern Chrome/Edge/Safari.
+**Remaining to reach Done:** sustained live test (per CLAUDE.md Day-10 step), then move
+verified destinations off `RELAY_REENCODE_PLATFORMS`.
 
 ---
 

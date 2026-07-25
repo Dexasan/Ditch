@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { IAgoraRTCRemoteUser, ILocalVideoTrack, ILocalAudioTrack } from "agora-rtc-sdk-ng";
 import type { ChatMessage, Participant } from "@ditch/types";
-import type { Layer } from "@/lib/studio-store";
+import type { Layer, OutputResolution } from "@/lib/studio-store";
 import { ChromaKeyProcessor, type ChromaKeyConfig } from "@/lib/chromaKey";
 import { layoutMarkdown, markdownCacheKey, type MdOp } from "@/lib/markdownCanvas";
 
@@ -17,9 +17,19 @@ const CHAT_PLATFORM_COLOR: Record<string, string> = {
   ditch:   "#FF1DB4",
 };
 
+// Design space: all layer transforms and getLayout() are authored against this
+// fixed 1280x720 coordinate system. The output canvas is this multiplied by
+// OUTPUT_SCALE, and draw() applies the scale as a base transform so every draw
+// call maps unchanged into the higher-resolution canvas: 1080p output without
+// touching a single layout number.
 const W = 1280;
 const H = 720;
 const DEFAULT_FPS = 30;
+
+const OUTPUT_SCALE: Record<OutputResolution, number> = {
+  "720p": 1,
+  "1080p": 1.5, // 1280x720 -> 1920x1080
+};
 
 export type Rect = { x: number; y: number; w: number; h: number };
 
@@ -142,6 +152,8 @@ interface CompositorOptions {
   /** Unified chat feed, drawn by "widget" layers (Live Chat overlay). */
   chatMessages?: ChatMessage[];
   targetFps?: 30 | 60;
+  /** Output resolution. Design space stays 1280x720; the canvas scales up. */
+  outputResolution?: OutputResolution;
   onFps?: (fps: number) => void;
 }
 
@@ -159,6 +171,7 @@ export function useCompositor({
   extraAudioTracks = [],
   chatMessages = [],
   targetFps = DEFAULT_FPS,
+  outputResolution = "720p",
   onFps,
 }: CompositorOptions): {
   stream: MediaStream | null;
@@ -247,9 +260,10 @@ export function useCompositor({
   useEffect(() => {
     if (!enabled) return;
 
+    const scale = OUTPUT_SCALE[outputResolution];
     const canvas = document.createElement("canvas");
-    canvas.width = W;
-    canvas.height = H;
+    canvas.width = Math.round(W * scale);
+    canvas.height = Math.round(H * scale);
     canvasRef.current = canvas;
 
     const audioCtx  = new AudioContext();
@@ -331,7 +345,9 @@ export function useCompositor({
       chromaKeyRef.current = null;
       setStream(null);
     };
-  }, [enabled]);
+    // outputResolution recreates the canvas + output track: a deliberate
+    // settings change, not a per-frame cost.
+  }, [enabled, outputResolution]);
 
   // ── Breakout Box: one MediaStreamTrackProcessor per active video track ────────
   useEffect(() => {
@@ -714,7 +730,12 @@ export function useCompositor({
       }
     }
 
+    const scale = OUTPUT_SCALE[outputResolution];
+
     function draw() {
+      // Base transform: scale the 1280x720 design space up to the output
+      // resolution so every draw call below stays in design coordinates.
+      ctx!.setTransform(scale, 0, 0, scale, 0, 0);
       ctx!.fillStyle = bgColorRef.current || "#000";
       ctx!.fillRect(0, 0, W, H);
 
@@ -825,7 +846,7 @@ export function useCompositor({
   // remoteUsers/liveParticipants/layers are read via refs inside draw() - listing
   // them here would restart the worker (and drop a frame) on every event.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, targetFps, localVideoTrack, localScreenTrack]);
+  }, [enabled, targetFps, outputResolution, localVideoTrack, localScreenTrack]);
 
   // ── Audio graph ───────────────────────────────────────────────────────────────
   useEffect(() => {

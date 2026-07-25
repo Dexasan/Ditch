@@ -205,7 +205,7 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
       };
       send(ws, { type: "started", hls_url: hlsUrl, timings });
       console.log("[relay-perf] start phases", { session_id, ...timings });
-      console.log(`[relay] session ${session_id} started → ${rtmpTargets.length} destination(s)`);
+      console.log(`[relay] session ${session_id} started → ${rtmpTargets.length} destination(s), container: ${encoderParams.container}`);
     }
 
     if (msg.type === "stop") {

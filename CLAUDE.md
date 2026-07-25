@@ -177,9 +177,9 @@ Note: `@ditch/db` requires both anon + service role keys even though relay only 
 
 **Local JWT validation shipped (Jul 20, 2026):** `verifyAccessToken()` in `packages/db/src/auth.ts` verifies Supabase tokens locally (relay, api, realtime). This project uses Supabase **JWT Signing Keys**, so tokens are ES256 and are verified against the cached public JWKS derived from `SUPABASE_URL`; `SUPABASE_JWT_SECRET` only covers legacy HS256 projects. **Never revoke the legacy JWT secret** - the `anon`/`service_role` keys are signed with it. See `docs/pre-launch.md`.
 
-**One remaining pre-launch optimization:** browser-side key frame control via WebCodecs `VideoEncoder`. See `docs/pre-launch.md`.
+**Browser-side key frame control shipped (Jul 25, 2026) — awaiting live verification:** `apps/web/src/lib/webcodecsRelay.ts` encodes H264 + Opus via WebCodecs/Mediabunny into fragmented MP4 with a guaranteed 2s key frame, streamed to the relay (`container: "mp4"`); `useRelayStream` probes capability at the real settings and falls back to MediaRecorder (`container: "webm"`) per-session on any failure. Relay picks the demuxer by container. YouTube/Twitch are **still transcoded** — `RELAY_REENCODE_PLATFORMS` (default `youtube,twitch`) makes moving a verified destination to `-c:v copy` a config change. Selectable **1080p** output is now enabled (compositor renders the 1280x720 design space scaled up). See `docs/pre-launch.md`.
 
-**Next logical step (Day 10):** Sustained stream test — verify 30fps holds with tab backgrounded, auto-reconnect triggers on simulated ffmpeg exit, startup latency in 4-6s range.
+**Next logical step (Day 10):** Sustained stream test — verify 30fps holds with tab backgrounded, first key frame is immediate on the `mp4` path at 720p and 1080p, the WebCodecs→MediaRecorder fallback recovers a session, auto-reconnect triggers on simulated ffmpeg exit. Then move verified destinations off `RELAY_REENCODE_PLATFORMS`.
 
 Full session history: `docs/session-log.md`
 

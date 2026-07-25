@@ -1,7 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { EncoderPreset } from "@/lib/studio-store";
+import type { EncoderPreset, OutputResolution } from "@/lib/studio-store";
+import {
+  canUseWebCodecsRelay,
+  startWebCodecsEncoder,
+  type WebCodecsEncoderController,
+} from "@/lib/webcodecsRelay";
+
+// Guaranteed key frame cadence for the WebCodecs path (matches the relay's 2s
+// forced GOP and YouTube/Twitch's <=2s requirement).
+const KEY_FRAME_INTERVAL_SEC = 2;
+
+function resolutionDims(res: OutputResolution): { width: number; height: number } {
+  return res === "1080p" ? { width: 1920, height: 1080 } : { width: 1280, height: 720 };
+}
 
 const CHUNK_INTERVAL_MS = 250;
 const MAX_RETRIES = 5;
@@ -26,6 +39,7 @@ interface RelayStreamOptions {
   audioBitrateKbps?: number;
   encoderPreset?: EncoderPreset;
   fps?: number;
+  outputResolution?: OutputResolution;
 }
 
 export interface RelayStreamState {
@@ -63,13 +77,16 @@ export function useRelayStream({
   audioBitrateKbps,
   encoderPreset,
   fps,
+  outputResolution,
 }: RelayStreamOptions): RelayStreamState {
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<RelayStreamDiagnostics | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
+  // Either a MediaRecorder wrapper or the WebCodecs encoder controller. Teardown
+  // stops whichever sink is live without caring which encode path produced it.
+  const activeSinkRef = useRef<{ stop: () => void } | null>(null);
   const bytesSentRef = useRef(0);
   const bitrateTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Stable ref so the interval closure never captures a stale callback
@@ -81,12 +98,14 @@ export function useRelayStream({
     audioBitrateKbps: DEFAULT_AUDIO_KBPS,
     encoderPreset: "balanced" as EncoderPreset,
     fps: 30,
+    outputResolution: "720p" as OutputResolution,
   });
   encoderRef.current = {
     videoBitrateKbps: videoBitrateKbps ?? DEFAULT_VIDEO_KBPS,
     audioBitrateKbps: audioBitrateKbps ?? DEFAULT_AUDIO_KBPS,
     encoderPreset: encoderPreset ?? "balanced",
     fps: fps ?? 30,
+    outputResolution: outputResolution ?? "720p",
   };
 
   useEffect(() => {
@@ -98,14 +117,21 @@ export function useRelayStream({
     let cancelled = false;
     let connectionSequence = 0;
 
-    function stopRecorder() {
+    // WebCodecs capability is probed once (stable across reconnects). A runtime
+    // WebCodecs failure latches `webCodecsDisabled` so the rest of the session
+    // transparently re-establishes on MediaRecorder.
+    let webCodecsChecked = false;
+    let webCodecsCapable = false;
+    let webCodecsDisabled = false;
+
+    function stopSink() {
       if (bitrateTimerRef.current) {
         clearInterval(bitrateTimerRef.current);
         bitrateTimerRef.current = null;
       }
-      const recorder = recorderRef.current;
-      if (recorder && recorder.state !== "inactive") recorder.stop();
-      recorderRef.current = null;
+      const sink = activeSinkRef.current;
+      if (sink) { try { sink.stop(); } catch {} }
+      activeSinkRef.current = null;
     }
 
     function closeSocket(ws: WebSocket | null, sendStop: boolean) {
@@ -141,7 +167,7 @@ export function useRelayStream({
     }
 
     function restart(ws: WebSocket, message?: string) {
-      stopRecorder();
+      stopSink();
       closeSocket(ws, false);
       scheduleReconnect(message);
     }
@@ -179,7 +205,25 @@ export function useRelayStream({
           console.warn("[relay-stream] relay discovery failed, using configured fallback", error);
         }
       }
+      // Probe WebCodecs once, at the real resolution/fps/bitrate we'll use, so a
+      // browser that exposes the API but can't encode (e.g.) 1080p H264 still
+      // falls back cleanly. `webCodecsDisabled` (a runtime failure) forces
+      // MediaRecorder for the remainder of the session.
+      if (!webCodecsChecked) {
+        webCodecsChecked = true;
+        const enc = encoderRef.current;
+        const { width, height } = resolutionDims(enc.outputResolution);
+        webCodecsCapable = await canUseWebCodecsRelay({
+          width,
+          height,
+          fps: enc.fps,
+          videoBitrateKbps: enc.videoBitrateKbps,
+          audioBitrateKbps: enc.audioBitrateKbps,
+        });
+        console.info("[relay-stream] WebCodecs relay path:", webCodecsCapable ? "available" : "unavailable");
+      }
       if (cancelled) return;
+      const useWebCodecsNow = webCodecsCapable && !webCodecsDisabled;
       const ws = new WebSocket(relayUrl);
       wsRef.current = ws;
 
@@ -197,6 +241,9 @@ export function useRelayStream({
           audio_bitrate_kbps: enc.audioBitrateKbps,
           encoder_preset: enc.encoderPreset,
           fps: enc.fps,
+          // Tells the relay which demuxer to use: WebCodecs emits fragmented MP4,
+          // MediaRecorder emits WebM.
+          container: useWebCodecsNow ? "mp4" : "webm",
         }));
       };
 
@@ -219,39 +266,23 @@ export function useRelayStream({
             relay: relayTimings,
           });
 
-          const mimeType =
-            MediaRecorder.isTypeSupported("video/webm;codecs=h264,opus")
-              ? "video/webm;codecs=h264,opus"
-              : MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
-              ? "video/webm;codecs=vp8,opus"
-              : "video/webm";
-
-          console.log("[relay-stream] MediaRecorder mimeType selected:", mimeType);
-
           const enc = encoderRef.current;
-          const recorder = new MediaRecorder(stream!, {
-            mimeType,
-            videoBitsPerSecond: enc.videoBitrateKbps * 1000,
-            audioBitsPerSecond: enc.audioBitrateKbps * 1000,
-            // Ask Chromium for a keyframe every 2s. Unknown dictionary members
-            // are ignored by browsers without support, so this is safe to pass
-            // unconditionally. Groundwork for dropping the relay-side YouTube
-            // re-encode once source keyframes are verified in production.
-            videoKeyFrameIntervalDuration: 2000,
-          } as MediaRecorderOptions);
-          recorderRef.current = recorder;
 
-          recorder.ondataavailable = (e: BlobEvent) => {
-            if (e.data.size === 0 || ws.readyState !== WebSocket.OPEN) return;
+          // Shared sink plumbing: forwards one encoded byte range to the relay,
+          // applies socket-buffer backpressure, and records the first-chunk
+          // diagnostic. Returns false when the send queue is saturated (the
+          // caller restarts) so the WebCodecs encoder can stop feeding.
+          const pushToRelay = (payload: Blob | ArrayBufferView, byteLength: number): boolean => {
+            if (byteLength === 0 || ws.readyState !== WebSocket.OPEN) return true;
 
             peakSocketBufferBytes = Math.max(peakSocketBufferBytes, ws.bufferedAmount);
             if (ws.bufferedAmount >= MAX_SOCKET_BUFFER_BYTES) {
               restart(ws, `Relay upload stalled, reconnecting (${attempts + 1}/${MAX_RETRIES})...`);
-              return;
+              return false;
             }
 
-            ws.send(e.data);
-            bytesSentRef.current += e.data.size;
+            ws.send(payload);
+            bytesSentRef.current += byteLength;
             if (!sentFirstChunk) {
               sentFirstChunk = true;
               const firstChunkMs = Math.round(performance.now() - connectStartedAt);
@@ -261,9 +292,81 @@ export function useRelayStream({
               console.info("[relay-perf] first browser media chunk", {
                 connection_id: connectionId,
                 elapsed_ms: firstChunkMs,
-                bytes: e.data.size,
+                bytes: byteLength,
               });
             }
+            return true;
+          };
+
+          const startBitrateTimer = () => {
+            bytesSentRef.current = 0;
+            bitrateTimerRef.current = setInterval(() => {
+              const kbps = Math.round((bytesSentRef.current * 8) / 2 / 1000);
+              bytesSentRef.current = 0;
+              onBitrateRef.current?.(kbps);
+              setDiagnostics((current) => (
+                current?.connection_id === connectionId &&
+                current.peak_socket_buffer_bytes !== peakSocketBufferBytes
+              ) ? { ...current, peak_socket_buffer_bytes: peakSocketBufferBytes } : current);
+            }, 2000);
+          };
+
+          if (useWebCodecsNow) {
+            // Browser-side H264 encode with guaranteed 2s key frames, muxed to
+            // fragmented MP4 (container: "mp4"). A setup or runtime failure
+            // latches WebCodecs off and restarts on MediaRecorder.
+            startWebCodecsEncoder({
+              stream: stream!,
+              videoBitrateKbps: enc.videoBitrateKbps,
+              audioBitrateKbps: enc.audioBitrateKbps,
+              fps: enc.fps,
+              keyFrameIntervalSec: KEY_FRAME_INTERVAL_SEC,
+              onChunk: (data) => pushToRelay(data, data.byteLength),
+              onError: (err) => {
+                console.warn("[relay-stream] WebCodecs runtime failure, falling back to MediaRecorder", err);
+                webCodecsDisabled = true;
+                restart(ws, "Switching encoder, reconnecting…");
+              },
+            }).then((controller: WebCodecsEncoderController) => {
+              // Torn down while awaiting start(): stop immediately.
+              if (cancelled || wsRef.current !== ws) { controller.stop(); return; }
+              activeSinkRef.current = controller;
+              startBitrateTimer();
+              setStreaming(true);
+              setError(null);
+            }).catch((err) => {
+              console.warn("[relay-stream] WebCodecs setup failed, falling back to MediaRecorder", err);
+              webCodecsDisabled = true;
+              restart(ws, "Switching encoder, reconnecting…");
+            });
+            return;
+          }
+
+          const mimeType =
+            MediaRecorder.isTypeSupported("video/webm;codecs=h264,opus")
+              ? "video/webm;codecs=h264,opus"
+              : MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+              ? "video/webm;codecs=vp8,opus"
+              : "video/webm";
+
+          console.log("[relay-stream] MediaRecorder mimeType selected:", mimeType);
+
+          const recorder = new MediaRecorder(stream!, {
+            mimeType,
+            videoBitsPerSecond: enc.videoBitrateKbps * 1000,
+            audioBitsPerSecond: enc.audioBitrateKbps * 1000,
+            // Ask Chromium for a keyframe every 2s. Unknown dictionary members
+            // are ignored by browsers without support, so this is safe to pass
+            // unconditionally. (Ignored for H264 in current Chromium; the
+            // WebCodecs path above is the real key frame control.)
+            videoKeyFrameIntervalDuration: 2000,
+          } as MediaRecorderOptions);
+          activeSinkRef.current = {
+            stop: () => { if (recorder.state !== "inactive") recorder.stop(); },
+          };
+
+          recorder.ondataavailable = (e: BlobEvent) => {
+            pushToRelay(e.data, e.data.size);
           };
 
           recorder.onerror = () => {
@@ -272,16 +375,7 @@ export function useRelayStream({
           };
 
           recorder.start(CHUNK_INTERVAL_MS);
-          bytesSentRef.current = 0;
-          bitrateTimerRef.current = setInterval(() => {
-            const kbps = Math.round((bytesSentRef.current * 8) / 2 / 1000);
-            bytesSentRef.current = 0;
-            onBitrateRef.current?.(kbps);
-            setDiagnostics((current) => (
-              current?.connection_id === connectionId &&
-              current.peak_socket_buffer_bytes !== peakSocketBufferBytes
-            ) ? { ...current, peak_socket_buffer_bytes: peakSocketBufferBytes } : current);
-          }, 2000);
+          startBitrateTimer();
           setStreaming(true);
           setError(null);
         }
@@ -289,7 +383,7 @@ export function useRelayStream({
         if (msg.type === "error") {
           const message = String(msg.message);
           if (msg.retryable === false) {
-            stopRecorder();
+            stopSink();
             closeSocket(ws, false);
             setError(message);
             setStreaming(false);
@@ -327,7 +421,7 @@ export function useRelayStream({
       };
 
       ws.onclose = () => {
-        stopRecorder();
+        stopSink();
         if (wsRef.current === ws) wsRef.current = null;
         scheduleReconnect();
       };
@@ -339,7 +433,7 @@ export function useRelayStream({
       cancelled = true;
       if (retryTimer) clearTimeout(retryTimer);
       retryTimer = null;
-      stopRecorder();
+      stopSink();
       closeSocket(wsRef.current, true);
       bytesSentRef.current = 0;
       onBitrateRef.current?.(0);

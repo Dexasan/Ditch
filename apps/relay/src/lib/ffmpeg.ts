@@ -34,12 +34,16 @@ export interface FfmpegSession {
 }
 
 export type EncoderPreset = "quality" | "balanced" | "performance";
+export type SourceContainer = "webm" | "mp4";
 
 export interface EncoderParams {
   videoBitrateKbps: number;
   audioBitrateKbps: number;
   preset: EncoderPreset;
   fps: number;
+  // Container the browser is sending: MediaRecorder emits WebM, the WebCodecs
+  // path emits fragmented MP4. Selects the ffmpeg input demuxer.
+  container: SourceContainer;
 }
 
 export const DEFAULT_ENCODER_PARAMS: EncoderParams = {
@@ -47,6 +51,7 @@ export const DEFAULT_ENCODER_PARAMS: EncoderParams = {
   audioBitrateKbps: 192,
   preset: "balanced",
   fps: 30,
+  container: "webm",
 };
 
 const X264_PRESETS: Record<EncoderPreset, string> = {
@@ -73,7 +78,20 @@ export function sanitizeEncoderParams(msg: Record<string, unknown>): EncoderPara
       ? preset
       : DEFAULT_ENCODER_PARAMS.preset,
     fps: msg.fps === 60 ? 60 : 30,
+    container: msg.container === "mp4" ? "mp4" : "webm",
   };
+}
+
+// Which RTMP targets must be re-encoded (keyframe-strict ingests) vs passed
+// through with -c:v copy. Configurable so a destination verified on the browser
+// key-frame path can be moved to copy without a code change; defaults to the
+// established YouTube + Twitch set. An empty value copies everything.
+function reencodeMatcher(): (target: string) => boolean {
+  const raw = process.env.RELAY_REENCODE_PLATFORMS ?? "youtube,twitch";
+  const platforms = raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (platforms.length === 0) return () => false;
+  const pattern = new RegExp(platforms.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "i");
+  return (target: string) => pattern.test(target);
 }
 
 export function spawnFfmpeg(
@@ -143,27 +161,39 @@ export function buildArgs(
   targets: string[],
   params: EncoderParams = DEFAULT_ENCODER_PARAMS,
   hlsPlaylistPath?: string,
+  needsReencodeFn: (target: string) => boolean = reencodeMatcher(),
 ): string[] {
+  // WebM is byte-streamable, so a 32-byte probe is enough. Fragmented MP4 keeps
+  // its codec info in the up-front moov box; ffmpeg needs a larger probe to read
+  // it (analyzeduration can stay 0 since codecs are declared there, not inferred
+  // from frames). ffmpeg stops probing as soon as it has stream info, so the
+  // larger cap does not add latency.
+  const mp4 = params.container === "mp4";
   const inputFlags = [
     "-fflags", "+nobuffer+genpts",
     "-thread_queue_size", "512",
-    "-probesize", "32",
+    "-probesize", mp4 ? "500000" : "32",
     "-analyzeduration", "0",
-    "-f", "webm",
+    "-f", mp4 ? "mp4" : "webm",
     "-i", "pipe:0",
   ];
 
   // YouTube and Twitch both require a keyframe every ~2s: YouTube refuses to
   // leave "Preparing stream" without one, Twitch plays but flags the ingest
-  // "Keyframe interval too high / UNSTABLE". The browser's MediaRecorder emits
-  // keyframes too infrequently (videoKeyFrameIntervalDuration is not honored
-  // for H264 in current Chromium) and -c:v copy can't insert them, so
-  // keyframe-strict targets share one libx264 re-encode (via tee) with forced
-  // 2s keyframes and CFR output. Other targets keep the lossless passthrough
-  // in a second output branch of the same process.
-  const needsReencode = (t: string) => /youtube|twitch/i.test(t);
-  const reencodeTargets = targets.filter(needsReencode);
-  const copyTargets = targets.filter((t) => !needsReencode(t));
+  // "Keyframe interval too high / UNSTABLE". On the legacy MediaRecorder/WebM
+  // path the browser emits keyframes too infrequently (videoKeyFrameInterval
+  // Duration is not honored for H264 in current Chromium) and -c:v copy can't
+  // insert them, so keyframe-strict targets share one libx264 re-encode (via
+  // tee) with forced 2s keyframes and CFR output, while other targets keep the
+  // lossless passthrough in a second output branch of the same process.
+  //
+  // The WebCodecs path (container "mp4") emits guaranteed 2s keyframes, so its
+  // sources CAN be copied to keyframe-strict targets — but only after each is
+  // verified live. `reencodeMatcher()` keeps YouTube/Twitch on re-encode by
+  // default and lets ops move a verified destination to copy via
+  // RELAY_REENCODE_PLATFORMS, one at a time.
+  const reencodeTargets = targets.filter(needsReencodeFn);
+  const copyTargets = targets.filter((t) => !needsReencodeFn(t));
 
   // Audio is always transcoded Opus → AAC since RTMP does not carry Opus.
   // Keep the native 48kHz sample rate (Opus is 48kHz; both Twitch and YouTube

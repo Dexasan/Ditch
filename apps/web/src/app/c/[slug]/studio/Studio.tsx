@@ -2290,12 +2290,10 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
                 {(["720p", "1080p"] as const).map((res) => (
                   <button
                     key={res}
-                    disabled={res === "1080p"}
-                    onClick={() => res !== "1080p" && updateSettings({ outputResolution: res })}
-                    title={res === "1080p" ? "Coming soon" : undefined}
-                    className={pill(settings.outputResolution === res, res === "1080p")}
+                    onClick={() => updateSettings({ outputResolution: res })}
+                    className={pill(settings.outputResolution === res)}
                   >
-                    {res}{res === "1080p" && " ·soon"}
+                    {res}
                   </button>
                 ))}
               </div>
@@ -4022,6 +4020,7 @@ export default function Studio({
     extraAudioTracks,
     chatMessages: messages,
     targetFps,
+    outputResolution: settings.outputResolution,
     onFps: setFps,
   });
 
@@ -4120,6 +4119,7 @@ export default function Studio({
     audioBitrateKbps: settings.audioBitrateKbps,
     encoderPreset: settings.encoderPreset,
     fps: targetFps,
+    outputResolution: settings.outputResolution,
   });
 
   // Sync relay connection state into store.
