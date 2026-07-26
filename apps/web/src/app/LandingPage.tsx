@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
 import TransmissionField from "./TransmissionField";
+import StudioDemo from "./StudioDemo";
 
 const destinations = [
   { name: "Twitch", code: "TW", tone: "purple", kind: "twitch" },
@@ -102,7 +103,7 @@ export default function LandingPage() {
             </article>
           </div>
 
-          <ControlRoom />
+          <StudioDemo />
         </section>
 
         <section className={styles.flywheelSection} id="network">
@@ -321,82 +322,6 @@ function PlatformRail() {
   );
 }
 
-function ControlRoom() {
-  return (
-    <div className={styles.controlRoom}>
-      <div className={styles.controlTopbar}>
-        <div className={styles.controlWordmark}>
-          <Image src="/logo.png" width={24} height={24} alt="" />
-          <span>ditch</span>
-          <b>LIVE STUDIO</b>
-        </div>
-        <div className={styles.controlStatus}>
-          <i /> All systems live <span>01:42:08</span>
-        </div>
-      </div>
-
-      <div className={styles.controlBody}>
-        <div className={styles.controlSidebar}>
-          <span className={styles.sidebarActive}><GridIcon /> Studio</span>
-          <span><SignalIcon /> Destinations</span>
-          <span><PeopleIcon /> Participants <b>3</b></span>
-          <span><ChatIcon /> Unified chat</span>
-          <div className={styles.sidebarUser}><i>JL</i><p>Jules Live<small>@jules</small></p></div>
-        </div>
-
-        <div className={styles.controlCanvas}>
-          <div className={styles.canvasHeader}>
-            <div><small>BROADCAST PREVIEW</small><strong>After Hours: Open Room</strong></div>
-            <button type="button" tabIndex={-1}><i /> End stream</button>
-          </div>
-          <div className={styles.previewStage}>
-            <div className={styles.previewHost}><span>JL</span><small>Jules</small></div>
-            <div className={styles.previewGuest}><span>AM</span><small>Amara</small></div>
-            <div className={styles.previewLive}>LIVE</div>
-            <div className={styles.previewBrand}>ditch / AFTER HOURS</div>
-          </div>
-          <div className={styles.controlsRow}>
-            <span><MicIcon /> Mic</span>
-            <span><CameraIcon /> Camera</span>
-            <span><ScreenIcon /> Share</span>
-            <span><SparkIcon /> Layout</span>
-          </div>
-          <div className={styles.destinationStrip}>
-            <div><small>DESTINATIONS</small><strong>4 connected</strong></div>
-            {destinations.map((destination) => (
-              <span key={destination.name}><i className={styles[destination.tone]} />{destination.name}<b>LIVE</b></span>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.controlPanel}>
-          <div className={styles.panelTabs}><b>Guests <span>3</span></b><span>Chat</span></div>
-          <div className={styles.queueLabel}>REQUESTING TO JOIN</div>
-          <div className={styles.queueCard}>
-            <i className={styles.queueAvatar}>KA</i>
-            <p><strong>Kai Abrams</strong><small>from YouTube</small></p>
-            <button type="button" tabIndex={-1}>Cue in</button>
-          </div>
-          <div className={styles.queueCard}>
-            <i className={`${styles.queueAvatar} ${styles.queueAvatarTwo}`}>SO</i>
-            <p><strong>Sol O.</strong><small>from DITCH</small></p>
-            <button type="button" tabIndex={-1}>Cue in</button>
-          </div>
-          <div className={styles.queueLabel}>ON STAGE</div>
-          <div className={styles.onStageCard}>
-            <i>AM</i><p><strong>Amara Mills</strong><small><span /> On air</small></p><b>•••</b>
-          </div>
-          <div className={styles.chatPreview}>
-            <div><i className={styles.purple} /><p><strong>mina_live</strong><span>this format is wild</span></p></div>
-            <div><i className={styles.red} /><p><strong>kai.a</strong><span>let me in 👀</span></p></div>
-            <div><i className={styles.cyan} /><p><strong>solonline</strong><span>we are everywhere</span></p></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function FlywheelGraphic() {
   return (
     <div className={styles.flywheel} aria-label="The DITCH audience growth loop">
@@ -467,36 +392,4 @@ function ArrowIcon() {
 
 function PlayIcon() {
   return <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="1.4" /><path d="m8.5 7 4.5 3-4.5 3V7Z" fill="currentColor" /></svg>;
-}
-
-function MicIcon() {
-  return <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="2" width="6" height="10" rx="3" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v3M7 18h6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>;
-}
-
-function CameraIcon() {
-  return <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="5" width="11" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="m13 8 5-2v8l-5-2V8Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>;
-}
-
-function GridIcon() {
-  return <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="2.5" width="6" height="6" rx="1" /><rect x="11.5" y="2.5" width="6" height="6" rx="1" /><rect x="2.5" y="11.5" width="6" height="6" rx="1" /><rect x="11.5" y="11.5" width="6" height="6" rx="1" /></svg>;
-}
-
-function SignalIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2" fill="currentColor" /><path d="M7.8 16.2a6 6 0 0 1 0-8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.5 19.5a10.6 10.6 0 0 1 0-15M19.5 4.5a10.6 10.6 0 0 1 0 15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>;
-}
-
-function PeopleIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" strokeWidth="1.7" /><path d="M3.5 20a5.5 5.5 0 0 1 11 0M16 5.3a3 3 0 0 1 0 5.4M16.5 14.5a5.2 5.2 0 0 1 4 5.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>;
-}
-
-function ChatIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H9l-5 4V5Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="M8 9h8M8 13h5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>;
-}
-
-function ScreenIcon() {
-  return <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="3" width="16" height="11" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M7 18h6M10 14v4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>;
-}
-
-function SparkIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c.6 5.7 3.3 8.4 9 9-5.7.6-8.4 3.3-9 9-.6-5.7-3.3-8.4-9-9 5.7-.6 8.4-3.3 9-9Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="M19 2c.2 1.8 1.2 2.8 3 3-1.8.2-2.8 1.2-3 3-.2-1.8-1.2-2.8-3-3 1.8-.2 2.8-1.2 3-3Z" fill="currentColor" /></svg>;
 }
