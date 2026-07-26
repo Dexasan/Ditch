@@ -77,6 +77,33 @@ const SOURCES: { kind: LayerKind; label: string; code: string }[] = [
   { kind: "shape", label: "Shape", code: "SHP" },
 ];
 
+const TOUR_STEPS = [
+  {
+    eyebrow: "Destination",
+    title: "Choose where your stream should go",
+    body: "Open Go Live, choose Twitch, YouTube, TikTok, or Kick, then confirm the RTMP server for that platform.",
+    note: "You can save several destinations and turn each one on or off for every broadcast.",
+  },
+  {
+    eyebrow: "Stream key",
+    title: "Paste the private key from your platform",
+    body: "Copy the stream key from the platform's creator dashboard and paste it into DITCH. The key tells the platform that this broadcast belongs to you.",
+    note: "Treat a stream key like a password. DITCH masks it after you save the destination.",
+  },
+  {
+    eyebrow: "Studio",
+    title: "Build the show with scenes and layers",
+    body: "Scenes are different moments in your show. Layers are the camera, guest, screen, text, logo, and graphics inside each scene.",
+    note: "Try the real controls below. Add a scene, add a layer, then drag it directly on the preview.",
+  },
+  {
+    eyebrow: "Go live",
+    title: "Check the preview, then launch everywhere",
+    body: "Choose the saved destinations you want for this broadcast. When the preview looks right, press Go Live once and DITCH sends it to all of them.",
+    note: "Nothing on this landing-page demo is broadcast. Your real studio asks for confirmation first.",
+  },
+] as const;
+
 function freshScenes() {
   return STARTING_SCENES.map((scene) => ({ ...scene, layers: scene.layers.map((layer) => ({ ...layer })) }));
 }
@@ -130,12 +157,17 @@ export default function StudioDemo() {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [message, setMessage] = useState("Try it: switch scenes, add a layer, or drag anything on the canvas.");
   const [transitioning, setTransitioning] = useState(false);
+  const [tourStep, setTourStep] = useState<number | null>(0);
+  const [setupPlatform, setSetupPlatform] = useState("twitch");
+  const [demoStreamKey, setDemoStreamKey] = useState("");
   const canvasRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const dragRef = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
 
   const activeScene = useMemo(() => scenes.find((scene) => scene.id === activeSceneId) ?? scenes[0], [activeSceneId, scenes]);
   const selectedLayer = activeScene.layers.find((layer) => layer.id === selectedId) ?? null;
+  const currentTourIndex = tourStep ?? 0;
+  const activeTour = tourStep === null ? null : TOUR_STEPS[currentTourIndex];
 
   useEffect(() => () => streamRef.current?.getTracks().forEach((track) => track.stop()), []);
 
@@ -247,20 +279,93 @@ export default function StudioDemo() {
     setMessage("Demo reset. Make it yours.");
   }
 
+  function selectTourStep(step: number) {
+    setTourStep(step);
+    if (step === 2) {
+      setActiveSceneId("intro");
+      setSelectedId("intro-title");
+    }
+  }
+
   return (
     <div className={styles.demoWrap}>
-      <div className={styles.tryLabel}><i /> LIVE PRODUCT DEMO <span>Nothing is broadcast</span></div>
+      <section className={styles.guide} aria-labelledby="studio-guide-title">
+        <div className={styles.guideHeading}>
+          <span>How to use DITCH Studio</span>
+          <h3 id="studio-guide-title">From stream key to live show, one step at a time.</h3>
+          <p>No streaming experience needed. Pick a step and the markers on the studio will show you exactly where to look.</p>
+        </div>
+
+        <div className={styles.guideSteps} role="tablist" aria-label="DITCH Studio walkthrough steps">
+          {TOUR_STEPS.map((step, index) => (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tourStep === index}
+              key={step.eyebrow}
+              onClick={() => selectTourStep(index)}
+              className={tourStep === index ? styles.guideStepActive : ""}
+            >
+              <b>{String(index + 1).padStart(2, "0")}</b>
+              <span><small>{step.eyebrow}</small>{step.title}</span>
+            </button>
+          ))}
+        </div>
+
+        <article className={styles.guideExplanation} aria-live="polite">
+          {activeTour ? (
+            <>
+              <div className={styles.guideNumber}>0{currentTourIndex + 1}</div>
+              <div className={styles.guideCopy}>
+                <span>{activeTour.eyebrow}</span>
+                <h4>{activeTour.title}</h4>
+                <p>{activeTour.body}</p>
+                <aside><b>Beginner note</b>{activeTour.note}</aside>
+              </div>
+              <div className={styles.guideActions}>
+                <button type="button" disabled={currentTourIndex === 0} onClick={() => selectTourStep(Math.max(0, currentTourIndex - 1))}>Back</button>
+                <button type="button" onClick={() => currentTourIndex < TOUR_STEPS.length - 1 ? selectTourStep(currentTourIndex + 1) : setTourStep(null)}>
+                  {currentTourIndex < TOUR_STEPS.length - 1 ? "Next step" : "Explore the studio"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className={styles.guideReady}>
+              <span>Ready to explore</span>
+              <h4>The studio below is fully interactive.</h4>
+              <p>Switch scenes, add layers, edit text, or enable your camera. Restart the markers whenever you need help.</p>
+              <button type="button" onClick={() => selectTourStep(0)}>Restart walkthrough</button>
+            </div>
+          )}
+        </article>
+      </section>
+
+      <div className={styles.tryLabel}><i /> INTERACTIVE STUDIO <span>{tourStep === null ? "Explore mode" : `Guided step ${currentTourIndex + 1} of ${TOUR_STEPS.length}`}</span></div>
       <div className={styles.studio}>
         <header className={styles.topbar}>
           <div className={styles.studioMark}>D</div><strong>ditch studio</strong><span className={styles.demoPill}>demo</span>
           <div className={styles.metrics}><span>PREVIEW</span><span><b>30</b> FPS</span><span><b>1080p</b></span></div>
           <button type="button" onClick={reset} className={styles.resetButton}>Reset</button>
-          <Link href="/auth" className={styles.liveButton}><i /> Take it live</Link>
+          <button type="button" className={styles.liveButton} onClick={() => selectTourStep(tourStep === 3 ? 3 : 0)}><i /> Go Live</button>
+          {tourStep === 3 && <TourMarker number="4" title="Launch the broadcast" body="This opens the final destination check. Confirm the enabled platforms, then go live once." className={styles.markerGoLive} />}
         </header>
+
+        {tourStep !== null && tourStep < 2 && (
+          <DestinationWalkthrough
+            step={tourStep}
+            platform={setupPlatform}
+            streamKey={demoStreamKey}
+            onPlatformChange={setSetupPlatform}
+            onStreamKeyChange={setDemoStreamKey}
+            onNext={() => selectTourStep(currentTourIndex + 1)}
+            onClose={() => setTourStep(null)}
+          />
+        )}
 
         <div className={styles.studioBody}>
           <aside className={styles.scenePanel}>
             <PanelHeader title="Scenes" action={addScene} />
+            {tourStep === 2 && <TourMarker number="3a" title="Scenes are your show moments" body="Create an intro, interview, screen share, or any layout you want to switch to live." className={styles.markerScenes} />}
             <div className={styles.sceneList}>
               {scenes.map((scene, index) => (
                 <button type="button" key={scene.id} onClick={() => switchScene(scene.id)} className={`${styles.sceneCard} ${scene.id === activeSceneId ? styles.sceneActive : ""}`}>
@@ -308,6 +413,7 @@ export default function StudioDemo() {
                 {menuOpen && <div className={styles.addMenu}>{SOURCES.map((source) => <button type="button" key={source.kind} onClick={() => void addLayer(source.kind)}><span>{source.code}</span>{source.label}</button>)}</div>}
               </div>
             </div>
+            {tourStep === 2 && <TourMarker number="3b" title="Layers are what viewers see" body="Use Add for cameras, guests, screens, text, logos, and shapes. Drag them on the preview to place them." className={styles.markerLayers} />}
             <div className={styles.layerList}>
               {[...activeScene.layers].reverse().map((layer) => (
                 <button type="button" key={layer.id} className={`${styles.layerRow} ${layer.id === selectedId ? styles.layerSelected : ""} ${!layer.visible ? styles.layerHidden : ""}`} onClick={() => setSelectedId(layer.id)}>
@@ -338,7 +444,67 @@ export default function StudioDemo() {
           <strong><i /> OFFLINE</strong>
         </footer>
       </div>
-      <p className={styles.demoCaption}><span>Real controls. Local demo state. Zero setup.</span><b>Build your first scene before you create an account.</b></p>
+      <p className={styles.demoCaption}><span>Real controls. Local demo state. Zero setup.</span><Link href="/auth">Open your own studio</Link></p>
+    </div>
+  );
+}
+
+function DestinationWalkthrough({
+  step,
+  platform,
+  streamKey,
+  onPlatformChange,
+  onStreamKeyChange,
+  onNext,
+  onClose,
+}: {
+  step: number;
+  platform: string;
+  streamKey: string;
+  onPlatformChange: (platform: string) => void;
+  onStreamKeyChange: (key: string) => void;
+  onNext: () => void;
+  onClose: () => void;
+}) {
+  const platforms = ["twitch", "youtube", "tiktok", "kick"];
+  const rtmpServer = {
+    twitch: "rtmp://live.twitch.tv/live",
+    youtube: "rtmp://a.rtmp.youtube.com/live2",
+    tiktok: "Paste the RTMP server from TikTok LIVE",
+    kick: "rtmp://ingest.global-contribute.live-video.net/app",
+  }[platform];
+  return (
+    <div className={styles.setupShade}>
+      <div className={styles.setupModal} role="dialog" aria-label="Destination setup walkthrough">
+        <header><div><small>Stream setup</small><h4>Go Live</h4></div><button type="button" onClick={onClose} aria-label="Close walkthrough">x</button></header>
+        <section>
+          <div className={styles.setupSectionTitle}><span>01</span><div><b>Destinations</b><small>Choose where DITCH should send your broadcast.</small></div></div>
+          <div className={styles.platformPicker}>
+            {platforms.map((item) => <button type="button" key={item} onClick={() => onPlatformChange(item)} className={platform === item ? styles.platformActive : ""}>{item}</button>)}
+          </div>
+          <label className={styles.setupField}><span>RTMP server</span><input readOnly value={rtmpServer} /></label>
+          {step === 0 && <TourMarker number="1" title="Pick a platform" body="Add every place you want to reach. DITCH remembers these destinations for future streams." className={styles.markerDestination} />}
+        </section>
+        <section>
+          <div className={styles.setupSectionTitle}><span>02</span><div><b>Stream key</b><small>Find this in the platform's creator dashboard.</small></div></div>
+          <label className={`${styles.setupField} ${step === 1 ? styles.setupFieldFocus : ""}`}>
+            <span>Private stream key</span>
+            <input type="password" value={streamKey} onChange={(event) => onStreamKeyChange(event.target.value)} placeholder="Type a fake key to practise" />
+          </label>
+          <p className={styles.keySafety}>Your key is masked after saving and is never shown on the public channel.</p>
+          {step === 1 && <TourMarker number="2" title="Paste, do not share" body="This key connects DITCH to your platform account. Treat it like a password." className={styles.markerStreamKey} />}
+        </section>
+        <footer><span>Practice with a fake key here. Nothing is sent or saved.</span><button type="button" onClick={onNext}>{step === 0 ? "Continue to stream key" : "Save and open studio"}</button></footer>
+      </div>
+    </div>
+  );
+}
+
+function TourMarker({ number, title, body, className }: { number: string; title: string; body: string; className: string }) {
+  return (
+    <div className={`${styles.tourMarker} ${className}`}>
+      <span>{number}</span>
+      <div><b>{title}</b><p>{body}</p></div>
     </div>
   );
 }

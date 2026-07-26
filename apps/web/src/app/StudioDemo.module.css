@@ -12,7 +12,7 @@
 .resetButton,.liveButton { display:inline-flex; align-items:center; justify-content:center; height:1.75rem; border-radius:.35rem; font-size:.58rem; font-weight:700; }
 .resetButton { padding:0 .65rem; border:1px solid var(--line); background:transparent; color:#888899; cursor:pointer; }
 .resetButton:hover { color:#fff; border-color:#55556c; }
-.liveButton { gap:.4rem; padding:0 .85rem; background:#ff1db4; color:#fff; }
+.liveButton { gap:.4rem; padding:0 .85rem; border:0; background:#ff1db4; color:#fff; font-family:inherit; cursor:pointer; }
 .liveButton:hover { background:#ff54c8; }
 .liveButton i { width:.4rem; height:.4rem; border-radius:50%; background:#fff; }
 .studioBody { display:grid; grid-template-columns:9.5rem minmax(0,1fr) 13.5rem; min-height:31rem; }
@@ -90,3 +90,71 @@
 @media(max-width:900px){.studioBody{grid-template-columns:1fr}.scenePanel{border-right:0;border-bottom:1px solid var(--line)}.sceneList{flex-direction:row;overflow-x:auto}.sceneCard{width:7rem;flex:0 0 auto}.addSceneCard{width:5rem;flex:0 0 auto}.layerPanel{border-top:1px solid var(--line);border-left:0}.layerList{display:grid;grid-template-columns:repeat(2,1fr);max-height:9rem}.properties{min-height:10rem}.previewPanel{padding:.85rem}}
 @media(max-width:620px){.demoWrap{margin-inline:-.8rem}.tryLabel,.demoCaption{margin-inline:.8rem}.studio{border-radius:.8rem}.topbar>strong,.metrics{display:none}.resetButton{margin-left:auto}.previewPanel{padding:.65rem}.previewHeader{font-size:.44rem}.layerList{grid-template-columns:1fr}.mixer>div{display:none}.mixer>p span:nth-child(n+3){display:none}.demoCaption{align-items:flex-start;flex-direction:column}}
 @media(prefers-reduced-motion:reduce){.stageTransition{animation:none}}
+
+/* Beginner studio walkthrough */
+.guide { margin-bottom: clamp(2rem,4vw,3.5rem); border:1px solid rgba(238,232,218,.16); background:linear-gradient(135deg,rgba(255,29,180,.055),transparent 38%),rgba(14,13,20,.76); box-shadow:8px 8px 0 rgba(72,28,55,.34); }
+.guideHeading { display:grid; grid-template-columns:12rem minmax(0,1fr); gap:.9rem 2.5rem; padding:2rem 2.2rem; border-bottom:1px solid rgba(238,232,218,.13); }
+.guideHeading > span { grid-row:1/3; padding-top:.35rem; color:#df78af; font:700 .64rem/1.4 ui-monospace,monospace; letter-spacing:.13em; text-transform:uppercase; }
+.guideHeading h3 { max-width:48rem; margin:0; color:#eee8da; font-family:Inter,ui-sans-serif,system-ui,sans-serif; font-size:clamp(1.6rem,3vw,2.6rem); letter-spacing:-.035em; line-height:1.04; }
+.guideHeading p { max-width:43rem; margin:0; color:#a79da9; font-family:Inter,ui-sans-serif,system-ui,sans-serif; font-size:.9rem; line-height:1.65; }
+.guideSteps { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid rgba(238,232,218,.13); }
+.guideSteps button { display:grid; grid-template-columns:2rem 1fr; align-items:start; gap:.65rem; min-height:6.4rem; padding:1.1rem; border:0; border-right:1px solid rgba(238,232,218,.11); background:transparent; color:#827b87; text-align:left; cursor:pointer; transition:background .2s,color .2s; }
+.guideSteps button:last-child { border-right:0; }
+.guideSteps button:hover { background:rgba(255,255,255,.025); color:#d9d1d8; }
+.guideSteps button > b { display:grid; place-items:center; width:1.75rem; height:1.75rem; border:1px solid #3a3745; color:#777180; font:700 .55rem/1 ui-monospace,monospace; }
+.guideSteps button > span { font-family:Inter,ui-sans-serif,system-ui,sans-serif; font-size:.76rem; font-weight:650; line-height:1.35; }
+.guideSteps button small { display:block; margin-bottom:.35rem; color:#6f6875; font:700 .48rem/1 ui-monospace,monospace; letter-spacing:.13em; text-transform:uppercase; }
+.guideSteps .guideStepActive { background:rgba(255,29,180,.08); color:#f2eaf0; box-shadow:inset 0 -2px #ff1db4; }
+.guideSteps .guideStepActive > b { border-color:#ff1db4; background:#ff1db4; color:#fff; }
+.guideSteps .guideStepActive small { color:#df78af; }
+.guideExplanation { display:grid; grid-template-columns:4.5rem minmax(0,1fr) auto; gap:1.3rem; align-items:start; min-height:12rem; padding:1.7rem 2.2rem; }
+.guideNumber { color:rgba(255,29,180,.28); font:400 3.4rem/.9 Impact,sans-serif; }
+.guideCopy > span,.guideReady > span { color:#67c8ad; font:700 .55rem/1 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; }
+.guideCopy h4,.guideReady h4 { margin:.5rem 0 .6rem; color:#eee8da; font-family:Inter,ui-sans-serif,system-ui,sans-serif; font-size:1.2rem; letter-spacing:-.02em; }
+.guideCopy > p,.guideReady p { max-width:42rem; margin:0; color:#aca4ae; font-family:Inter,ui-sans-serif,system-ui,sans-serif; font-size:.84rem; line-height:1.65; }
+.guideCopy aside { display:flex; gap:.55rem; max-width:46rem; margin-top:.85rem; padding:.7rem .8rem; border-left:2px solid #67c8ad; background:rgba(103,200,173,.055); color:#a9a3ab; font:500 .68rem/1.5 ui-monospace,monospace; }
+.guideCopy aside b { flex:0 0 auto; color:#67c8ad; font-size:.55rem; letter-spacing:.08em; text-transform:uppercase; }
+.guideActions { display:flex; gap:.4rem; align-self:end; }
+.guideActions button,.guideReady button { min-height:2.25rem; padding:0 .85rem; border:1px solid #403b46; background:transparent; color:#bdb4be; font:700 .58rem/1 ui-monospace,monospace; letter-spacing:.04em; cursor:pointer; }
+.guideActions button:last-child,.guideReady button { border-color:#a93472; background:#a93472; color:#fff; }
+.guideActions button:disabled { opacity:.3; cursor:not-allowed; }
+.guideReady { grid-column:1/-1; }
+.guideReady button { margin-top:1rem; }
+.studio { position:relative; }
+.topbar { position:relative; }
+.scenePanel,.layerPanel { position:relative; }
+.setupShade { position:absolute; inset:3rem 0 0; z-index:40; display:flex; align-items:center; justify-content:center; padding:1.5rem 11rem 1.5rem 1.5rem; background:rgba(5,5,12,.8); backdrop-filter:blur(5px); }
+.setupModal { position:relative; width:min(31rem,100%); max-height:100%; overflow:visible; border:1px solid #393956; border-radius:.65rem; background:#111122; box-shadow:0 2rem 5rem rgba(0,0,0,.58); }
+.setupModal > header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.1rem; border-bottom:1px solid #292947; }
+.setupModal > header small { display:block; margin-bottom:.2rem; color:#77778b; font:700 .48rem/1 ui-monospace,monospace; letter-spacing:.12em; text-transform:uppercase; }
+.setupModal > header h4 { margin:0; color:#fff; font-size:1rem; }
+.setupModal > header button { border:0; background:transparent; color:#77778b; cursor:pointer; }
+.setupModal > section { position:relative; padding:1rem 1.1rem; border-bottom:1px solid #292947; }
+.setupSectionTitle { display:flex; gap:.7rem; margin-bottom:.75rem; }
+.setupSectionTitle > span { display:grid; place-items:center; width:1.55rem; height:1.55rem; flex:0 0 auto; border:1px solid #3b3b58; color:#ff1db4; font:700 .48rem/1 ui-monospace,monospace; }
+.setupSectionTitle b { display:block; color:#e7e7f3; font-size:.69rem; }
+.setupSectionTitle small { display:block; margin-top:.18rem; color:#77778b; font-size:.55rem; }
+.platformPicker { display:grid; grid-template-columns:repeat(4,1fr); gap:.35rem; margin-bottom:.65rem; }
+.platformPicker button { height:1.8rem; border:1px solid #30304d; border-radius:.25rem; background:#0d0d1a; color:#85859a; font-size:.52rem; text-transform:capitalize; cursor:pointer; }
+.platformPicker .platformActive { border-color:#ff1db4; background:rgba(255,29,180,.12); color:#fff; }
+.setupField { display:block; margin-top:.55rem; }
+.setupField > span { display:block; margin-bottom:.28rem; color:#85859a; font-size:.5rem; }
+.setupField input { width:100%; height:2rem; padding:0 .65rem; border:1px solid #30304d; border-radius:.28rem; outline:0; background:#0d0d1a; color:#d8d8e7; font:500 .57rem/1 ui-monospace,monospace; }
+.setupField input:focus,.setupFieldFocus input { border-color:#00d4aa; box-shadow:0 0 0 2px rgba(0,212,170,.1); }
+.keySafety { margin:.45rem 0 0; color:#68687d; font-size:.49rem; line-height:1.5; }
+.setupModal > footer { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.85rem 1.1rem; }
+.setupModal > footer span { color:#66667a; font-size:.48rem; }
+.setupModal > footer button { height:1.9rem; padding:0 .8rem; border:0; border-radius:.28rem; background:#ff1db4; color:#fff; font-size:.54rem; font-weight:750; cursor:pointer; }
+.tourMarker { position:absolute; z-index:60; display:grid; grid-template-columns:2rem 1fr; gap:.65rem; width:15rem; padding:.7rem; border:1px solid rgba(255,29,180,.55); border-radius:.4rem; background:#201326; box-shadow:0 .8rem 2rem rgba(0,0,0,.42); color:#fff; pointer-events:none; }
+.tourMarker > span { display:grid; place-items:center; width:1.8rem; height:1.8rem; border-radius:50%; background:#ff1db4; color:#fff; font:800 .55rem/1 ui-monospace,monospace; box-shadow:0 0 0 5px rgba(255,29,180,.13); }
+.tourMarker b { display:block; margin-bottom:.28rem; color:#fff; font-size:.62rem; }
+.tourMarker p { margin:0; color:#b9acb8; font-size:.54rem; line-height:1.5; }
+.markerDestination { top:4.4rem; right:-16rem; }
+.markerStreamKey { top:3.5rem; right:-16rem; }
+.markerScenes { top:3rem; left:8.6rem; }
+.markerLayers { top:3rem; right:12.6rem; }
+.markerGoLive { top:2.75rem; right:0; }
+.demoCaption a { color:#df78af; font-weight:700; text-decoration:none; }
+.demoCaption a:hover { color:#fff; }
+@media(max-width:900px){.guideHeading{grid-template-columns:1fr}.guideHeading>span{grid-row:auto}.guideSteps{grid-template-columns:repeat(2,1fr)}.guideSteps button:nth-child(2){border-right:0}.guideExplanation{grid-template-columns:3rem 1fr}.guideActions{grid-column:2}.setupShade{padding:1rem;overflow:auto}.setupModal{overflow:hidden}.markerDestination,.markerStreamKey{position:relative;top:auto;right:auto;width:auto;margin-top:.7rem}.markerScenes,.markerLayers{position:relative;top:auto;right:auto;left:auto;width:auto;margin:.55rem}.markerGoLive{right:.5rem}}
+@media(max-width:620px){.guide{margin-inline:-.8rem}.guideHeading{padding:1.4rem 1.1rem}.guideSteps{grid-template-columns:1fr}.guideSteps button{min-height:auto;border-right:0;border-bottom:1px solid rgba(238,232,218,.1)}.guideExplanation{grid-template-columns:1fr;padding:1.25rem 1.1rem}.guideNumber{font-size:2.5rem}.guideActions{grid-column:auto}.setupShade{align-items:flex-start}.setupModal>footer{align-items:flex-start;flex-direction:column}.setupModal>footer button{width:100%}.tourMarker{width:min(14rem,calc(100vw - 2rem))}.markerGoLive{top:3rem}}
