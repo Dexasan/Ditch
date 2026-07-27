@@ -225,11 +225,14 @@
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1.38fr) minmax(340px, 0.62fr);
-  gap: 72px 64px;
+  /* Free vertical space collects in the first row so the note and the
+     platform line stay tucked under the hero instead of drifting apart. */
+  grid-template-rows: 1fr auto auto;
+  gap: 44px 64px;
   width: min(1280px, calc(100% - 48px));
   min-height: calc(100vh - 74px);
   margin: 0 auto;
-  padding: clamp(92px, 11vh, 150px) 0 54px;
+  padding: clamp(84px, 9vh, 130px) 0 46px;
 }
 
 .heroMain {
@@ -303,30 +306,22 @@
   padding-bottom: 12px;
 }
 
-/* Mono sets the aside apart from the Bebas headline without introducing a
-   fourth typeface, and matches the mono labels used elsewhere on the page. */
+/* Editorial serif against the blocky Bebas headline. No panel or rule —
+   the typeface carries the contrast on its own. */
 .heroLead {
-  position: relative;
   margin: 0;
-  padding: 20px 20px 20px 26px;
-  border-left: 2px solid var(--pink);
-  background: linear-gradient(
-    90deg,
-    rgba(255, 45, 147, 0.075),
-    rgba(255, 45, 147, 0)
-  );
-  color: #b9b0b7;
-  font-family: var(--font-jbmono), ui-monospace, monospace;
-  font-size: clamp(13px, 1.05vw, 14.5px);
-  line-height: 1.78;
-  letter-spacing: -0.005em;
+  color: #d5cdd3;
+  font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+  font-size: clamp(22px, 2vw, 29px);
+  font-weight: 400;
+  line-height: 1.34;
+  letter-spacing: 0.002em;
 }
 
 .heroLead strong {
-  position: relative;
   color: var(--paper);
-  font-weight: 700;
-  box-shadow: inset 0 -0.34em 0 rgba(255, 45, 147, 0.22);
+  font-weight: 400;
+  font-style: italic;
 }
 
 .heroActions {
@@ -352,12 +347,46 @@
   text-transform: uppercase;
 }
 
+/* Spans the full hero rather than the 430px aside, which is what forced it
+   onto two lines. Full width also lets it carry real weight. */
 .heroNote {
-  margin: 27px 0 0;
-  color: #736b71;
+  grid-column: 1 / -1;
+  /* Hugs its content rather than stretching the full grid, which left a
+     large empty run of border to the right of the sentence. */
+  justify-self: start;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 0;
+  padding: 15px 20px;
+  border: 1px solid rgba(255, 45, 147, 0.34);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 45, 147, 0.11),
+    rgba(255, 45, 147, 0.01)
+  );
+  text-wrap: nowrap;
+}
+
+.heroNoteBadge {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  color: #ffffff;
+  background: var(--pink);
   font-family: var(--font-jbmono), monospace;
-  font-size: 10px;
-  line-height: 1.6;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.heroNoteText {
+  min-width: 0;
+  color: var(--paper);
+  font-size: clamp(14px, 1.15vw, 16.5px);
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
 .platformLine {
@@ -413,24 +442,43 @@
   border-right: 0;
 }
 
+/* Neutral tile with a brand-tinted edge — the real logo carries the colour,
+   so a solid brand fill behind it would only muddy the mark. */
 .platformMark {
   display: inline-grid;
   place-items: center;
   width: 29px;
   height: 29px;
   flex: 0 0 auto;
-  border: 1px solid rgba(255, 255, 255, 0.17);
-  color: #fff;
-  font-family: var(--font-jbmono), monospace;
-  font-size: 7px;
-  font-weight: 900;
-  letter-spacing: -0.02em;
+  border: 1px solid rgba(238, 232, 218, 0.14);
+  background: #17131700;
 }
 
-.platformMark[data-tone="purple"] { background: #64409a; }
-.platformMark[data-tone="red"] { background: #a93845; }
-.platformMark[data-tone="cyan"] { color: #071512; background: #64c7bc; }
-.platformMark[data-tone="green"] { color: #10170d; background: #79b85d; }
+.platformMark img {
+  width: 19px;
+  height: 19px;
+  object-fit: contain;
+}
+
+.platformMark[data-tone="purple"] {
+  border-color: rgba(145, 70, 255, 0.45);
+  background: rgba(145, 70, 255, 0.11);
+}
+
+.platformMark[data-tone="red"] {
+  border-color: rgba(255, 45, 45, 0.4);
+  background: rgba(255, 45, 45, 0.1);
+}
+
+.platformMark[data-tone="cyan"] {
+  border-color: rgba(37, 244, 238, 0.36);
+  background: rgba(37, 244, 238, 0.09);
+}
+
+.platformMark[data-tone="green"] {
+  border-color: rgba(83, 252, 24, 0.36);
+  background: rgba(83, 252, 24, 0.09);
+}
 
 .signalSection,
 .stepsSection {
@@ -490,430 +538,595 @@
   line-height: 1.72;
 }
 
-.broadcastBoard {
+/* ── Studio preview ───────────────────────────────────────────────────────
+   Mirrors the real Ditch studio shell: top transmission bar, scenes/layers
+   rail, program deck, inspector, uplink strip. */
+
+.studioPreview {
   position: relative;
-  border: 1px solid rgba(238, 232, 218, 0.23);
-  background: #0f0d10;
+  overflow: hidden;
+  border: 1px solid rgba(238, 232, 218, 0.16);
+  background: #0d0b0e;
   box-shadow: 10px 10px 0 #371a2a;
 }
 
-.broadcastBoard::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 20;
-  pointer-events: none;
-  opacity: 0.055;
-  background: repeating-linear-gradient(0deg, transparent 0 3px, #fff 4px);
+.spTopBar {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  min-height: 50px;
+  padding: 0 15px;
+  border-bottom: 1px solid var(--line);
+  background: #100d11;
 }
 
-.boardChrome {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: 90px minmax(0, 1fr) auto;
+.spBrand {
+  display: flex;
   align-items: center;
-  min-height: 54px;
-  padding: 0 18px;
-  border-bottom: 1px solid var(--line);
-  background: #171419;
+  gap: 9px;
+  margin-right: auto;
+}
+
+.spBrand b {
+  display: grid;
+  gap: 2px;
+  color: var(--pink);
+  font-family: var(--font-bebas), Impact, sans-serif;
+  font-size: 17px;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.spBrand small,
+.spChannel small,
+.spMeta small {
+  color: #6f666d;
   font-family: var(--font-jbmono), monospace;
-  font-size: 8px;
-  font-style: normal;
-  letter-spacing: 0.08em;
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 
-.boardChrome > span {
-  display: flex;
-  gap: 7px;
+.spChannel,
+.spMeta {
+  display: grid;
+  gap: 3px;
 }
 
-.boardChrome > span i {
-  width: 7px;
-  height: 7px;
-  background: #4e464c;
+.spChannel b,
+.spMeta b {
+  color: #ded6dc;
+  font-family: var(--font-jbmono), monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
-.boardChrome > span i:first-child { background: var(--pink); }
-.boardChrome > span i:nth-child(2) { background: #d3a45e; }
-.boardChrome > span i:nth-child(3) { background: var(--mint); }
-
-.boardChrome > b {
-  justify-self: center;
-  color: #8f858d;
-  font-weight: 600;
-  text-transform: none;
-}
-
-.boardChrome > em {
+.spState {
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #d3cbd0;
-  font-style: normal;
+  padding: 7px 11px;
+  border: 1px solid rgba(255, 45, 147, 0.4);
+  background: rgba(255, 45, 147, 0.1);
+  color: var(--pink);
+  font-family: var(--font-jbmono), monospace;
+  font-size: 7px;
   font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
 }
 
-.boardChrome > em i,
-.outputs li > b i {
-  width: 6px;
-  height: 6px;
+.spState i {
+  width: 5px;
+  height: 5px;
   background: var(--pink);
   animation: tally 1.8s steps(2, end) infinite;
 }
 
-.boardBody {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) 150px minmax(280px, 0.65fr);
-  min-height: 560px;
-}
-
-.liveRoom {
-  min-width: 0;
-  padding: 24px;
-  border-right: 1px solid var(--line);
-}
-
-.roomLabel,
-.outputHeading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 34px;
-  color: #7d747b;
-  font-family: var(--font-jbmono), monospace;
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.roomLabel b {
-  color: var(--mint);
-  font-size: inherit;
-}
-
-.stage {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(150px, 0.72fr);
-  gap: 3px;
-  aspect-ratio: 16 / 10.2;
-  min-height: 360px;
-  overflow: hidden;
-  border: 1px solid rgba(238, 232, 218, 0.13);
-  background: #080708;
-}
-
-.hostFeed,
-.guestFeed {
-  position: relative;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: #21151d;
-}
-
-.guestFeed {
-  background: #11201e;
-}
-
-.hostFeed::before,
-.guestFeed::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0.22;
-  background-image: linear-gradient(rgba(238, 232, 218, 0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(238, 232, 218, 0.09) 1px, transparent 1px);
-  background-size: 48px 48px;
-}
-
-.feedCode {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  z-index: 2;
-  color: #8d838a;
+.spGoLive {
+  padding: 9px 13px;
+  color: #ffffff;
+  background: var(--pink);
+  box-shadow: 3px 3px 0 var(--pink-dark);
   font-family: var(--font-jbmono), monospace;
   font-size: 7px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
-.hostPortrait,
-.guestPortrait {
-  position: relative;
-  z-index: 1;
+.spBody {
   display: grid;
-  place-items: center;
-  width: 42%;
-  aspect-ratio: 0.9;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #fff;
-  background: var(--pink);
-  font-family: var(--font-bebas), Impact, sans-serif;
-  font-size: clamp(30px, 4vw, 58px);
-  letter-spacing: 0.05em;
-  box-shadow: 14px 14px 0 rgba(104, 0, 50, 0.55);
+  grid-template-columns: 142px minmax(0, 1fr) 226px;
 }
 
-.guestPortrait {
-  width: 58%;
-  color: var(--ink);
-  background: var(--mint);
-  box-shadow: 10px 10px 0 #203f38;
+/* Left rail: scenes + layers */
+.spRail {
+  display: grid;
+  align-content: start;
+  gap: 22px;
+  padding: 14px 12px;
+  border-right: 1px solid var(--line);
+  background: #0b090c;
 }
 
-.hostFeed footer,
-.guestFeed footer {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  left: 12px;
-  z-index: 3;
+.spRailGroup p {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 11px;
-  border: 1px solid rgba(238, 232, 218, 0.14);
-  background: rgba(11, 10, 12, 0.86);
+  margin: 0 0 9px;
+  color: #877e85;
+  font-family: var(--font-jbmono), monospace;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.spRailGroup p span {
+  color: #5b535a;
+}
+
+.spRailGroup li {
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  color: #8d848b;
   font-size: 9px;
+  font-weight: 600;
 }
 
-.hostFeed footer span,
-.guestFeed footer span {
-  color: var(--mint);
-  font-family: var(--font-jbmono), monospace;
-  font-size: 6px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.spRailGroup li + li {
+  margin-top: 4px;
 }
 
-.joinRequest {
-  position: absolute;
-  right: 18px;
-  bottom: 72px;
-  z-index: 5;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 3px 18px;
-  width: min(330px, calc(100% - 36px));
-  padding: 12px 13px;
-  border: 1px solid rgba(255, 45, 147, 0.65);
-  background: #1b1017;
-  box-shadow: 5px 5px 0 rgba(104, 0, 50, 0.58);
+.spRailGroup li[data-active="true"] {
+  border-color: rgba(255, 45, 147, 0.34);
+  background: rgba(255, 45, 147, 0.09);
+  color: var(--paper);
 }
 
-.joinRequest > span {
-  color: var(--pink);
-  font-family: var(--font-jbmono), monospace;
-  font-size: 7px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.joinRequest p {
-  grid-column: 1;
-  margin: 0;
-  color: #c8bec5;
-  font-size: 10px;
-}
-
-.joinRequest b {
-  grid-column: 2;
-  grid-row: 1 / 3;
-  align-self: center;
-  padding: 8px 9px;
-  color: var(--night);
-  background: var(--mint);
-  font-family: var(--font-jbmono), monospace;
-  font-size: 7px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.signalRoute {
-  position: relative;
-  display: grid;
-  place-items: center;
+/* Program deck */
+.spDeck {
+  display: flex;
   min-width: 0;
-  border-right: 1px solid var(--line);
-  overflow: hidden;
+  flex-direction: column;
 }
 
-.routeLine {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  left: 0;
-  height: 1px;
-  background: #5e555c;
-}
-
-.routePulse {
-  position: absolute;
-  top: calc(50% - 3px);
-  left: 0;
-  z-index: 1;
-  width: 7px;
-  height: 7px;
-  background: var(--pink);
-  box-shadow: 0 0 12px rgba(255, 45, 147, 0.72);
-  animation: signalTravel 2.8s linear infinite;
-}
-
-.signalRoute > div {
-  position: relative;
-  z-index: 2;
+.spDeckHead {
   display: flex;
   align-items: center;
-  flex-direction: column;
-  gap: 5px;
-  padding: 16px;
-  border: 1px solid rgba(255, 45, 147, 0.48);
-  background: var(--night);
-  box-shadow: 6px 6px 0 var(--pink-dark);
-}
-
-.signalRoute img {
-  width: 44px;
-  height: 44px;
-  object-fit: cover;
-}
-
-.signalRoute b {
-  color: var(--pink);
-  font-family: var(--font-bebas), Impact, sans-serif;
-  font-size: 19px;
-  font-weight: 400;
-  letter-spacing: 0.09em;
-  line-height: 1;
-}
-
-.signalRoute small {
-  color: #756d73;
-  font-family: var(--font-jbmono), monospace;
-  font-size: 6px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.outputs {
-  min-width: 0;
-  padding: 24px 18px;
-}
-
-.outputHeading {
-  padding-inline: 4px;
-}
-
-.outputHeading b {
-  color: var(--mint);
-  font-size: inherit;
-}
-
-.outputs ul {
-  border-top: 1px solid var(--line);
-}
-
-.outputs li {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 11px;
-  min-height: 82px;
-  padding: 12px 4px;
+  gap: 13px;
+  padding: 11px 14px;
   border-bottom: 1px solid var(--line);
 }
 
-.outputs li > span:nth-child(2) {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.outputs li strong {
-  color: #e3dbe0;
-  font-size: 11px;
-}
-
-.outputs li small {
-  color: #6e666c;
-  font-family: var(--font-jbmono), monospace;
-  font-size: 6px;
-  letter-spacing: 0.05em;
-}
-
-.outputs li > b {
+.spBus {
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid rgba(140, 201, 184, 0.34);
   color: var(--mint);
   font-family: var(--font-jbmono), monospace;
-  font-size: 7px;
-  letter-spacing: 0.06em;
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.outputs li > b i {
+.spBus i {
+  width: 4px;
+  height: 4px;
   background: var(--mint);
-  animation-delay: -0.8s;
 }
 
-.returnPath {
-  position: relative;
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
-  align-items: center;
-  gap: 28px;
-  min-height: 74px;
-  padding: 15px 24px;
-  overflow: hidden;
-  border-top: 1px solid rgba(140, 201, 184, 0.38);
-  background: #101916;
+.spDeckHead strong {
+  font-family: var(--font-bebas), Impact, sans-serif;
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.returnPath > span:first-child {
-  color: var(--mint);
+.spTelemetry {
+  display: flex;
+  gap: 16px;
+  margin-left: auto;
+  color: #6d646b;
   font-family: var(--font-jbmono), monospace;
-  font-size: 8px;
+  font-size: 6px;
   font-weight: 800;
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
 
-.returnPath p {
+.spTelemetry b {
+  color: #b7aeb5;
+  font-weight: 800;
+}
+
+/* Canvas: shared slide on top, the two cats below and large. */
+.spCanvas {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  aspect-ratio: 16 / 9;
+  padding: 11px;
+  background:
+    linear-gradient(rgba(238, 232, 218, 0.028) 1px, transparent 1px) 0 0 / 100% 26px,
+    #08070a;
+}
+
+/* The cats are the point of this preview, so they take the larger share. */
+.spCams {
+  display: grid;
+  flex: 0 0 57%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  min-height: 0;
+}
+
+.spCam {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(238, 232, 218, 0.16);
+  background: #141013;
+}
+
+.spCamImage {
+  z-index: 0;
+  object-fit: cover;
+  object-position: center 32%;
+}
+
+.spCam::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgba(8, 7, 10, 0.9) 0%,
+    rgba(8, 7, 10, 0.1) 38%,
+    rgba(8, 7, 10, 0) 62%
+  );
+}
+
+.spCam figcaption {
+  position: absolute;
+  right: 8px;
+  bottom: 7px;
+  left: 8px;
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.spCam figcaption b {
+  color: var(--paper);
+  font-family: var(--font-bebas), Impact, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.spCam figcaption span {
+  color: var(--mint);
+  font-family: var(--font-jbmono), monospace;
+  font-size: 5.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* The shared screen — a slide the cats are presenting. */
+.spSlide {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  /* Centred so the diagram never leaves a dead band of white below it. */
+  justify-content: center;
+  gap: 5px;
+  overflow: hidden;
+  padding: 16px 12px 12px;
+  border: 1px solid rgba(238, 232, 218, 0.13);
+  background: #eeece6;
+}
+
+.spSlideTag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 3px 6px;
+  background: #23732f;
+  color: #ffffff;
+  font-family: var(--font-jbmono), monospace;
+  font-size: 5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.spSlideRoot {
+  max-width: 46%;
+  padding: 5px 11px;
+  border: 1px solid #23732f;
+  color: #14150f;
+  background: #ffffff;
+  font-size: 7.5px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Capped so the claim boxes read as a tree rather than stretched bars. */
+.spSlideBranches {
+  position: relative;
+  display: grid;
+  width: 100%;
+  max-width: 86%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 26px;
+}
+
+/* Tree connectors */
+.spSlideBranches::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 25%;
+  width: 50%;
+  height: 1px;
+  background: #23732f;
+}
+
+.spSlideBranch {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.spSlideBranch::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  width: 1px;
+  height: 6px;
+  background: #23732f;
+}
+
+.spSlideWhy {
+  color: #23732f;
+  font-family: var(--font-jbmono), monospace;
+  font-size: 5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.spSlideNode {
+  width: 100%;
+  padding: 4px 7px;
+  border: 1px solid #23732f;
+  color: #17180f;
+  background: #ffffff;
+  font-size: 6.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.spSlideLeaves {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.spSlideLeaves span {
+  padding: 4px 5px;
+  border: 1px solid #6ba871;
+  color: #33352a;
+  background: #ffffff;
+  font-size: 5.5px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+/* Signal rail under the canvas */
+.spSignalRail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 18px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  color: #756c73;
+  font-family: var(--font-jbmono), monospace;
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.spSignalRail span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spSignalRail i {
+  width: 4px;
+  height: 4px;
+  background: var(--mint);
+}
+
+/* Inspector: chat tab, with the dogs taking it badly. */
+.spInspector {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+  background: #0b090c;
+}
+
+.spTabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+}
+
+.spTabs span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1 1 0;
+  justify-content: center;
+  padding: 11px 4px;
+  border-bottom: 2px solid transparent;
+  color: #6f666d;
+  font-family: var(--font-jbmono), monospace;
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.spTabs span[data-active="true"] {
+  border-bottom-color: var(--pink);
+  color: var(--paper);
+}
+
+.spTabs span b {
+  padding: 1px 4px;
+  background: var(--pink);
+  color: #ffffff;
+  font-size: 5px;
+}
+
+.spChat {
+  display: grid;
+  align-content: start;
+  gap: 11px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px 11px;
+}
+
+.spChatUser {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #a99fa7;
+  font-family: var(--font-jbmono), monospace;
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.spChatUser i {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+}
+
+.spChatUser i[data-platform="twitch"] { background: #9146ff; }
+.spChatUser i[data-platform="youtube"] { background: #ff2d2d; }
+.spChatUser i[data-platform="tiktok"] { background: #25f4ee; }
+.spChatUser i[data-platform="kick"] { background: #53fc18; }
+.spChatUser i[data-platform="ditch"] { background: var(--pink); }
+
+.spChat p {
+  margin: 4px 0 0;
+  color: #cdc4cb;
+  font-size: 9.5px;
+  line-height: 1.5;
+}
+
+.spChat li[data-platform="ditch"] p {
+  color: var(--mint);
+}
+
+.spChatBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin: 0;
-  color: #c6d7d1;
-  font-size: 10px;
+  gap: 8px;
+  padding: 9px 11px;
+  border-top: 1px solid var(--line);
+  color: #5f575e;
+  font-size: 8.5px;
+}
+
+.spChatBar b {
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 45, 147, 0.4);
+  color: var(--pink);
+  font-family: var(--font-jbmono), monospace;
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Uplink strip: where the one broadcast actually goes. */
+.spUplink {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 11px 15px;
+  border-top: 1px solid var(--line);
+  background: #100d11;
+}
+
+.spUplinkLabel,
+.spUplinkRate {
+  color: #6f666d;
+  font-family: var(--font-jbmono), monospace;
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.spUplinkRate {
+  margin-left: auto;
+  color: var(--mint);
+}
+
+.spUplink ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+.spUplink li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 9px 5px 5px;
+  border: 1px solid var(--line);
+  color: #cdc4cb;
+  font-size: 9px;
   font-weight: 700;
 }
 
-.returnPath p i {
-  color: var(--pink);
-  font-family: var(--font-jbmono), monospace;
-  font-style: normal;
+.spUplink li i {
+  width: 5px;
+  height: 5px;
+  background: var(--mint);
 }
 
-.returnPulse {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 70px;
-  height: 1px;
-  background: var(--mint);
-  box-shadow: 0 0 9px rgba(140, 201, 184, 0.58);
-  animation: returnTravel 3.6s linear infinite;
-}
 
 .definitionSection {
   display: grid;
@@ -1425,20 +1638,9 @@
     max-width: 560px;
   }
 
-  .boardBody {
-    grid-template-columns: minmax(0, 1fr) 116px minmax(250px, 0.62fr);
-  }
-
-  .liveRoom {
-    padding: 18px;
-  }
-
-  .outputs {
-    padding-inline: 14px;
-  }
-
-  .outputs li {
-    min-height: 78px;
+  /* Inspector drops away first; the canvas keeps the width. */
+  .spBody {
+    grid-template-columns: 128px minmax(0, 1fr) 200px;
   }
 
   .definitionSection {
@@ -1500,54 +1702,27 @@
     border-left: 0;
   }
 
-  .boardBody {
+  /* Stack the studio: rail on top as a strip, canvas, then the chat. */
+  .spBody {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .liveRoom {
+  .spRail {
+    grid-auto-flow: column;
+    justify-content: start;
+    gap: 30px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
 
-  .signalRoute {
-    min-height: 140px;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
+  .spInspector {
+    border-left: 0;
+    border-top: 1px solid var(--line);
   }
 
-  .routeLine {
-    top: 0;
-    right: auto;
-    bottom: 0;
-    left: 50%;
-    width: 1px;
-    height: auto;
-  }
-
-  .routePulse {
-    top: 0;
-    left: calc(50% - 3px);
-    animation-name: signalTravelVertical;
-  }
-
-  .outputs {
-    padding: 24px;
-  }
-
-  .outputs ul {
-    display: grid;
+  .spChat {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 24px;
-  }
-
-  .returnPath {
-    grid-template-columns: 1fr;
-    gap: 9px;
-  }
-
-  .returnPath p {
-    justify-content: flex-start;
-    flex-wrap: wrap;
+    gap: 11px 18px;
   }
 
   .definitionSection {
@@ -1607,14 +1782,29 @@
   }
 
   .heroTitle {
-    font-size: clamp(62px, 23vw, 92px);
-    line-height: 0.8;
+    /* 23vw rendered "EVERYWHERE." wider than the column and pushed the whole
+       page into horizontal overflow. */
+    font-size: clamp(44px, 18.5vw, 92px);
+    line-height: 0.82;
   }
 
   .heroLead {
-    padding: 16px 0 16px 18px;
-    font-size: 13px;
-    line-height: 1.72;
+    font-size: clamp(20px, 5.6vw, 24px);
+    line-height: 1.3;
+  }
+
+  /* No room for a single line at this width, so let it wrap and stack. */
+  .heroNote {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 15px;
+    text-wrap: pretty;
+  }
+
+  .heroNoteText {
+    font-size: 14px;
+    white-space: normal;
   }
 
   .heroActions {
@@ -1677,110 +1867,70 @@
     padding-top: 0;
   }
 
-  .broadcastBoard {
+  .studioPreview {
     box-shadow: 6px 6px 0 #371a2a;
   }
 
-  .boardChrome {
-    grid-template-columns: 48px minmax(0, 1fr) auto;
-    padding-inline: 12px;
+  /* Only the essentials survive at phone width. */
+  .spTopBar {
+    gap: 12px;
+    padding: 10px 11px;
   }
 
-  .boardChrome > span {
-    gap: 4px;
-  }
-
-  .boardChrome > span i {
-    width: 5px;
-    height: 5px;
-  }
-
-  .boardChrome > b {
-    max-width: 150px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .boardChrome > em {
-    font-size: 0;
-  }
-
-  .boardChrome > em::after {
-    content: "LIVE";
-    font-size: 7px;
-  }
-
-  .liveRoom {
-    padding: 12px;
-  }
-
-  .stage {
-    aspect-ratio: auto;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-    min-height: 310px;
-  }
-
-  .feedCode {
-    top: 9px;
-    left: 9px;
-    font-size: 5px;
-  }
-
-  .hostPortrait {
-    width: 52%;
-  }
-
-  .guestPortrait {
-    width: 68%;
-  }
-
-  .hostFeed footer,
-  .guestFeed footer {
-    right: 7px;
-    bottom: 7px;
-    left: 7px;
-    padding: 8px;
-  }
-
-  .hostFeed footer span,
-  .guestFeed footer span {
+  .spChannel,
+  .spMeta,
+  .spGoLive {
     display: none;
   }
 
-  .joinRequest {
-    right: 10px;
-    bottom: 52px;
-    width: calc(100% - 20px);
+  .spRail {
+    gap: 20px;
+    padding: 11px;
   }
 
-  .outputs {
-    padding: 18px 12px;
+  .spDeckHead {
+    gap: 9px;
+    padding: 9px 11px;
   }
 
-  .outputs ul {
-    grid-template-columns: 1fr;
-    gap: 0;
+  .spTelemetry span:not(:last-child) {
+    display: none;
   }
 
-  .outputs li {
-    min-height: 70px;
+  .spCanvas {
+    gap: 7px;
+    padding: 8px;
   }
 
-  .returnPath {
-    padding: 17px 14px;
+  .spCams {
+    flex-basis: 44%;
+    gap: 7px;
   }
 
-  .returnPath p {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    justify-content: stretch;
-    gap: 7px 12px;
-    font-size: 9px;
+  .spCam figcaption span {
+    display: none;
   }
 
-  .returnPath p i {
-    justify-self: end;
+  .spSlideLeaves {
+    display: none;
+  }
+
+  .spSignalRail {
+    gap: 6px 13px;
+    padding: 9px 11px;
+  }
+
+  .spChat {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .spUplink {
+    gap: 11px;
+    padding: 10px 11px;
+  }
+
+  .spUplinkRate {
+    display: none;
   }
 
   .definitionSection,

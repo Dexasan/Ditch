@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, Inter, JetBrains_Mono } from "next/font/google";
+import {
+  Bebas_Neue,
+  Instrument_Serif,
+  Inter,
+  JetBrains_Mono,
+} from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -18,6 +23,14 @@ const bebasNeue = Bebas_Neue({
   subsets: ["latin"],
   weight: "400",
   variable: "--font-bebas",
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-serif",
   display: "swap",
 });
 
@@ -78,7 +91,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jbMono.variable} ${bebasNeue.variable}`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${jbMono.variable} ${bebasNeue.variable} ${instrumentSerif.variable}`}
+    >
       <body className="min-h-screen bg-[var(--color-surface)] text-[var(--color-text)]">
         {children}
       </body>

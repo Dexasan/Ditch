@@ -4,10 +4,51 @@ import styles from "./page.module.css";
 import TransmissionField from "./TransmissionField";
 
 const DESTINATIONS = [
-  { name: "Twitch", code: "TW", tone: "purple" },
-  { name: "YouTube", code: "YT", tone: "red" },
-  { name: "TikTok", code: "TK", tone: "cyan" },
-  { name: "Kick", code: "KI", tone: "green" },
+  { name: "Twitch", logo: "/platforms/twitch.png", tone: "purple" },
+  { name: "YouTube", logo: "/platforms/youtube.png", tone: "red" },
+  { name: "TikTok", logo: "/platforms/tiktok.png", tone: "cyan" },
+  { name: "Kick", logo: "/platforms/kick.svg", tone: "green" },
+] as const;
+
+/* The slide being screen-shared inside the studio preview. */
+const SLIDE_BRANCHES = [
+  {
+    claim: "Cats cost less to keep than dogs.",
+    support: ["Cats eat less than dogs.", "Their gear is smaller and cheaper."],
+  },
+  {
+    claim: "Cats need less time than dogs.",
+    support: ["No walks, ever.", "They wash themselves."],
+  },
+] as const;
+
+/* Unified chat: the dogs in the audience are not taking it well. */
+const CHAT_MESSAGES = [
+  {
+    user: "rex_thegoodboy",
+    platform: "twitch",
+    body: "this is slander and i will not stand for it",
+  },
+  {
+    user: "borkfast_club",
+    platform: "youtube",
+    body: "\"they wash themselves\" ok and? we ROLL in things. character.",
+  },
+  {
+    user: "pug_life",
+    platform: "tiktok",
+    body: "no walks is a CON. respectfully.",
+  },
+  {
+    user: "sir_barksalot",
+    platform: "kick",
+    body: "mods. MODS.",
+  },
+  {
+    user: "mittens",
+    platform: "ditch",
+    body: "let him cook",
+  },
 ] as const;
 
 const STEPS = [
@@ -101,11 +142,14 @@ export default function LandingPage() {
                 See how it works
               </a>
             </div>
-
-            <p className={styles.heroNote}>
-              No download. No pile of plugins. OBS is welcome if you want it.
-            </p>
           </div>
+
+          <p className={styles.heroNote}>
+            <span className={styles.heroNoteBadge}>No setup</span>
+            <span className={styles.heroNoteText}>
+              No download. No pile of plugins. OBS is welcome if you want it.
+            </span>
+          </p>
 
           <div className={styles.platformLine}>
             <span>One broadcast</span>
@@ -113,7 +157,7 @@ export default function LandingPage() {
               {DESTINATIONS.map((destination) => (
                 <li key={destination.name}>
                   <PlatformMark
-                    code={destination.code}
+                    logo={destination.logo}
                     tone={destination.tone}
                   />
                   {destination.name}
@@ -293,121 +337,212 @@ function Header() {
 
 function BroadcastBoard() {
   return (
-    <div className={styles.broadcastBoard}>
-      <div className={styles.boardChrome}>
-        <span>
-          <i aria-hidden="true" />
-          <i aria-hidden="true" />
-          <i aria-hidden="true" />
+    <div className={styles.studioPreview}>
+      <div className={styles.spTopBar}>
+        <span className={styles.spBrand}>
+          <Image src="/logo.png" width={22} height={22} alt="" />
+          <b>
+            DITCH
+            <small>Transmission control</small>
+          </b>
         </span>
-        <b>ditch.live/c/your-channel</b>
-        <em>
+
+        <span className={styles.spChannel}>
+          <small>Channel</small>
+          <b>your-channel</b>
+        </span>
+
+        <span className={styles.spState}>
           <i aria-hidden="true" />
-          Live / 00:14:26
-        </em>
+          On air
+        </span>
+
+        <span className={styles.spMeta}>
+          <small>TC</small>
+          <b>00:14:26:11</b>
+        </span>
+
+        <span className={styles.spMeta} data-hide-narrow="true">
+          <small>Frame rate</small>
+          <b>60 FPS</b>
+        </span>
+
+        <span className={styles.spGoLive}>End stream</span>
       </div>
 
-      <div className={styles.boardBody}>
-        <div className={styles.liveRoom}>
-          <div className={styles.roomLabel}>
-            <span>Program preview</span>
-            <b>Audience on screen</b>
+      <div className={styles.spBody}>
+        <aside className={styles.spRail}>
+          <div className={styles.spRailGroup}>
+            <p>
+              Scenes<span>01</span>
+            </p>
+            <ul>
+              <li data-active="true">Scene 1</li>
+            </ul>
           </div>
 
-          <div className={styles.stage}>
-            <article className={styles.hostFeed}>
-              <span className={styles.feedCode}>HOST / CAM 01</span>
-              <div className={styles.hostPortrait} aria-hidden="true">
-                YOU
-              </div>
-              <footer>
-                <strong>Your show</strong>
-                <span>Mic on</span>
-              </footer>
-            </article>
+          <div className={styles.spRailGroup}>
+            <p>
+              Layers<span>03</span>
+            </p>
+            <ul>
+              <li data-active="true">Screen share</li>
+              <li>Cam 01</li>
+              <li>Guest 01</li>
+            </ul>
+          </div>
+        </aside>
 
-            <article className={styles.guestFeed}>
-              <span className={styles.feedCode}>GUEST / DITCH</span>
-              <div className={styles.guestPortrait} aria-hidden="true">
-                G
-              </div>
-              <footer>
-                <strong>Guest slot</strong>
-                <span>On stage</span>
-              </footer>
-            </article>
-
-            <div className={styles.joinRequest}>
-              <span>Twitch viewer</span>
-              <p>Requesting the open guest slot</p>
-              <b>Cued in</b>
+        <div className={styles.spDeck}>
+          <div className={styles.spDeckHead}>
+            <span className={styles.spBus}>
+              <i aria-hidden="true" />
+              Program output
+            </span>
+            <strong>Scene 1</strong>
+            <div className={styles.spTelemetry}>
+              <span>
+                Canvas <b>1280 X 720</b>
+              </span>
+              <span>
+                Frame <b>60 FPS</b>
+              </span>
+              <span>
+                Stage <b>2/4</b>
+              </span>
             </div>
           </div>
-        </div>
 
-        <div className={styles.signalRoute} aria-hidden="true">
-          <span className={styles.routeLine} />
-          <span className={styles.routePulse} />
-          <div>
-            <Image src="/logo.png" width={44} height={44} alt="" />
-            <b>DITCH</b>
-            <small>Origin</small>
-          </div>
-        </div>
+          <div className={styles.spCanvas}>
+            <SharedSlide />
 
-        <div className={styles.outputs}>
-          <div className={styles.outputHeading}>
-            <span>Destinations</span>
-            <b>04 / 04 live</b>
-          </div>
-          <ul>
-            {DESTINATIONS.map((destination) => (
-              <li key={destination.name}>
-                <PlatformMark
-                  code={destination.code}
-                  tone={destination.tone}
+            <div className={styles.spCams}>
+              <figure className={styles.spCam}>
+                <Image
+                  src="/studio-host.webp"
+                  alt="Host camera: a cat in a streaming studio"
+                  fill
+                  sizes="(max-width: 900px) 50vw, 300px"
+                  className={styles.spCamImage}
+                  priority
                 />
-                <span>
-                  <strong>{destination.name}</strong>
-                  <small>1080P / 30 FPS</small>
+                <figcaption>
+                  <b>You</b>
+                  <span>Cam 01</span>
+                </figcaption>
+              </figure>
+
+              <figure className={styles.spCam}>
+                <Image
+                  src="/studio-guest.webp"
+                  alt="Guest camera: a viewer who joined the broadcast"
+                  fill
+                  sizes="(max-width: 900px) 50vw, 300px"
+                  className={styles.spCamImage}
+                />
+                <figcaption>
+                  <b>Audience</b>
+                  <span>Joined from Twitch</span>
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div className={styles.spSignalRail}>
+            {[
+              "Input 01 / Screen share",
+              "Compositor / 03 sources",
+              "Uplink / Transmitting",
+              "Room / 02 on stage",
+            ].map((message) => (
+              <span key={message}>
+                <i aria-hidden="true" />
+                {message}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <aside className={styles.spInspector}>
+          <div className={styles.spTabs}>
+            <span>Properties</span>
+            <span data-active="true">Chat</span>
+            <span>
+              Queue<b>3</b>
+            </span>
+          </div>
+
+          <ul className={styles.spChat}>
+            {CHAT_MESSAGES.map((message) => (
+              <li key={message.user} data-platform={message.platform}>
+                <span className={styles.spChatUser}>
+                  <i aria-hidden="true" data-platform={message.platform} />
+                  {message.user}
                 </span>
-                <b>
-                  <i aria-hidden="true" />
-                  Live
-                </b>
+                <p>{message.body}</p>
               </li>
             ))}
           </ul>
-        </div>
+
+          <div className={styles.spChatBar}>
+            <span>Say something</span>
+            <b>Send</b>
+          </div>
+        </aside>
       </div>
 
-      <div className={styles.returnPath}>
-        <span>Audience return</span>
-        <p>
-          Watch anywhere
-          <i aria-hidden="true">-&gt;</i>
-          enter the Ditch room
-          <i aria-hidden="true">-&gt;</i>
-          request to join
-          <i aria-hidden="true">-&gt;</i>
-          appear on screen
-        </p>
-        <span className={styles.returnPulse} aria-hidden="true" />
+      <div className={styles.spUplink}>
+        <span className={styles.spUplinkLabel}>Uplink</span>
+        <ul>
+          {DESTINATIONS.map((destination) => (
+            <li key={destination.name}>
+              <PlatformMark logo={destination.logo} tone={destination.tone} />
+              <b>{destination.name}</b>
+              <i aria-hidden="true" />
+            </li>
+          ))}
+        </ul>
+        <span className={styles.spUplinkRate}>7 800 kbps</span>
+      </div>
+    </div>
+  );
+}
+
+/* The creator's screen share: a slide the cats are arguing over. */
+function SharedSlide() {
+  return (
+    <div className={styles.spSlide} aria-label="Shared screen: why cats beat dogs">
+      <span className={styles.spSlideTag}>Screen share</span>
+
+      <div className={styles.spSlideRoot}>Cats are better pets than dogs.</div>
+
+      <div className={styles.spSlideBranches}>
+        {SLIDE_BRANCHES.map((branch) => (
+          <div key={branch.claim} className={styles.spSlideBranch}>
+            <span className={styles.spSlideWhy}>because</span>
+            <div className={styles.spSlideNode}>{branch.claim}</div>
+            <div className={styles.spSlideLeaves}>
+              {branch.support.map((leaf) => (
+                <span key={leaf}>{leaf}</span>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
 function PlatformMark({
-  code,
+  logo,
   tone,
 }: {
-  code: string;
+  logo: string;
   tone: string;
 }) {
   return (
     <span className={styles.platformMark} data-tone={tone} aria-hidden="true">
-      {code}
+      <Image src={logo} alt="" width={24} height={24} />
     </span>
   );
 }
