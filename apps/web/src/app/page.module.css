@@ -41,6 +41,24 @@
   outline-offset: 4px;
 }
 
+/* Wrapping: body copy avoids orphans, display type balances across lines.
+   Without these, every paragraph on the page rags badly and drops a single
+   word onto its last line. */
+.page p,
+.page li,
+.page dd,
+.page td {
+  text-wrap: pretty;
+}
+
+.page h1,
+.page h2,
+.page h3,
+.page h4,
+.page caption {
+  text-wrap: balance;
+}
+
 .srOnly {
   position: absolute;
   width: 1px;
@@ -285,11 +303,30 @@
   padding-bottom: 12px;
 }
 
+/* Mono sets the aside apart from the Bebas headline without introducing a
+   fourth typeface, and matches the mono labels used elsewhere on the page. */
 .heroLead {
+  position: relative;
   margin: 0;
-  color: #c2b9c0;
-  font-size: clamp(17px, 1.45vw, 20px);
-  line-height: 1.62;
+  padding: 20px 20px 20px 26px;
+  border-left: 2px solid var(--pink);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 45, 147, 0.075),
+    rgba(255, 45, 147, 0)
+  );
+  color: #b9b0b7;
+  font-family: var(--font-jbmono), ui-monospace, monospace;
+  font-size: clamp(13px, 1.05vw, 14.5px);
+  line-height: 1.78;
+  letter-spacing: -0.005em;
+}
+
+.heroLead strong {
+  position: relative;
+  color: var(--paper);
+  font-weight: 700;
+  box-shadow: inset 0 -0.34em 0 rgba(255, 45, 147, 0.22);
 }
 
 .heroActions {
@@ -404,6 +441,10 @@
 }
 
 .sectionHeading {
+  /* Single source of truth for the display size. The label and body offsets
+     below are derived from it, so the three columns keep the same optical top
+     at every viewport instead of drifting apart. */
+  --heading-size: clamp(50px, 5vw, 72px);
   display: grid;
   grid-template-columns: 180px minmax(0, 1fr) minmax(270px, 390px);
   gap: 40px;
@@ -414,7 +455,9 @@
 .sectionIndex {
   display: flex;
   gap: 12px;
-  padding-top: 7px;
+  /* Bebas cap-top sits ~0.05em into its line box; JB Mono ~0.29em into its
+     own. Difference aligns the cap heights, not the line boxes. */
+  padding-top: calc(var(--heading-size, 72px) * 0.05 - 0.29em);
   color: #81777f;
 }
 
@@ -432,7 +475,7 @@
   max-width: 690px;
   margin: 0;
   font-family: var(--font-bebas), Impact, sans-serif;
-  font-size: clamp(50px, 5vw, 72px);
+  font-size: var(--heading-size);
   font-weight: 400;
   line-height: 0.9;
   letter-spacing: 0.02em;
@@ -440,7 +483,8 @@
 }
 
 .sectionHeading > p {
-  margin: 3px 0 0;
+  /* Same cap-top derivation as .sectionIndex, against Inter's metrics. */
+  margin: calc(var(--heading-size, 72px) * 0.05 - 0.5em) 0 0;
   color: var(--muted);
   font-size: 15px;
   line-height: 1.72;
@@ -969,13 +1013,51 @@
 }
 
 .steps li {
+  --step-title-size: clamp(34px, 3.5vw, 52px);
+  position: relative;
   display: grid;
   grid-template-columns: 180px minmax(0, 1fr);
   gap: 40px;
   align-items: start;
   min-height: 190px;
-  padding: 36px 0;
+  padding: 36px 0 36px 0;
   border-bottom: 1px solid var(--line);
+  transition: background 220ms ease;
+}
+
+/* Rail running down the gutter, with a node marking each step. */
+.steps li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 200px;
+  width: 1px;
+  background: var(--line);
+}
+
+.steps li::after {
+  content: "";
+  position: absolute;
+  top: 48px;
+  left: 197px;
+  width: 7px;
+  height: 7px;
+  background: var(--pink);
+  transition: box-shadow 220ms ease, transform 220ms ease;
+}
+
+.steps li:hover {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 45, 147, 0.05),
+    rgba(255, 45, 147, 0)
+  );
+}
+
+.steps li:hover::after {
+  transform: scale(1.5);
+  box-shadow: 0 0 0 5px rgba(255, 45, 147, 0.16);
 }
 
 .steps li > span {
@@ -983,6 +1065,24 @@
   font-family: var(--font-bebas), Impact, sans-serif;
   font-size: 66px;
   line-height: 0.8;
+  /* Bebas cap-top offset differs between line-height 0.8 and the title's
+     0.92, so the numeral and the title share an optical top at any size. */
+  padding-top: calc(var(--step-title-size) * 0.06);
+  transition: color 220ms ease;
+}
+
+/* Outlined numerals read as an index rather than competing with the title.
+   Guarded so unsupporting browsers keep the solid fill instead of blank. */
+@supports (-webkit-text-stroke: 1px currentColor) {
+  .steps li > span {
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(255, 45, 147, 0.6);
+  }
+
+  .steps li:hover > span {
+    color: var(--pink);
+    -webkit-text-stroke-color: var(--pink);
+  }
 }
 
 .steps li > div {
@@ -995,7 +1095,7 @@
 .steps h3 {
   margin: 0;
   font-family: var(--font-bebas), Impact, sans-serif;
-  font-size: clamp(34px, 3.5vw, 52px);
+  font-size: var(--step-title-size);
   font-weight: 400;
   line-height: 0.92;
   letter-spacing: 0.02em;
@@ -1004,7 +1104,8 @@
 
 .steps p {
   max-width: 470px;
-  margin: 2px 0 0;
+  /* Cap-top match against the fluid title, replacing a fixed 2px nudge. */
+  margin: calc(var(--step-title-size) * 0.06 - 0.5em) 0 0;
   color: var(--muted);
   font-size: 15px;
   line-height: 1.72;
@@ -1058,7 +1159,7 @@
 }
 
 .comparisonTable thead th {
-  height: 60px;
+  height: 64px;
   color: #716970;
   font-family: var(--font-jbmono), monospace;
   font-size: 8px;
@@ -1066,6 +1167,7 @@
   letter-spacing: 0.1em;
   text-align: left;
   text-transform: uppercase;
+  vertical-align: middle;
 }
 
 .comparisonTable thead th:first-child {
@@ -1077,8 +1179,26 @@
   padding-right: 42px;
 }
 
+/* The Ditch column reads as one continuous highlighted panel running the
+   full height of the table, rather than a row-by-row left border. */
+.comparisonTable thead th:last-child,
+.comparisonTable tbody td:last-child {
+  padding-left: 34px;
+  border-left: 1px solid rgba(255, 45, 147, 0.42);
+  background: rgba(255, 45, 147, 0.05);
+}
+
+.comparisonTable thead th:last-child {
+  color: var(--pink);
+}
+
 .comparisonTable tbody tr {
   border-top: 1px solid var(--line);
+  transition: background 200ms ease;
+}
+
+.comparisonTable tbody tr:hover {
+  background: rgba(238, 232, 218, 0.022);
 }
 
 .comparisonTable tbody th {
@@ -1091,21 +1211,44 @@
   letter-spacing: 0.03em;
   text-align: left;
   text-transform: uppercase;
+  vertical-align: top;
 }
 
 .comparisonTable td {
+  position: relative;
   padding-top: 34px;
   padding-bottom: 34px;
-  color: #817880;
+  color: #7b7279;
   font-size: 14px;
   line-height: 1.62;
   vertical-align: top;
 }
 
-.comparisonTable td:last-child {
-  padding-left: 34px;
-  border-left: 1px solid rgba(255, 45, 147, 0.42);
-  color: #ddd5da;
+/* Marks make the old-way / Ditch-way contrast scannable without extra copy. */
+.comparisonTable tbody td {
+  padding-left: 24px;
+}
+
+.comparisonTable tbody td::before {
+  content: "\00d7";
+  position: absolute;
+  top: 33px;
+  left: 0;
+  color: #5c545a;
+  font-family: var(--font-jbmono), monospace;
+  font-size: 13px;
+  line-height: 1.62;
+}
+
+.comparisonTable tbody td:last-child {
+  padding-left: 58px;
+  color: #ded6db;
+}
+
+.comparisonTable tbody td:last-child::before {
+  content: "\2713";
+  left: 34px;
+  color: var(--pink);
 }
 
 .useCases {
@@ -1277,6 +1420,8 @@
 
   .sectionHeading > p {
     grid-column: 2;
+    /* Drops below the heading here, so it no longer shares its cap-top. */
+    margin-top: 0;
     max-width: 560px;
   }
 
@@ -1306,6 +1451,15 @@
 
   .steps li {
     grid-template-columns: 150px minmax(0, 1fr);
+  }
+
+  /* Keep the rail centred in the narrower gutter. */
+  .steps li::before {
+    left: 170px;
+  }
+
+  .steps li::after {
+    left: 167px;
   }
 
   .comparisonTable thead th:first-child {
@@ -1413,6 +1567,11 @@
     grid-template-columns: 1fr;
     gap: 18px;
   }
+
+  .steps p {
+    /* Stacked under the title now, so drop the cap-top correction. */
+    margin-top: 0;
+  }
 }
 
 @media (max-width: 680px) {
@@ -1453,8 +1612,9 @@
   }
 
   .heroLead {
-    font-size: 17px;
-    line-height: 1.58;
+    padding: 16px 0 16px 18px;
+    font-size: 13px;
+    line-height: 1.72;
   }
 
   .heroActions {
@@ -1499,6 +1659,8 @@
   }
 
   .sectionHeading {
+    /* Drives h2 plus the derived label/body offsets. */
+    --heading-size: clamp(48px, 15vw, 66px);
     grid-template-columns: 1fr;
     gap: 24px;
     margin-bottom: 42px;
@@ -1506,11 +1668,13 @@
 
   .sectionHeading > p {
     grid-column: 1;
+    /* Columns are stacked here, so the cap-top correction no longer applies. */
+    margin-top: 0;
     font-size: 15px;
   }
 
-  .sectionHeading h2 {
-    font-size: clamp(48px, 15vw, 66px);
+  .sectionIndex {
+    padding-top: 0;
   }
 
   .broadcastBoard {
@@ -1650,6 +1814,12 @@
     padding: 30px 0;
   }
 
+  /* Too little gutter for a rail at this width. */
+  .steps li::before,
+  .steps li::after {
+    display: none;
+  }
+
   .steps li > span {
     font-size: 48px;
   }
@@ -1692,10 +1862,11 @@
   }
 
   .comparisonTable tbody th,
-  .comparisonTable td,
-  .comparisonTable td:last-child {
+  .comparisonTable tbody td,
+  .comparisonTable tbody td:last-child {
     padding: 0;
     border: 0;
+    background: none;
   }
 
   .comparisonTable tbody th {
@@ -1703,18 +1874,21 @@
     font-size: 38px;
   }
 
-  .comparisonTable td {
+  .comparisonTable tbody td {
     margin-top: 18px;
     font-size: 15px;
   }
 
-  .comparisonTable td:last-child {
+  .comparisonTable tbody td:last-child {
     padding: 18px 0 0 18px;
     border-left: 2px solid var(--pink);
   }
 
-  .comparisonTable td::before {
+  /* Stacked rows label each cell instead of carrying the desktop marks. */
+  .comparisonTable tbody td::before,
+  .comparisonTable tbody td:last-child::before {
     content: attr(data-label);
+    position: static;
     display: block;
     margin-bottom: 8px;
     color: #726970;
@@ -1725,7 +1899,7 @@
     text-transform: uppercase;
   }
 
-  .comparisonTable td:last-child::before {
+  .comparisonTable tbody td:last-child::before {
     color: var(--pink);
   }
 

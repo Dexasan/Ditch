@@ -86,9 +86,10 @@ export default function LandingPage() {
 
           <div className={styles.heroAside}>
             <p className={styles.heroLead}>
-              Ditch is a browser-based livestream studio and a streaming
-              platform in one. Produce your show, send it to every major
-              platform, then bring viewers onto the broadcast.
+              Ditch is a <strong>browser-based livestream studio</strong> and a{" "}
+              <strong>streaming platform</strong> in one. Produce your show,
+              send it to every major platform, then bring viewers onto the
+              broadcast.
             </p>
 
             <div className={styles.heroActions}>
