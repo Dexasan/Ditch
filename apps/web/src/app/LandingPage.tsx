@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
 import TransmissionField from "./TransmissionField";
-import SignalCursor from "./SignalCursor";
 
 const DESTINATIONS = [
   { name: "Twitch", code: "TW", tone: "purple" },
@@ -65,7 +64,6 @@ export default function LandingPage() {
   return (
     <div className={styles.page}>
       <TransmissionField />
-      <SignalCursor />
       <a className={styles.skipLink} href="#main-content">
         Skip to content
       </a>
