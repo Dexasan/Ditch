@@ -25,29 +25,70 @@ const SLIDE_BRANCHES = [
 /* Unified chat: the dogs in the audience are not taking it well. */
 const CHAT_MESSAGES = [
   {
+    id: "m1",
     user: "rex_thegoodboy",
     platform: "twitch",
     body: "this is slander and i will not stand for it",
   },
   {
+    id: "m2",
     user: "borkfast_club",
     platform: "youtube",
     body: "\"they wash themselves\" ok and? we ROLL in things. character.",
   },
   {
+    id: "m3",
     user: "pug_life",
     platform: "tiktok",
     body: "no walks is a CON. respectfully.",
   },
   {
+    id: "m4",
+    user: "mittens",
+    platform: "ditch",
+    body: "let him cook",
+  },
+  {
+    id: "m5",
     user: "sir_barksalot",
     platform: "kick",
     body: "mods. MODS.",
   },
   {
-    user: "mittens",
+    id: "m6",
+    user: "doberman_dan",
+    platform: "twitch",
+    body: "where is the peer review on any of this",
+  },
+  {
+    id: "m7",
+    user: "goodest_boi",
+    platform: "youtube",
+    body: "i have retrieved 4,000 balls. name one thing a cat has brought back.",
+  },
+  {
+    id: "m8",
+    user: "whiskers_ceo",
     platform: "ditch",
-    body: "let him cook",
+    body: "slide 2 is loyalty metrics. you will not enjoy slide 2.",
+  },
+  {
+    id: "m9",
+    user: "beagle_bites",
+    platform: "tiktok",
+    body: "unsubscribing. resubscribing. unsubscribing.",
+  },
+  {
+    id: "m10",
+    user: "sir_barksalot",
+    platform: "kick",
+    body: "still here. still furious.",
+  },
+  {
+    id: "m11",
+    user: "rex_thegoodboy",
+    platform: "twitch",
+    body: "MY OWNER IS IN THIS CHAT",
   },
 ] as const;
 
@@ -474,7 +515,7 @@ function BroadcastBoard() {
 
           <ul className={styles.spChat}>
             {CHAT_MESSAGES.map((message) => (
-              <li key={message.user} data-platform={message.platform}>
+              <li key={message.id} data-platform={message.platform}>
                 <span className={styles.spChatUser}>
                   <i aria-hidden="true" data-platform={message.platform} />
                   {message.user}
