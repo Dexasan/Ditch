@@ -24,12 +24,11 @@ const bebasNeue = Bebas_Neue({
 export const metadata: Metadata = {
   metadataBase: new URL("https://ditchlive.app"),
   title: {
-    default:
-      "DITCH | Livestreams your audience can actually join",
+    default: "DITCH | Go live everywhere. Let viewers in.",
     template: "%s | DITCH",
   },
   description:
-    "Run your livestream in the browser, multistream anywhere for free, and bring viewers from the chat onto the screen with DITCH.",
+    "A browser-based livestream studio and live channel. Multistream to Twitch, YouTube, TikTok, and Kick, then bring viewers onto the show.",
   keywords: [
     "multistream",
     "multistreaming",
@@ -45,26 +44,24 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://ditchlive.app",
     siteName: "DITCH",
-    title:
-      "DITCH | Livestreams your audience can actually join",
+    title: "DITCH | Go live everywhere. Let viewers in.",
     description:
-      "Run the show in your browser, multistream anywhere for free, and bring viewers from the chat onto the screen.",
+      "A browser-based livestream studio and live channel. Send one show everywhere, then bring viewers onto the broadcast.",
     images: [
       {
-        url: "https://ditchlive.app/og-v2.png",
+        url: "https://ditchlive.app/og-v3.png",
         width: 1536,
         height: 1024,
-        alt: "DITCH - Your stream has an audience. Give it a door.",
+        alt: "DITCH. Go live everywhere. Let people in.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title:
-      "DITCH | Livestreams your audience can actually join",
+    title: "DITCH | Go live everywhere. Let viewers in.",
     description:
-      "Run the show in your browser, multistream anywhere for free, and bring viewers from the chat onto the screen.",
-    images: ["https://ditchlive.app/og-v2.png"],
+      "A browser-based livestream studio and live channel. Send one show everywhere, then bring viewers onto the broadcast.",
+    images: ["https://ditchlive.app/og-v3.png"],
   },
   robots: {
     index: true,
