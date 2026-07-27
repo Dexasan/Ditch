@@ -306,7 +306,7 @@
   padding-bottom: 12px;
 }
 
-/* Editorial serif against the blocky Bebas headline. No panel or rule —
+/* Editorial serif against the blocky Bebas headline. No panel or rule:
    the typeface carries the contrast on its own. */
 .heroLead {
   margin: 0;
@@ -442,7 +442,7 @@
   border-right: 0;
 }
 
-/* Neutral tile with a brand-tinted edge — the real logo carries the colour,
+/* Neutral tile with a brand-tinted edge. The real logo carries the colour,
    so a solid brand fill behind it would only muddy the mark. */
 .platformMark {
   display: inline-grid;
@@ -827,7 +827,7 @@
   text-transform: uppercase;
 }
 
-/* The shared screen — a slide the cats are presenting. */
+/* The shared screen: a slide the cats are presenting. */
 .spSlide {
   position: relative;
   display: flex;
