@@ -12,6 +12,8 @@ export type StreamPlatform =
 
 export type SessionStatus = "idle" | "live" | "ending" | "ended";
 
+export type SessionSource = "browser" | "rtmp";
+
 export type ParticipantStatus = "waiting" | "approved" | "live" | "removed";
 
 export type DestinationStatus = "idle" | "connecting" | "live" | "error" | "stopped";
@@ -38,10 +40,19 @@ export interface Channel {
 export interface LiveSession {
   id: string;
   channel_id: string;
+  source_type: SessionSource;
   status: SessionStatus;
   started_at: string | null;
   ended_at: string | null;
   created_at: string;
+}
+
+// Short-lived credentials for publishing an external encoder into one session.
+// The signed key is intentionally never persisted by DITCH.
+export interface IngestCredentials {
+  server_url: string;
+  stream_key: string;
+  expires_at: string;
 }
 
 // A platform the creator is simultaneously pushing their stream to.

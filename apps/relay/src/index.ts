@@ -4,11 +4,13 @@ import { supabaseAdmin, verifyAccessToken } from "@ditch/db";
 import { validateEnv } from "./lib/env.js";
 import { spawnFfmpeg, sanitizeEncoderParams, type FfmpegSession } from "./lib/ffmpeg.js";
 import { createHlsPublisher, isHlsConfigured, type HlsPublisher } from "./lib/hls.js";
+import { startRtmpIngest, type RtmpIngestController } from "./lib/ingest.js";
 
 validateEnv();
 
 const PORT = Number(process.env.RELAY_PORT ?? process.env.PORT) || 3003;
 const MAX_ACTIVE_STREAMS = Math.max(1, Number(process.env.MAX_ACTIVE_STREAMS) || 4);
+let rtmpIngest: RtmpIngestController | null = null;
 
 function isOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return false;
@@ -31,6 +33,8 @@ const httpServer = createServer((_req: IncomingMessage, res: ServerResponse) => 
     active_streams: activeSessions.size,
     max_active_streams: MAX_ACTIVE_STREAMS,
     hls_enabled: isHlsConfigured(),
+    rtmp_ingest_enabled: Boolean(rtmpIngest),
+    active_ingests: rtmpIngest?.activeCount() ?? 0,
     uptime_seconds: Math.round(process.uptime()),
   }));
 });
@@ -99,12 +103,12 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
       const userId = authUser.id;
 
       // 2 + 3. Verify ownership and fetch destinations in parallel
-      type SessionWithChannel = { id: string; channels: { owner_id: string } };
+      type SessionWithChannel = { id: string; source_type: "browser" | "rtmp"; channels: { owner_id: string } };
       const databaseStartedAt = Date.now();
       const [{ data: sessionRow }, { data: destinations }] = await Promise.all([
         supabaseAdmin!
           .from("live_sessions")
-          .select("id, channels!inner(owner_id)")
+          .select("id, source_type, channels!inner(owner_id)")
           .eq("id", session_id)
           .single(),
         supabaseAdmin!
@@ -118,6 +122,14 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
 
       if (!row || row.channels.owner_id !== userId) {
         send(ws, { type: "error", message: "Forbidden", retryable: false });
+        return;
+      }
+      if (row.source_type === "rtmp") {
+        send(ws, {
+          type: "error",
+          message: "This session is armed for an external RTMP encoder",
+          retryable: false,
+        });
         return;
       }
 
@@ -144,9 +156,14 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
       }
 
       if (stale) {
-        console.log(`[relay] session ${session_id} — killing stale process before respawn`);
-        stale.stop();
-        activeSessions.delete(session_id);
+        // Wait for the old process to actually die. It still owns the RTMP
+        // sockets until it does, and Twitch/YouTube accept only one publisher
+        // per stream key, so spawning over the top of it makes the newcomer
+        // fail with "error opening: I/O error" and collapse the whole tee.
+        console.log(`[relay] session ${session_id}: waiting for stale ffmpeg to exit before respawn`);
+        await stale.stop();
+        if (activeSessions.get(session_id) === stale) activeSessions.delete(session_id);
+        console.log(`[relay] session ${session_id}: stale ffmpeg exited, respawning`);
       }
 
       // 5. Spawn ffmpeg
@@ -166,7 +183,7 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
         ffmpegSpawnMs = Date.now() - ffmpegSpawnStartedAt;
         session = {
           ...ffmpeg,
-          stop: () => { ffmpeg.stop(); void publisher?.stop(); },
+          stop: async () => { await ffmpeg.stop(); void publisher?.stop(); },
         };
         currentSessionId = session_id;
         activeSessions.set(session_id, session);
@@ -176,23 +193,29 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
         return;
       }
 
-      session.onDrain(() => {
+      // Captured so the exit handlers can tell "my process died" from "a newer
+      // connection already replaced me", and only clear the registry for the
+      // former. The registry is keyed by session, not by socket, so a process
+      // that outlives its WebSocket stays visible and reconnects wait for it.
+      const spawned = session;
+
+      spawned.onDrain(() => {
         if (ws.readyState === WebSocket.OPEN) ws.resume();
       });
 
-      session.onError((err) => {
+      spawned.onError((err) => {
         console.error("[relay] ffmpeg spawn error:", err.message);
         send(ws, { type: "error", message: `ffmpeg spawn error: ${err.message}` });
-        if (currentSessionId) activeSessions.delete(currentSessionId);
-        session = null;
+        if (activeSessions.get(session_id) === spawned) activeSessions.delete(session_id);
+        if (session === spawned) session = null;
         void publisher?.stop();
       });
 
-      session.onExit((code, signal) => {
+      spawned.onExit((code, signal) => {
         console.log(`[relay] ffmpeg exited — code: ${code}, signal: ${signal}`);
         send(ws, { type: "stopped", code, signal });
-        if (currentSessionId) activeSessions.delete(currentSessionId);
-        session = null;
+        if (activeSessions.get(session_id) === spawned) activeSessions.delete(session_id);
+        if (session === spawned) session = null;
         void publisher?.stop();
       });
 
@@ -208,25 +231,27 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
       console.log(`[relay] session ${session_id} started → ${rtmpTargets.length} destination(s), container: ${encoderParams.container}`);
     }
 
+    // These teardown paths deliberately do NOT remove the registry entry: the
+    // ffmpeg process can outlive its socket by seconds, and while it lives it
+    // still holds the RTMP connection. Its own exit handler clears the entry,
+    // so a reconnect arriving in the gap finds it and waits instead of racing
+    // it for the stream key.
     if (msg.type === "stop") {
-      session?.stop();
-      if (currentSessionId) activeSessions.delete(currentSessionId);
+      void session?.stop();
       session = null;
       currentSessionId = null;
     }
   });
 
   ws.on("close", () => {
-    session?.stop();
-    if (currentSessionId) activeSessions.delete(currentSessionId);
+    void session?.stop();
     session = null;
     currentSessionId = null;
   });
 
   ws.on("error", (err) => {
     console.error("[relay] ws error:", err.message);
-    session?.stop();
-    if (currentSessionId) activeSessions.delete(currentSessionId);
+    void session?.stop();
     session = null;
     currentSessionId = null;
   });
@@ -237,6 +262,8 @@ function send(ws: WebSocket, payload: Record<string, unknown>) {
     ws.send(JSON.stringify(payload));
   }
 }
+
+rtmpIngest = startRtmpIngest({ activeSessions, maxActiveStreams: MAX_ACTIVE_STREAMS });
 
 httpServer.listen(PORT, () => {
   console.log(`[relay] listening on port ${PORT}`);

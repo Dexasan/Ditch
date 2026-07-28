@@ -31,6 +31,7 @@ export default async function LivePage({
 
   if (!ownershipResult.channel || ownershipResult.channel.slug !== slug) redirect(`/c/${slug}`);
   if (!session || session.status === "ended") redirect("/dashboard");
+  if (session.source_type === "rtmp") redirect("/dashboard");
 
   const creatorName =
     user.user_metadata?.display_name ??

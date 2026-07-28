@@ -13,6 +13,7 @@ import { communityRoutes } from "./routes/community";
 import { agoraRoutes } from "./routes/agora";
 import { livekitRoutes } from "./routes/livekit";
 import { relayRoutes } from "./routes/relay";
+import { ingestRoutes } from "./routes/ingest";
 
 validateEnv();
 
@@ -69,6 +70,7 @@ async function start() {
   await server.register(agoraRoutes);
   await server.register(livekitRoutes);
   await server.register(relayRoutes);
+  await server.register(ingestRoutes);
 
   // ── Start ─────────────────────────────────────────────────────────────────
 
