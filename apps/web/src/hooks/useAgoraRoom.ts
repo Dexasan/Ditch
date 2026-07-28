@@ -78,8 +78,16 @@ function joinWithTimeout(
  * Returns `null` only for the one legitimate case: the server answered 200 and
  * explicitly reported no token, i.e. AGORA_APP_CERTIFICATE is not configured.
  */
-async function fetchAgoraToken(sessionId: string, uid: number, authToken?: string): Promise<string | null> {
-  const url = `${API_BASE}/agora/token?session_id=${encodeURIComponent(sessionId)}&uid=${uid}`;
+async function fetchAgoraToken(
+  sessionId: string,
+  uid: number,
+  authToken?: string,
+  participantToken?: string,
+): Promise<string | null> {
+  // A guest with no account has no Authorization header to send; the
+  // participant credential is what identifies them to the token route.
+  const url = `${API_BASE}/agora/token?session_id=${encodeURIComponent(sessionId)}&uid=${uid}`
+    + (participantToken ? `&participant_token=${encodeURIComponent(participantToken)}` : "");
   const headers: Record<string, string> = {};
   if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
 
@@ -149,6 +157,7 @@ export function useAgoraRoom(options: {
   screenShareUid?: number;
   /** Supabase access token forwarded to the Agora token endpoint. Required when App Certificate is configured. */
   authToken?: string;
+  participantToken?: string;
   /** Drives capture frame rate + optimization: "detail" (30fps) or "motion" (60fps). */
   contentMode?: ContentMode;
   /** When the composite program feed is publishing to Agora, the raw creator
@@ -159,7 +168,7 @@ export function useAgoraRoom(options: {
    *  drop a nominal 60fps target to 30 when the device can't sustain it. */
   onCaptureFps?: (info: { source: "camera" | "screen"; frameRate: number | undefined }) => void;
 }): AgoraRoomState {
-  const { channelName, uid, role, publish, publishAudio, enabled, screenShareUid, authToken } = options;
+  const { channelName, uid, role, publish, publishAudio, enabled, screenShareUid, authToken, participantToken } = options;
   const contentMode: ContentMode = options.contentMode ?? "detail";
   // Fail-safe default false ⇒ publish the fallback camera. Any uncertainty
   // degrades to today's always-publish behavior, never "guest sees nothing".
@@ -200,6 +209,8 @@ export function useAgoraRoom(options: {
   useEffect(() => { channelNameRef.current = channelName; }, [channelName]);
   const authTokenRef = useRef(authToken);
   useEffect(() => { authTokenRef.current = authToken; }, [authToken]);
+  const participantTokenRef = useRef(participantToken);
+  useEffect(() => { participantTokenRef.current = participantToken; }, [participantToken]);
 
   useEffect(() => {
     if (!enabled || !AGORA_APP_ID) return;
@@ -248,7 +259,7 @@ export function useAgoraRoom(options: {
       client.on("user-left", syncRemote);
 
       await client.setClientRole(role);
-      const agoraToken = await fetchAgoraToken(channelName, uid, authTokenRef.current);
+      const agoraToken = await fetchAgoraToken(channelName, uid, authTokenRef.current, participantTokenRef.current);
       if (!mounted) return;
       // Repeat visits on a known-restrictive network skip the ~8s direct-stall wait.
       if (!agoraNeedsProxy) {
@@ -275,7 +286,7 @@ export function useAgoraRoom(options: {
         // Renewal runs in an event handler, so a throw here would surface as an
         // unhandled rejection and the session would silently expire instead.
         try {
-          const newToken = await fetchAgoraToken(channelNameRef.current, uid, authTokenRef.current);
+          const newToken = await fetchAgoraToken(channelNameRef.current, uid, authTokenRef.current, participantTokenRef.current);
           if (newToken) await client.renewToken(newToken);
         } catch (err) {
           setState((prev) => ({ ...prev, error: `Token renewal failed: ${String(err)}` }));
@@ -562,12 +573,12 @@ export function useAgoraRoom(options: {
       client.on("user-left", syncRemote);
 
       await client.setClientRole("host");
-      const agoraToken = await fetchAgoraToken(channelNameRef.current, hostUid, authTokenRef.current);
+      const agoraToken = await fetchAgoraToken(channelNameRef.current, hostUid, authTokenRef.current, participantTokenRef.current);
       applyProxyIfNeeded(client);
       await client.join(AGORA_APP_ID, channelNameRef.current, agoraToken, hostUid);
       client.on("token-privilege-will-expire", async () => {
         try {
-          const newToken = await fetchAgoraToken(channelNameRef.current, hostUid, authTokenRef.current);
+          const newToken = await fetchAgoraToken(channelNameRef.current, hostUid, authTokenRef.current, participantTokenRef.current);
           if (newToken) await client.renewToken(newToken);
         } catch (err) {
           setState((prev) => ({ ...prev, error: `Token renewal failed: ${String(err)}` }));
@@ -624,12 +635,12 @@ export function useAgoraRoom(options: {
       client.on("user-left", syncRemote);
 
       await client.setClientRole("audience");
-      const agoraToken = await fetchAgoraToken(channelNameRef.current, 0, authTokenRef.current);
+      const agoraToken = await fetchAgoraToken(channelNameRef.current, 0, authTokenRef.current, participantTokenRef.current);
       applyProxyIfNeeded(client);
       await client.join(AGORA_APP_ID, channelNameRef.current, agoraToken, 0);
       client.on("token-privilege-will-expire", async () => {
         try {
-          const newToken = await fetchAgoraToken(channelNameRef.current, 0, authTokenRef.current);
+          const newToken = await fetchAgoraToken(channelNameRef.current, 0, authTokenRef.current, participantTokenRef.current);
           if (newToken) await client.renewToken(newToken);
         } catch (err) {
           setState((prev) => ({ ...prev, error: `Token renewal failed: ${String(err)}` }));

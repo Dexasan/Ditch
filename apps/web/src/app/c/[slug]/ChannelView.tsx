@@ -497,6 +497,11 @@ export default function ChannelView({
   const [messages, setMessages]               = useState<ChatMessage[]>([]);
   const [participants, setParticipants]       = useState<Participant[]>([]);
   const [myParticipant, setMyParticipant]     = useState<Participant | null>(null);
+  // Proves which participant row is ours when asking for an RTC publish token.
+  // Guests without an account have no Supabase identity to present, and this is
+  // the only thing that lets them reach a slot. Held in state, not storage, to
+  // match myParticipant: a reload already drops the participant entirely.
+  const [participantToken, setParticipantToken] = useState<string | null>(null);
   const [chatBody, setChatBody]               = useState("");
   const [chatDraft, setChatDraft]             = useState("");
   const [showSignInModal, setShowSignInModal] = useState(false);
@@ -661,6 +666,7 @@ export default function ChannelView({
     // on a frozen "live" stream.
     enabled: !sessionError && (!hlsUrl || Boolean(myParticipant) || hlsFailed),
     authToken: tokenState ?? undefined,
+    participantToken: participantToken ?? undefined,
   });
 
   // The uid we last published under. Slot uids (slot_index + 1) are how the
@@ -735,11 +741,15 @@ export default function ChannelView({
     setRequesting(true);
     setRequestError(null);
     try {
-      const { participant } = await api.post<{ participant: Participant }>("/participants", {
+      const { participant, participant_token } = await api.post<{
+        participant: Participant;
+        participant_token?: string;
+      }>("/participants", {
         token: tokenState ?? undefined,
         body: { session_id: sessionId, display_name: requestName.trim(), platform_origin: "ditch" },
       });
       setMyParticipant(participant);
+      setParticipantToken(participant_token ?? null);
       getSocket(tokenState ?? undefined).emit("participant:notify_new", { session_id: sessionId });
     } catch (err) {
       setRequestError(err instanceof Error ? err.message : "Failed to request.");

@@ -4,6 +4,7 @@ import type { Database } from "@ditch/db";
 import { supabaseAdmin } from "@ditch/db";
 import { authenticate } from "../lib/authenticate";
 import { assertSessionOwner, assertParticipantAccess } from "../lib/guards";
+import { issueParticipantToken } from "../lib/participantToken";
 
 type StreamPlatform = Database["public"]["Enums"]["stream_platform"];
 type ParticipantRow = Database["public"]["Tables"]["participants"]["Row"];
@@ -108,7 +109,14 @@ export async function participantRoutes(server: FastifyInstance) {
         return reply.status(500).send({ error: "Failed to join session" });
       }
 
-      return reply.status(201).send({ participant });
+      // Anonymous guests have no auth.uid() to present when they later ask for
+      // an RTC publish token, so hand them a credential scoped to this
+      // participant row. Signed-in guests get one too: it keeps the client path
+      // uniform and still works if their access token expires mid-session.
+      return reply.status(201).send({
+        participant,
+        participant_token: issueParticipantToken(participant.id, session_id),
+      });
     }
   );
 

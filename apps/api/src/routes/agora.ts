@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { RtcTokenBuilder, RtcRole } from "agora-token";
 import { supabaseAdmin } from "@ditch/db";
 import { authenticate } from "../lib/authenticate";
+import { verifyParticipantToken } from "../lib/participantToken";
 
 const APP_ID          = process.env.AGORA_APP_ID ?? "";
 const APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE ?? "";
@@ -44,14 +45,15 @@ export async function agoraRoutes(server: FastifyInstance) {
    * Agora channel name) and UID. Auth requirements vary by UID:
    *
    *   uid 0        → SUBSCRIBER token, no auth (audience viewer)
-   *   uid 1–4      → PUBLISHER token, caller must be an authenticated live
-   *                  participant whose slot_index matches uid - 1
+   *   uid 1-4      -> PUBLISHER token, caller must be a live participant holding
+   *                  slot uid - 1, proven either by their Supabase identity or
+   *                  by the participant_token issued at POST /participants
    *   uid 998–999  → PUBLISHER token, caller must own the session's channel
    *
    * Returns { token: string | null, expires_in: number }
    * token is null when AGORA_APP_CERTIFICATE is not configured (testing mode).
    */
-  server.get<{ Querystring: { session_id: string; uid: number } }>(
+  server.get<{ Querystring: { session_id: string; uid: number; participant_token?: string } }>(
     "/agora/token",
     {
       schema: {
@@ -59,14 +61,17 @@ export async function agoraRoutes(server: FastifyInstance) {
           type: "object",
           required: ["session_id", "uid"],
           properties: {
-            session_id: { type: "string", format: "uuid" },
-            uid:        { type: "integer", minimum: 0, maximum: 999 },
+            session_id:        { type: "string", format: "uuid" },
+            uid:               { type: "integer", minimum: 0, maximum: 999 },
+            // Issued by POST /participants. Lets a guest with no account prove
+            // which participant row is theirs; see lib/participantToken.
+            participant_token: { type: "string", maxLength: 512 },
           },
         },
       },
     },
     async (request, reply) => {
-      const { session_id, uid } = request.query;
+      const { session_id, uid, participant_token } = request.query;
 
       if (TOKEN_AUTH_REQUIRED && (!APP_ID || !APP_CERTIFICATE)) {
         request.log.error(
@@ -93,6 +98,34 @@ export async function agoraRoutes(server: FastifyInstance) {
       // ── uid 0: audience viewer — no auth required ────────────────────────────
       if (uid === 0) {
         const token = makeToken(session_id, 0, RtcRole.SUBSCRIBER);
+        return reply.send({ token, expires_in: TOKEN_TTL_SECS });
+      }
+
+      // uid 1-4 via participant credential: guest with no account
+      // Checked before authenticate() so an anonymous guest is never bounced for
+      // lacking an Authorization header. The credential only says which
+      // participant row is asking; the row itself still has to be live and hold
+      // the slot, which is the same bar the signed-in path clears below.
+      if (PARTICIPANT_UIDS.has(uid) && participant_token) {
+        const participantId = verifyParticipantToken(participant_token, session_id);
+        if (!participantId) {
+          return reply.status(403).send({ error: "Invalid participant token" });
+        }
+
+        const { data: participant } = await supabaseAdmin!
+          .from("participants")
+          .select("id")
+          .eq("id", participantId)
+          .eq("session_id", session_id)
+          .eq("status", "live")
+          .eq("slot_index", uid - 1)
+          .maybeSingle();
+
+        if (!participant) {
+          return reply.status(403).send({ error: "No live participant record for this slot" });
+        }
+
+        const token = makeToken(session_id, uid, RtcRole.PUBLISHER);
         return reply.send({ token, expires_in: TOKEN_TTL_SECS });
       }
 

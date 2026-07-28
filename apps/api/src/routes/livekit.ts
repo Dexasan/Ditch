@@ -3,13 +3,14 @@ import type { FastifyInstance } from "fastify";
 import { AccessToken } from "livekit-server-sdk";
 import { supabaseAdmin } from "@ditch/db";
 import { authenticate } from "../lib/authenticate";
+import { verifyParticipantToken } from "../lib/participantToken";
 
 const CREATOR_UIDS = new Set([997, 998, 999]);
 const PARTICIPANT_UIDS = new Set([1, 2, 3, 4]);
 const TOKEN_TTL = "6h";
 
 export async function livekitRoutes(server: FastifyInstance) {
-  server.get<{ Querystring: { session_id: string; uid: number } }>(
+  server.get<{ Querystring: { session_id: string; uid: number; participant_token?: string } }>(
     "/livekit/token",
     {
       schema: {
@@ -19,6 +20,8 @@ export async function livekitRoutes(server: FastifyInstance) {
           properties: {
             session_id: { type: "string", format: "uuid" },
             uid: { type: "integer", minimum: 0, maximum: 999 },
+            // Issued by POST /participants; see lib/participantToken.
+            participant_token: { type: "string", maxLength: 512 },
           },
         },
       },
@@ -31,7 +34,7 @@ export async function livekitRoutes(server: FastifyInstance) {
         return reply.status(503).send({ error: "LiveKit is not configured" });
       }
 
-      const { session_id, uid } = request.query;
+      const { session_id, uid, participant_token } = request.query;
       let canPublish = false;
       let identity = `audience-${randomUUID()}`;
 
@@ -48,7 +51,29 @@ export async function livekitRoutes(server: FastifyInstance) {
         return reply.status(403).send({ error: "Session has ended" });
       }
 
-      if (uid !== 0) {
+      // Guests with no account prove which participant row is theirs with the
+      // credential from POST /participants. Kept ahead of authenticate() so an
+      // anonymous guest is not bounced for lacking an Authorization header; the
+      // row must still be live and hold the slot, as on the signed-in path.
+      if (PARTICIPANT_UIDS.has(uid) && participant_token) {
+        const participantId = verifyParticipantToken(participant_token, session_id);
+        if (!participantId) {
+          return reply.status(403).send({ error: "Invalid participant token" });
+        }
+        const { data: participant } = await supabaseAdmin!
+          .from("participants")
+          .select("id")
+          .eq("id", participantId)
+          .eq("session_id", session_id)
+          .eq("status", "live")
+          .eq("slot_index", uid - 1)
+          .maybeSingle();
+        if (!participant) {
+          return reply.status(403).send({ error: "No live participant record for this slot" });
+        }
+        canPublish = true;
+        identity = String(uid);
+      } else if (uid !== 0) {
         await authenticate(request, reply);
         if (reply.sent) return;
 
