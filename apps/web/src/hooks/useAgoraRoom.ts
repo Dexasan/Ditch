@@ -64,18 +64,47 @@ function joinWithTimeout(
   ]);
 }
 
+/**
+ * Fetches an Agora RTC token, throwing on any failure.
+ *
+ * A refused token and a testing-mode token used to be indistinguishable here:
+ * both came back as `null`, and a `null` token joins fine while the Agora
+ * project is in App-ID-only mode. That means a 503 (certificate missing) or a
+ * 403 (not your session) silently degraded into a working-but-unauthenticated
+ * join, and would turn into an opaque join failure the moment token auth is
+ * enforced. Failures now throw with the status and body so the cause is visible
+ * in the UI instead of being swallowed.
+ *
+ * Returns `null` only for the one legitimate case: the server answered 200 and
+ * explicitly reported no token, i.e. AGORA_APP_CERTIFICATE is not configured.
+ */
 async function fetchAgoraToken(sessionId: string, uid: number, authToken?: string): Promise<string | null> {
+  const url = `${API_BASE}/agora/token?session_id=${encodeURIComponent(sessionId)}&uid=${uid}`;
+  const headers: Record<string, string> = {};
+  if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+
+  let res: Response;
   try {
-    const url = `${API_BASE}/agora/token?session_id=${encodeURIComponent(sessionId)}&uid=${uid}`;
-    const headers: Record<string, string> = {};
-    if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
-    const res = await fetch(url, { headers, cache: "no-store" });
-    if (!res.ok) return null;
-    const { token } = await res.json();
-    return token as string | null;
-  } catch {
-    return null;
+    res = await fetch(url, { headers, cache: "no-store" });
+  } catch (err) {
+    throw new Error(`Agora token request failed (uid ${uid}): ${String(err)}`);
   }
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(
+      `Agora token refused (uid ${uid}): HTTP ${res.status}${detail ? `: ${detail}` : ""}`,
+    );
+  }
+
+  const { token } = await res.json();
+  if (token == null) {
+    console.warn(
+      `[agora] server issued no token for uid ${uid}. AGORA_APP_CERTIFICATE is not set, ` +
+        `so this join is unauthenticated. This will fail once token auth is enforced.`,
+    );
+  }
+  return token as string | null;
 }
 
 export interface AgoraRoomState {
@@ -243,8 +272,14 @@ export function useAgoraRoom(options: {
       }
       if (!mounted) return;
       client.on("token-privilege-will-expire", async () => {
-        const newToken = await fetchAgoraToken(channelNameRef.current, uid, authTokenRef.current);
-        if (newToken) await client.renewToken(newToken);
+        // Renewal runs in an event handler, so a throw here would surface as an
+        // unhandled rejection and the session would silently expire instead.
+        try {
+          const newToken = await fetchAgoraToken(channelNameRef.current, uid, authTokenRef.current);
+          if (newToken) await client.renewToken(newToken);
+        } catch (err) {
+          setState((prev) => ({ ...prev, error: `Token renewal failed: ${String(err)}` }));
+        }
       });
 
       joinedRef.current = true;
@@ -531,8 +566,12 @@ export function useAgoraRoom(options: {
       applyProxyIfNeeded(client);
       await client.join(AGORA_APP_ID, channelNameRef.current, agoraToken, hostUid);
       client.on("token-privilege-will-expire", async () => {
-        const newToken = await fetchAgoraToken(channelNameRef.current, hostUid, authTokenRef.current);
-        if (newToken) await client.renewToken(newToken);
+        try {
+          const newToken = await fetchAgoraToken(channelNameRef.current, hostUid, authTokenRef.current);
+          if (newToken) await client.renewToken(newToken);
+        } catch (err) {
+          setState((prev) => ({ ...prev, error: `Token renewal failed: ${String(err)}` }));
+        }
       });
 
       clientRef.current = client;
@@ -589,8 +628,12 @@ export function useAgoraRoom(options: {
       applyProxyIfNeeded(client);
       await client.join(AGORA_APP_ID, channelNameRef.current, agoraToken, 0);
       client.on("token-privilege-will-expire", async () => {
-        const newToken = await fetchAgoraToken(channelNameRef.current, 0, authTokenRef.current);
-        if (newToken) await client.renewToken(newToken);
+        try {
+          const newToken = await fetchAgoraToken(channelNameRef.current, 0, authTokenRef.current);
+          if (newToken) await client.renewToken(newToken);
+        } catch (err) {
+          setState((prev) => ({ ...prev, error: `Token renewal failed: ${String(err)}` }));
+        }
       });
 
       clientRef.current = client;

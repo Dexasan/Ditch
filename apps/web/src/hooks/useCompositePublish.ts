@@ -14,18 +14,42 @@ import { AGORA_APP_ID, CREATOR_COMPOSITE_UID, getAgoraRTC } from "@/lib/agora";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
+/**
+ * Fetches the composite publisher's Agora token, throwing on failure.
+ *
+ * See the matching note in useAgoraRoom: a swallowed error used to be
+ * indistinguishable from testing mode, because both produced a `null` token
+ * that joins successfully while the Agora project is in App-ID-only mode.
+ * Returns `null` only when the server answers 200 with no token, meaning
+ * AGORA_APP_CERTIFICATE is not configured.
+ */
 async function fetchToken(sessionId: string, authToken?: string): Promise<string | null> {
+  const url = `${API_BASE}/agora/token?session_id=${encodeURIComponent(sessionId)}&uid=${CREATOR_COMPOSITE_UID}`;
+  const headers: Record<string, string> = {};
+  if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+
+  let res: Response;
   try {
-    const url = `${API_BASE}/agora/token?session_id=${encodeURIComponent(sessionId)}&uid=${CREATOR_COMPOSITE_UID}`;
-    const headers: Record<string, string> = {};
-    if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
-    const res = await fetch(url, { headers, cache: "no-store" });
-    if (!res.ok) return null;
-    const { token } = await res.json();
-    return (token as string) ?? null;
-  } catch {
-    return null;
+    res = await fetch(url, { headers, cache: "no-store" });
+  } catch (err) {
+    throw new Error(`Composite Agora token request failed: ${String(err)}`);
   }
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(
+      `Composite Agora token refused: HTTP ${res.status}${detail ? `: ${detail}` : ""}`,
+    );
+  }
+
+  const { token } = await res.json();
+  if (token == null) {
+    console.warn(
+      "[agora] no composite token issued. AGORA_APP_CERTIFICATE is not set, so this " +
+        "publish is unauthenticated. It will fail once token auth is enforced.",
+    );
+  }
+  return (token as string) ?? null;
 }
 
 // The Agora (DITCH viewer) profile is INDEPENDENT of the broadcast canvas: the
@@ -84,8 +108,14 @@ export function useCompositePublish({
 
       await c.join(AGORA_APP_ID, sessionId, token, CREATOR_COMPOSITE_UID);
       c.on("token-privilege-will-expire", async () => {
-        const t = await fetchToken(sessionId, authToken);
-        if (t) await c.renewToken(t);
+        // Event handler: a throw here would be an unhandled rejection, and the
+        // composite publish would silently drop when the token expired.
+        try {
+          const t = await fetchToken(sessionId, authToken);
+          if (t) await c.renewToken(t);
+        } catch (err) {
+          console.error("[composite] token renewal failed:", err);
+        }
       });
 
       // Downscale the composite to the interactive Agora profile, independent of

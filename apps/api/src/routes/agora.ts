@@ -7,6 +7,14 @@ const APP_ID          = process.env.AGORA_APP_ID ?? "";
 const APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE ?? "";
 const TOKEN_TTL_SECS  = 3600; // 1 hour; client renews at the 30-second warning
 
+// NEXT_PUBLIC_AGORA_APP_ID is inlined into the browser bundle, so the App ID is
+// public by construction. The App Certificate is the only thing that stops a
+// stranger who read it out of the bundle from publishing into any RTC channel.
+// Without a certificate Agora runs in "testing mode" (null tokens, no auth),
+// which is fine locally and unacceptable in production, so fail closed there,
+// the same way the LiveKit route refuses to run without its secrets.
+const TOKEN_AUTH_REQUIRED = process.env.NODE_ENV === "production";
+
 // UID authorisation rules:
 //   0          → audience subscriber, no auth required
 //   1-4        → participant publisher, must be authenticated + live in that session's slot
@@ -60,19 +68,17 @@ export async function agoraRoutes(server: FastifyInstance) {
     async (request, reply) => {
       const { session_id, uid } = request.query;
 
-      // ── uid 0: audience viewer — no auth required ────────────────────────────
-      if (uid === 0) {
-        const token = makeToken(session_id, 0, RtcRole.SUBSCRIBER);
-        return reply.send({ token, expires_in: TOKEN_TTL_SECS });
+      if (TOKEN_AUTH_REQUIRED && (!APP_ID || !APP_CERTIFICATE)) {
+        request.log.error(
+          "AGORA_APP_CERTIFICATE is not set: refusing to issue unauthenticated RTC tokens",
+        );
+        return reply.status(503).send({ error: "Agora token auth is not configured" });
       }
 
-      // All other UIDs require authentication.
-      await authenticate(request, reply);
-      if (reply.sent) return; // authenticate already responded with 401
-      const userId = request.user.id;
-
       // Verify the session exists and hasn't ended — don't issue tokens for
-      // finished broadcasts.
+      // finished broadcasts. This runs for audience viewers too: a subscriber
+      // token is still a key to a live room, so it should not be mintable for an
+      // arbitrary or already-ended session id.
       const { data: session } = await supabaseAdmin!
         .from("live_sessions")
         .select("id, status, channels!inner(owner_id)")
@@ -83,6 +89,17 @@ export async function agoraRoutes(server: FastifyInstance) {
       if (session.status === "ended") {
         return reply.status(403).send({ error: "Session has ended" });
       }
+
+      // ── uid 0: audience viewer — no auth required ────────────────────────────
+      if (uid === 0) {
+        const token = makeToken(session_id, 0, RtcRole.SUBSCRIBER);
+        return reply.send({ token, expires_in: TOKEN_TTL_SECS });
+      }
+
+      // All other UIDs require authentication.
+      await authenticate(request, reply);
+      if (reply.sent) return; // authenticate already responded with 401
+      const userId = request.user.id;
 
       const channel = session.channels as { owner_id: string };
 

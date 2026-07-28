@@ -35,18 +35,22 @@ export async function livekitRoutes(server: FastifyInstance) {
       let canPublish = false;
       let identity = `audience-${randomUUID()}`;
 
+      // Validate the session for every caller, audience included. A join token
+      // is still a key to a room, so it should not be mintable for an arbitrary
+      // or already-ended session id.
+      const { data: session } = await supabaseAdmin!
+        .from("live_sessions")
+        .select("id, status, channels!inner(owner_id)")
+        .eq("id", session_id)
+        .single();
+      if (!session) return reply.status(404).send({ error: "Session not found" });
+      if (session.status === "ended") {
+        return reply.status(403).send({ error: "Session has ended" });
+      }
+
       if (uid !== 0) {
         await authenticate(request, reply);
         if (reply.sent) return;
-        const { data: session } = await supabaseAdmin!
-          .from("live_sessions")
-          .select("id, status, channels!inner(owner_id)")
-          .eq("id", session_id)
-          .single();
-        if (!session) return reply.status(404).send({ error: "Session not found" });
-        if (session.status === "ended") {
-          return reply.status(403).send({ error: "Session has ended" });
-        }
 
         const userId = request.user.id;
         const channel = session.channels as { owner_id: string };
