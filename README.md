@@ -36,7 +36,7 @@ ditch/
 │   ├── web/          @ditch/web      Next.js frontend
 │   ├── api/          @ditch/api      REST API
 │   ├── realtime/     @ditch/realtime Socket.io server
-│   └── relay/       @ditch/relay    WebSocket → RTMP relay
+│   └── relay/       @ditch/relay    Browser/RTMP ingest → RTMP relay
 ├── packages/
 │   ├── types/        @ditch/types    Shared TypeScript types
 │   └── db/          @ditch/db       Supabase client
@@ -50,7 +50,8 @@ ditch/
 - `3000` — web (Next.js)
 - `3001` — realtime (Socket.io)
 - `3002` — api (Fastify)
-- `3003` — relay (WebSocket → RTMP)
+- `3003` — relay (WebSocket control/media)
+- `1935` — external RTMP ingest (when enabled)
 
 ## Database Setup (Supabase Migrations)
 
@@ -125,6 +126,7 @@ pnpm dev
 ### For Creators
 
 - Start live sessions from the dashboard
+- Publish from the browser studio or an external OBS/hardware encoder
 - Add RTMP destinations (Twitch, YouTube, TikTok, Kick)
 - Control room with participant queue management
 - Real-time canvas compositor for multi-participant layout

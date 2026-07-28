@@ -19,5 +19,5 @@ COPY apps/relay/ ./apps/relay/
 
 WORKDIR /repo/apps/relay
 
-EXPOSE 3003
+EXPOSE 3003 1935
 CMD ["pnpm", "start"]

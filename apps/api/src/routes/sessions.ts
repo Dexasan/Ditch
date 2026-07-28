@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { SessionStatus } from "@ditch/types";
+import type { SessionSource, SessionStatus } from "@ditch/types";
 import type { Database } from "@ditch/db";
 import { supabaseAdmin } from "@ditch/db";
 import { authenticate } from "../lib/authenticate";
@@ -8,6 +8,24 @@ import { assertSessionOwner, assertChannelOwner } from "../lib/guards";
 type SessionUpdate = Database["public"]["Tables"]["live_sessions"]["Update"];
 
 export async function sessionRoutes(server: FastifyInstance) {
+  server.get<{ Params: { id: string } }>(
+    "/sessions/:id",
+    {
+      preHandler: authenticate,
+      schema: {
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: { id: { type: "string", format: "uuid" } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const session = await assertSessionOwner(request.user.id, request.params.id, reply);
+      if (!session) return;
+      return reply.send({ session });
+    },
+  );
   /**
    * POST /sessions
    *
@@ -84,7 +102,7 @@ export async function sessionRoutes(server: FastifyInstance) {
    * Body:   { status: SessionStatus }
    * Return: 200 { session: LiveSession }
    */
-  server.patch<{ Params: { id: string }; Body: { status: SessionStatus } }>(
+  server.patch<{ Params: { id: string }; Body: { status: SessionStatus; source_type?: SessionSource } }>(
     "/sessions/:id",
     {
       preHandler: authenticate,
@@ -99,6 +117,7 @@ export async function sessionRoutes(server: FastifyInstance) {
           required: ["status"],
           properties: {
             status: { type: "string", enum: ["idle", "live", "ending", "ended"] },
+            source_type: { type: "string", enum: ["browser", "rtmp"] },
           },
           additionalProperties: false,
         },
@@ -106,7 +125,7 @@ export async function sessionRoutes(server: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { status: newStatus } = request.body;
+      const { status: newStatus, source_type } = request.body;
       const userId = request.user.id;
 
       const existing = await assertSessionOwner(userId, id, reply);
@@ -131,6 +150,14 @@ export async function sessionRoutes(server: FastifyInstance) {
 
       // Build the update payload — set timestamps on key transitions
       const update: SessionUpdate = { status: newStatus };
+      if (source_type) {
+        if (currentStatus !== "idle" || newStatus !== "live") {
+          return reply.status(422).send({
+            error: "Source type can only be selected when an idle session goes live",
+          });
+        }
+        update.source_type = source_type;
+      }
       if (newStatus === "live" && !existing.started_at) {
         update.started_at = new Date().toISOString();
       }

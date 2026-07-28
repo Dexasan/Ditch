@@ -25,9 +25,27 @@ function resolveFfmpeg(): string {
 const FFMPEG_BIN = resolveFfmpeg();
 console.log("[ffmpeg] resolved binary:", FFMPEG_BIN);
 
+// An RTMP stream key is the last path segment of a destination URL, and it is a
+// full publishing credential: whoever holds it can broadcast to that channel.
+// ffmpeg echoes its whole output spec back through stderr, so redaction has to
+// cover everything we print, not just the command line we build.
+const RTMP_URL_WITH_KEY = /(rtmps?:\/\/[^\s'|\]]*\/)([^\s'|\]]+)/g;
+
+export function redactStreamKeys(text: string): string {
+  return text.replace(RTMP_URL_WITH_KEY, (_match, base: string) => `${base}[redacted]`);
+}
+
 export interface FfmpegSession {
   write: (chunk: Buffer) => boolean;
-  stop: () => void;
+  /**
+   * Stops the process and resolves once it has actually exited.
+   *
+   * Callers must await this before spawning a replacement for the same session.
+   * A dying ffmpeg still owns its RTMP sockets, and platforms allow only one
+   * publisher per stream key, so overlapping processes make the newcomer fail
+   * with "error opening: I/O error" and take the whole tee down with it.
+   */
+  stop: () => Promise<void>;
   onDrain: (cb: () => void) => void;
   onExit: (cb: (code: number | null, signal: string | null) => void) => void;
   onError: (cb: (err: Error) => void) => void;
@@ -103,7 +121,7 @@ export function spawnFfmpeg(
   const args = buildArgs(rtmpTargets, params, hlsPlaylistPath);
   const tag = `[ffmpeg ${sessionId.slice(0, 8)}]`;
 
-  console.log(tag, "spawning:", FFMPEG_BIN, args.join(" "));
+  console.log(tag, "spawning:", FFMPEG_BIN, redactStreamKeys(args.join(" ")));
 
   const proc: ChildProcess = spawn(FFMPEG_BIN, args, { stdio: ["pipe", "ignore", "pipe"] });
 
@@ -114,7 +132,15 @@ export function spawnFfmpeg(
   const stderrBuf: Buffer[] = [];
   proc.stderr?.on("data", (chunk: Buffer) => {
     stderrBuf.push(chunk);
-    console.log(tag, chunk.toString().trimEnd());
+    console.log(tag, redactStreamKeys(chunk.toString().trimEnd()));
+  });
+
+  // Resolves once the process is truly gone. Settling on "error" too covers a
+  // failed spawn, where "exit" never fires and an awaiting caller would hang.
+  const exited = new Promise<void>((resolve) => {
+    if (proc.exitCode !== null || proc.signalCode !== null) return resolve();
+    proc.once("exit", () => resolve());
+    proc.once("error", () => resolve());
   });
 
   let stopped = false;
@@ -125,7 +151,7 @@ export function spawnFfmpeg(
       return true;
     },
     stop() {
-      if (stopped) return;
+      if (stopped) return exited;
       stopped = true;
       // Closing stdin signals EOF: ffmpeg flushes, ends the RTMP stream cleanly,
       // and the destination (YouTube/Twitch) stops "waiting for encoder".
@@ -139,6 +165,7 @@ export function spawnFfmpeg(
         }
       }, 3000);
       proc.once("exit", () => clearTimeout(killTimer));
+      return exited;
     },
     onDrain(cb) {
       proc.stdin?.on("drain", cb);
@@ -146,7 +173,7 @@ export function spawnFfmpeg(
     onExit(cb) {
       proc.on("exit", (code, signal) => {
         if (code !== 0) {
-          console.error(tag, "full stderr on exit:\n" + Buffer.concat(stderrBuf).toString());
+          console.error(tag, "full stderr on exit:\n" + redactStreamKeys(Buffer.concat(stderrBuf).toString()));
         }
         cb(code, signal);
       });
@@ -268,5 +295,107 @@ export function buildArgs(
     ...inputFlags,
     ...(copyTargets.length ? outputBranch(copyFlags, copyTargets) : []),
     ...(reencodeTargets.length || hasHls ? outputBranch(reencodeFlags, reencodeTargets, hasHls) : []),
+  ];
+}
+/**
+ * Reads an RTMP publisher from the local ingest server and fans it out without
+ * a quality-losing re-encode. External encoders are expected to send H.264/AAC
+ * with a two-second keyframe interval, which is the standard OBS profile.
+ */
+export function spawnRtmpIngest(
+  rtmpTargets: string[],
+  sessionId: string,
+  inputUrl: string,
+  hlsPlaylistPath?: string,
+): FfmpegSession {
+  const args = buildRtmpIngestArgs(rtmpTargets, inputUrl, hlsPlaylistPath);
+  const tag = `[ffmpeg ingest ${sessionId.slice(0, 8)}]`;
+  console.log(tag, "spawning:", FFMPEG_BIN, redactStreamKeys(args.join(" ")));
+
+  const proc: ChildProcess = spawn(FFMPEG_BIN, args, { stdio: ["ignore", "ignore", "pipe"] });
+  const stderrBuf: Buffer[] = [];
+  proc.stderr?.on("data", (chunk: Buffer) => {
+    stderrBuf.push(chunk);
+    console.log(tag, redactStreamKeys(chunk.toString().trimEnd()));
+  });
+
+  const exited = new Promise<void>((resolve) => {
+    if (proc.exitCode !== null || proc.signalCode !== null) return resolve();
+    proc.once("exit", () => resolve());
+    proc.once("error", () => resolve());
+  });
+
+  let stopped = false;
+  return {
+    write: () => true,
+    stop() {
+      if (stopped || proc.exitCode !== null || proc.signalCode !== null) return exited;
+      stopped = true;
+      proc.kill("SIGTERM");
+      const killTimer = setTimeout(() => {
+        if (proc.exitCode === null && proc.signalCode === null) proc.kill("SIGKILL");
+      }, 3000);
+      proc.once("exit", () => clearTimeout(killTimer));
+      return exited;
+    },
+    onDrain: () => {},
+    onExit(cb) {
+      proc.on("exit", (code, signal) => {
+        if (code !== 0 && signal !== "SIGTERM") {
+          console.error(tag, "full stderr on exit:\n" + redactStreamKeys(Buffer.concat(stderrBuf).toString()));
+        }
+        cb(code, signal);
+      });
+    },
+    onError(cb) {
+      proc.on("error", cb);
+    },
+  };
+}
+
+export function buildRtmpIngestArgs(
+  targets: string[],
+  inputUrl: string,
+  hlsPlaylistPath?: string,
+): string[] {
+  const outputFlags = [
+    "-map", "0:v:0",
+    "-map", "0:a?",
+    "-c:v", "copy",
+    "-c:a", "copy",
+    "-max_interleave_delta", "0",
+    "-flush_packets", "1",
+  ];
+
+  if (targets.length === 1 && !hlsPlaylistPath) {
+    return [
+      "-fflags", "+nobuffer+genpts",
+      "-thread_queue_size", "512",
+      "-i", inputUrl,
+      ...outputFlags,
+      "-f", "flv",
+      targets[0],
+    ];
+  }
+
+  const outputs = targets.map((target) =>
+    `[onfail=ignore:f=flv]${target.replace(/\|/g, "\\|")}`
+  );
+  if (hlsPlaylistPath) {
+    const segmentPath = hlsPlaylistPath.replace(/index\.m3u8$/, "segment-%09d.ts");
+    outputs.push(
+      `[onfail=ignore:f=hls:hls_time=2:hls_list_size=8:` +
+      `hls_flags=independent_segments+program_date_time:` +
+      `hls_segment_filename=${segmentPath}]${hlsPlaylistPath}`,
+    );
+  }
+
+  return [
+    "-fflags", "+nobuffer+genpts",
+    "-thread_queue_size", "512",
+    "-i", inputUrl,
+    ...outputFlags,
+    "-f", "tee",
+    outputs.join("|"),
   ];
 }

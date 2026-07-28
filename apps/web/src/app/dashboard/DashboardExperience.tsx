@@ -30,6 +30,7 @@ export default async function DashboardExperience() {
   ]);
 
   const isLive = Boolean(liveSession && liveSession.status !== "ended");
+  const usesBrowserStudio = liveSession?.source_type !== "rtmp";
   const channelInitial = channel.display_name.trim().charAt(0).toUpperCase() || "D";
 
   return (
@@ -38,7 +39,7 @@ export default async function DashboardExperience() {
       <ConsoleHeader
         active="studio"
         channelSlug={channel.slug}
-        liveControlHref={isLive ? `/c/${channel.slug}/live` : undefined}
+        liveControlHref={isLive && usesBrowserStudio ? `/c/${channel.slug}/live` : undefined}
       />
 
       <main className={styles.main}>
@@ -88,7 +89,7 @@ export default async function DashboardExperience() {
                 View public room
                 <ExternalIcon />
               </Link>
-              {isLive && (
+              {isLive && usesBrowserStudio && (
                 <Link href={`/c/${channel.slug}/live`} className={styles.primaryLink}>
                   Enter control room
                   <ArrowIcon />

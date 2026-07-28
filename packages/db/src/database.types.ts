@@ -187,6 +187,7 @@ export type Database = {
           created_at: string
           ended_at: string | null
           id: string
+          source_type: Database["public"]["Enums"]["session_source"]
           started_at: string | null
           status: Database["public"]["Enums"]["session_status"]
         }
@@ -195,6 +196,7 @@ export type Database = {
           created_at?: string
           ended_at?: string | null
           id?: string
+          source_type?: Database["public"]["Enums"]["session_source"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["session_status"]
         }
@@ -203,6 +205,7 @@ export type Database = {
           created_at?: string
           ended_at?: string | null
           id?: string
+          source_type?: Database["public"]["Enums"]["session_source"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["session_status"]
         }
@@ -381,6 +384,7 @@ export type Database = {
       community_post_type: "moment" | "discussion" | "suggestion"
       destination_status: "connecting" | "live" | "error" | "stopped" | "idle"
       participant_status: "waiting" | "approved" | "live" | "removed"
+      session_source: "browser" | "rtmp"
       session_status: "idle" | "live" | "ending" | "ended"
       stream_platform: "twitch" | "youtube" | "tiktok" | "kick" | "ditch"
     }
