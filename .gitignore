@@ -16,8 +16,10 @@ out
 .env.*.local
 
 # Supabase local dev
-supabase/.branches
-supabase/.temp
+# Leading **/ so these match at any depth: the CLI writes state into whichever
+# directory it is run from, and a root-anchored pattern missed packages/db/supabase.
+**/supabase/.branches
+**/supabase/.temp
 
 # Logs
 *.log
