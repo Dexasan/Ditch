@@ -1120,3 +1120,104 @@ Everything below is on the marketing surface only. The studio app is untouched. 
 **Open / deferred:** real platform logo SVGs (Tabler brand icons are stand-ins); hero footage still not shot; founder review of legal + FAQ claims still pending.
 
 **Next logical step (Day 21):** Tune motion intensity if it reads busy (could drop the older turbulence texture now that the dot-grid is in), then the long-pending relay JWT optimization and participant-promotion runtime test.
+
+---
+
+### Day 21 — 2026-07-29 (Security pass + stream stability)
+
+**Note on numbering:** this log has no entries between 2026-06-13 and today, yet
+work shipped in that window (local JWT validation Jul 20, WebCodecs key frame
+control Jul 25, external RTMP ingest Jul 28). "Day 21" is nominal; several
+sessions went unlogged.
+
+**Started from a one-line question** ("will I get the API key if I open devtools
+and search SK-?") and turned into a full audit. The literal answer was no: DITCH
+has no `sk-` credentials, that prefix is an OpenAI/Stripe convention. The audit
+underneath it found four real things.
+
+**1. Over-permissive RLS (migration 008).** Two policies were `using (true)`, which
+with a public anon key means an anonymous PostgREST endpoint that bypasses every
+ownership check the API performs. `participants` exposed the full roster including
+`waiting` and `removed` rows keyed by `user_id`, so anyone could enumerate who asked
+to join a stream and who got kicked. `community_votes` exposed every individual
+ballot, which is exactly what the API's `vote_count` aggregation hides. Narrowed to
+public-sees-live-only and self-or-owner. No app code reads either table with the
+browser client, so this was invisible to the product.
+
+**2. RTC token routes minted tokens for arbitrary sessions.** The uid 0 audience
+branch returned before any session lookup, so a subscriber token could be minted for
+any UUID including ended broadcasts. Moved validation ahead of the branch in both
+`agora.ts` and `livekit.ts`.
+
+**3. Agora ran with token auth disabled.** Confirmed empirically: production returned
+`{"token":null}`. The App ID is public by construction (it is in the bundle), so
+anyone reading it could publish into a live session. Enabling the certificate is a
+two-stage flip in the console (generate the certificate, then separately disable
+unauthorised access), which meant it could be done with zero downtime: set the env
+vars, verify real signed tokens, then enforce.
+
+**4. Relay printed live RTMP stream keys to logs at info level.** The spawn line and
+ffmpeg's own stderr both echoed the full tee target. `redactStreamKeys()` now covers
+both; verified against the real log strings that leaked. Keys rotated.
+
+**Stream flapping when a participant joined, root-caused from relay logs.** Two ffmpeg
+processes were running for one session, one stuck with `time=` frozen while `elapsed`
+climbed. Twitch accepts one publisher per key, so the newcomer got
+`error opening: I/O error`, limped on YouTube alone, then `All tee outputs failed`
+and exit 224. The client reconnected and repeated forever, because the retry budget
+resets on `first_media`, so post-media failures never exhaust it. Cause was
+`stop()` being fire-and-forget: `index.ts` killed the stale process and spawned the
+replacement on the next line, racing a corpse that still held the sockets. `stop()`
+now returns a promise resolving on real exit (measured: 3004ms for a process that
+ignores stdin EOF, i.e. it waits out the SIGKILL grace period), and `activeSessions`
+is keyed to process life rather than socket life so orphans stay visible.
+
+**Anonymous guests could never have published under enforcement.** Found when a phone
+test failed with `Agora token refused (uid 1): HTTP 401`. `POST /participants` treats
+identity as explicitly optional, so a viewer with no account can be approved onto a
+slot, but the RTC routes identified guests by `auth.uid()`. Those guests only ever
+worked because the swallowed 401 became a null token that testing-mode Agora accepted.
+Chose scoped credentials over a sign-in wall: putting an account prompt on the
+viewer-joins-stream moment would trade away the core loop. `POST /participants` now
+returns a signed credential asserting only "bearer is participant X of session Y";
+the RTC routes still require the row to be live and hold the slot. Signing key is
+derived from `SUPABASE_SERVICE_ROLE_KEY` with a domain separator rather than adding a
+required env var. Unit tests cover signature tampering, pid substitution under a valid
+signature, cross-session replay, expiry, and unsigned tokens.
+
+**A fix of mine caused a regression worth recording.** Making the client throw on
+token failures instead of swallowing them turned a silently-unauthenticated-but-working
+guest path into a hard camera error. The path only worked because auth was off, so
+surfacing it was correct, but it broke a working flow and that is what the 401 on the
+phone was.
+
+**Verification (live, under enforcement):** creator streamed, a guest with no account
+joined and appeared on screen, stream stayed stable through the join. Both halves of
+the deploy confirmed independently: an oversized `participant_token` returns Fastify's
+maxLength 400 (schema only exists in the new code), and `participant_token` appears in
+the deployed web bundle.
+
+**Worktree cleanup:** removed archived Startcup artifacts and a `logos/` staging folder
+(three of its five images were byte-identical to committed copies in
+`apps/web/public/platforms/`; verified by hash before deleting). Root-anchored
+`supabase/.temp` never matched `packages/db/supabase/.temp`, since a gitignore pattern
+containing a slash matches only from the repo root; both patterns now lead with `**/`.
+Tracked the deck and handbook generators, which were the only remaining way to
+reproduce the archived documents.
+
+**Commits:** `e3bbfe3` (RLS + RTC token gaps), relay redaction and lifecycle fixes
+landed inside `347389f`, `f55ef77` (anonymous participant credentials), `e3821e5`
+(template removal + gitignore), `242080c` (document generators).
+
+**Open / deferred:**
+- Sustained stream test still partly outstanding: backgrounded-tab 30fps, first key
+  frame timing on the `mp4` path at 720p and 1080p, WebCodecs to MediaRecorder
+  fallback recovery. Then move verified destinations off `RELAY_REENCODE_PLATFORMS`.
+- `AGENTS.md` is untracked while `CLAUDE.md` is tracked.
+- Participant credentials live in React state, so a guest who reloads must request
+  again. Matches existing behaviour (`myParticipant` already resets), not a new gap.
+- Two sessions committing into the same working tree caused real confusion about what
+  was committed and by whom. Worth separating branches.
+
+**Next logical step:** finish the sustained stream test, then move Twitch/YouTube off
+`RELAY_REENCODE_PLATFORMS` once a destination is verified on `-c:v copy`.

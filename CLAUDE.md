@@ -150,7 +150,7 @@ The goal of Phase 1 is a working end-to-end session: creator authenticates, conf
 
 ---
 
-## Current State (as of Day 9 — 2026-04-29)
+## Current State (as of 2026-07-29)
 
 **Phase 1 complete.** Full stack live in production.
 
@@ -179,7 +179,45 @@ Note: `@ditch/db` requires both anon + service role keys even though relay only 
 
 **Browser-side key frame control shipped (Jul 25, 2026) — awaiting live verification:** `apps/web/src/lib/webcodecsRelay.ts` encodes H264 + Opus via WebCodecs/Mediabunny into fragmented MP4 with a guaranteed 2s key frame, streamed to the relay (`container: "mp4"`); `useRelayStream` probes capability at the real settings and falls back to MediaRecorder (`container: "webm"`) per-session on any failure. Relay picks the demuxer by container. YouTube/Twitch are **still transcoded** — `RELAY_REENCODE_PLATFORMS` (default `youtube,twitch`) makes moving a verified destination to `-c:v copy` a config change. Selectable **1080p** output is now enabled (compositor renders the 1280x720 design space scaled up). See `docs/pre-launch.md`.
 
-**Next logical step (Day 10):** Sustained stream test — verify 30fps holds with tab backgrounded, first key frame is immediate on the `mp4` path at 720p and 1080p, the WebCodecs→MediaRecorder fallback recovers a session, auto-reconnect triggers on simulated ffmpeg exit. Then move verified destinations off `RELAY_REENCODE_PLATFORMS`.
+**Agora token auth ENFORCED (Jul 29, 2026):** the Agora project has the Primary
+Certificate enabled and "Unauthorised Access" disabled, so Agora rejects tokenless
+joins. Before this the project ran in App-ID-only mode, where a `null` token joined
+fine and hid every auth bug. Consequences:
+- `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` must stay set on the Railway **API**
+  service. If either goes missing, `makeToken()` returns null and every join fails.
+  `agora.ts` fails closed with a 503 in production rather than issuing nulls.
+- `NEXT_PUBLIC_AGORA_APP_ID` is public by construction (inlined into the bundle).
+  Enforcement is the only thing stopping a stranger who reads it from publishing
+  into a live session.
+- Guests with **no account** reach a slot via a signed `participant_token` issued by
+  `POST /participants` (`apps/api/src/lib/participantToken.ts`), not via `auth.uid()`.
+  The credential only proves which participant row is asking; the RTC routes still
+  require that row to be `live` and hold the requested slot.
+
+**Security pass shipped (Jul 29, 2026):** migration 008 narrowed two `using (true)`
+RLS policies that were readable by anyone holding the public anon key (`participants`
+exposed the waiting/removed roster keyed by `user_id`; `community_votes` exposed
+per-user ballots the API deliberately aggregates). Agora/LiveKit token routes now
+validate the session for audience callers too. Relay no longer prints RTMP stream
+keys: `redactStreamKeys()` covers the spawn line and ffmpeg's own stderr, which was
+the actual leak path.
+
+**Relay stream stability fixed (Jul 29, 2026):** a participant joining used to make
+the stream cycle endlessly. Cause was overlapping ffmpeg processes for one session:
+`stop()` was fire-and-forget, so a replacement spawned while the old process still
+held the RTMP sockets, and platforms accept only one publisher per stream key
+(`error opening: I/O error` then `All tee outputs failed`). `stop()` now resolves
+only after the process actually exits, and `activeSessions` is keyed to process life
+rather than socket life so an orphan stays visible to the next connection.
+
+**Verified live on Jul 29, 2026:** creator streamed under enforcement, a guest with
+no account joined and appeared on screen, and the stream stayed stable through the
+join.
+
+**Next logical step:** the sustained stream test is still outstanding in part. Verify
+30fps holds with the tab backgrounded, first key frame is immediate on the `mp4` path
+at 720p and 1080p, and the WebCodecs to MediaRecorder fallback recovers a session.
+Then move verified destinations off `RELAY_REENCODE_PLATFORMS`.
 
 Full session history: `docs/session-log.md`
 
