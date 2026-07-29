@@ -62,10 +62,10 @@ export default async function ChannelPage({
       {/* Header */}
       <header className="channel-header flex min-w-0 shrink-0 items-center gap-2.5 border-b border-white/6 sm:gap-3">
         <a href="/home" className="shrink-0"><img src="/logo.png" alt="DITCH" className="h-7 w-7 rounded-md" /></a>
-        <span className="shrink-0 text-sm text-white/25">/</span>
-        <span className="min-w-0 truncate text-sm font-semibold text-white">{channel.display_name}</span>
+        <span className="channel-header-divider shrink-0 text-sm text-white/25">/</span>
+        <span className="channel-header-name min-w-0 truncate text-sm font-semibold text-white">{channel.display_name}</span>
         {isLive ? (
-          <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-[#FF1DB4]/20 bg-[#FF1DB4]/10 px-2 py-0.5 text-[11px] font-bold text-[#FF1DB4]">
+          <span className="channel-live-pill flex shrink-0 items-center gap-1.5 rounded-full border border-[#FF1DB4]/20 bg-[#FF1DB4]/10 px-2 py-0.5 text-[11px] font-bold text-[#FF1DB4]">
             <span className="w-1.5 h-1.5 rounded-full bg-[#FF1DB4] animate-pulse" />
             LIVE
           </span>
@@ -76,10 +76,10 @@ export default async function ChannelPage({
         )}
 
         {/* Tab switcher */}
-        <div className="ml-auto flex shrink-0 items-center gap-1 rounded-lg bg-white/5 p-1">
+        <div className="channel-page-tabs ml-auto flex shrink-0 items-center gap-1 rounded-lg bg-white/5 p-1">
           <a
             href={`/c/${slug}?tab=live`}
-            className="rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all sm:px-3"
+            className="channel-page-tab rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all sm:px-3"
             style={{
               background: activeTab === "live" ? "rgba(255,255,255,0.1)" : "transparent",
               color: activeTab === "live" ? "white" : "rgba(255,255,255,0.35)",
@@ -89,7 +89,7 @@ export default async function ChannelPage({
           </a>
           <a
             href={`/c/${slug}?tab=community`}
-            className="rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all sm:px-3"
+            className="channel-page-tab rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all sm:px-3"
             style={{
               background: activeTab === "community" ? "rgba(255,255,255,0.1)" : "transparent",
               color: activeTab === "community" ? "white" : "rgba(255,255,255,0.35)",

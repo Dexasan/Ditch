@@ -163,21 +163,24 @@ function JoinPanel({
   // ── Not yet requested / removed ──────────────────────────────────────────────
   if (!myParticipant || status === "removed") {
     return (
-      <form onSubmit={onRequest} className="p-4 flex flex-col gap-3">
+      <form onSubmit={onRequest} className="audience-join-card p-4 flex flex-col gap-3">
         <div>
-          <h3 className="text-[15px] font-bold text-white leading-tight">Join this stream</h3>
+          <h3 className="audience-join-title text-[15px] font-bold text-white leading-tight">Get on the stream</h3>
           <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
-            Go live on screen. No download needed.
+            Send your name to the creator. You stay in control of your camera and mic.
           </p>
         </div>
         <input
           type="text"
+          name="displayName"
+          autoComplete="name"
+          enterKeyHint="send"
           required
           value={requestName}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="Your display name"
           maxLength={64}
-          className="audience-text-input w-full rounded-xl px-3.5 py-2.5 text-base transition-colors focus:outline-none"
+          className="audience-name-input audience-text-input w-full rounded-xl px-3.5 py-2.5 text-base transition-colors focus:outline-none"
           style={{
             background: "#111120",
             border: "1px solid var(--color-surface-border)",
@@ -191,7 +194,7 @@ function JoinPanel({
         <button
           type="submit"
           disabled={requesting || !requestName.trim()}
-          className="relative w-full py-2.5 min-h-[44px] rounded-xl text-sm font-bold text-white transition-all overflow-hidden disabled:opacity-50"
+          className="audience-request-button relative w-full py-2.5 min-h-[44px] rounded-xl text-sm font-bold text-white transition-all overflow-hidden disabled:opacity-50"
           style={{ background: "var(--color-brand)" }}
         >
           {requesting ? "Sending…" : "Request to join"}
@@ -202,6 +205,10 @@ function JoinPanel({
             />
           )}
         </button>
+        <p className="audience-join-trust">
+          <span aria-hidden="true">&#10003;</span>
+          No account or download needed
+        </p>
       </form>
     );
   }
@@ -1063,19 +1070,20 @@ export default function ChannelView({
           {!isDesktopAudience && (
           <div className="audience-mobile-panel flex min-h-0 flex-1 flex-col">
             <div
-              className="flex shrink-0 border-b"
+              className="audience-mobile-tabs flex shrink-0 border-b"
               style={{ borderColor: "var(--color-surface-border)" }}
             >
               {(["join", "chat"] as const).map((t) => {
                 const label = t === "join"
-                  ? (myParticipant?.status === "live" ? "Controls" : "Join")
-                  : "Chat";
+                  ? (myParticipant?.status === "live" ? "Controls" : "Join stream")
+                  : "Live chat";
                 const isActive = mobileTab === t;
                 return (
                   <button
                     key={t}
                     onClick={() => setMobileTab(t)}
-                    className="flex-1 py-3.5 text-xs font-semibold uppercase tracking-wider transition-colors border-b-2 -mb-px"
+                    aria-selected={isActive}
+                    className="audience-mobile-tab flex-1 py-3.5 text-xs font-semibold uppercase tracking-wider transition-colors border-b-2 -mb-px"
                     style={{
                       borderColor: isActive ? "var(--color-brand)" : "transparent",
                       color: isActive ? "white" : "var(--color-text-muted)",
@@ -1086,7 +1094,7 @@ export default function ChannelView({
                 );
               })}
             </div>
-            <div className={`flex min-h-0 flex-1 flex-col ${mobileTab === "join" ? "overflow-y-auto" : "overflow-hidden"}`}>
+            <div className={`audience-mobile-content flex min-h-0 flex-1 flex-col ${mobileTab === "join" ? "overflow-y-auto" : "overflow-hidden"}`}>
               {mobileTab === "join" ? (
                 <JoinPanel
                   isOwner={isOwner}

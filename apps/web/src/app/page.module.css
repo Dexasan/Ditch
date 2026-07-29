@@ -2143,3 +2143,159 @@
 @media (max-width: 700px) {
   .transmissionField { opacity: 0.72; }
 }
+/* Mobile landing: a compact first viewport with the message, action, and proof
+   kept together. This intentionally resets the desktop grid's flexible row. */
+@media (max-width: 680px) {
+  .nav {
+    min-height: 60px;
+    padding: 8px 16px;
+  }
+
+  .wordmark {
+    gap: 9px;
+  }
+
+  .wordmark img {
+    width: 31px;
+    height: 31px;
+    border-radius: 9px;
+  }
+
+  .wordmark strong {
+    font-size: 21px;
+  }
+
+  .navCta {
+    min-height: 44px;
+    padding-inline: 14px;
+    border-radius: 10px;
+    box-shadow: none;
+    font-size: 9px;
+  }
+
+  .hero {
+    width: calc(100% - 32px);
+    min-height: auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    gap: 24px;
+    padding: 42px 0 30px;
+  }
+
+  .eyebrow {
+    margin-bottom: 18px;
+    font-size: 8px;
+  }
+
+  .heroTitle {
+    font-size: clamp(52px, 17.5vw, 76px);
+    line-height: 0.84;
+  }
+
+  .heroAside {
+    max-width: none;
+    padding: 20px;
+    border: 1px solid rgba(238, 232, 218, 0.13);
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(31, 25, 31, 0.96), rgba(18, 15, 19, 0.96));
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+  }
+
+  .heroLead {
+    color: #d8d1d6;
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .heroLead strong {
+    color: #fff;
+    font-weight: 700;
+    font-style: normal;
+  }
+
+  .heroActions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  .primaryButton {
+    width: 100%;
+    min-height: 52px;
+    border-radius: 13px;
+    box-shadow: none;
+    font-size: 10px;
+  }
+
+  .textButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    padding: 0 16px;
+    border: 1px solid rgba(238, 232, 218, 0.16);
+    border-radius: 13px;
+    color: #d7cfd5;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .heroNote {
+    width: 100%;
+    align-items: center;
+    flex-direction: row;
+    gap: 11px;
+    padding: 14px 15px;
+    border-radius: 14px;
+    text-wrap: pretty;
+  }
+
+  .heroNoteBadge {
+    padding: 6px 8px;
+    border-radius: 7px;
+    font-size: 7px;
+  }
+
+  .heroNoteText {
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: normal;
+  }
+
+  .platformLine {
+    grid-template-columns: 1fr;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: rgba(20, 17, 21, 0.78);
+  }
+
+  .platformLine > span:first-child,
+  .platformLine > span:last-child {
+    padding: 13px 14px;
+  }
+
+  .platformLine ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-right: 0;
+    border-left: 0;
+  }
+
+  .platformLine li {
+    min-height: 60px;
+    font-size: 11px;
+  }
+
+  .signalSection,
+  .stepsSection {
+    padding-block: 80px;
+  }
+}
+
+@media (max-width: 390px) {
+  .heroTitle {
+    font-size: clamp(50px, 17vw, 67px);
+  }
+}
