@@ -54,6 +54,10 @@ HLS normally trails live by roughly 6-12 seconds. That tradeoff is intentional:
 the inexpensive path is for passive viewing, while RTC remains available where
 interaction needs sub-second latency.
 
+For the modelled cost of this architecture at 10,000 creators, the blockers that
+must close before those figures can be trusted, and the code defects that prevent
+fleet operation, see `docs/scaling-cost-model.md`.
+
 ## Safety notes
 
 - Keep R2 and LiveKit secrets server-side. Never add them to `NEXT_PUBLIC_*` variables.
