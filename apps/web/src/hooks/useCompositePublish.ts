@@ -119,8 +119,8 @@ export function useCompositePublish({
       });
 
       // Downscale the composite to the interactive Agora profile, independent of
-      // the broadcast canvas (720p30@3M default, or 1080p30@5M "detail" while a
-      // live desktop share is up). Agora resizes the source frames to this.
+      // the broadcast canvas (720p30@3M default, or 1080p30@5M for a selected
+      // 1080p Detail/30 program). Agora resizes the source frames to this.
       const localVideo = AgoraRTC.createCustomVideoTrack({
         mediaStreamTrack: videoTrack,
         width: agoraProfile.width,
@@ -171,7 +171,7 @@ export function useCompositePublish({
       client?.leave().catch(() => {});
       client = null;
     };
-    // agoraProfile.label uniquely identifies the profile; changing it (live
-    // desktop-detail toggling, content-mode switch) republishes with the new config.
+    // agoraProfile.label uniquely identifies the profile; changing resolution,
+    // frame rate, or content mode republishes with the new config.
   }, [enabled, stream, sessionId, authToken, agoraProfile.label, onLiveChange]);
 }

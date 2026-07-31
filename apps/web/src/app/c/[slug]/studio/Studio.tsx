@@ -4142,27 +4142,15 @@ export default function Studio({
     (track) => track.readyState === "live",
   ) ?? false;
 
-  // Agora desktop-detail profile activates ONLY while a live desktop/screen
-  // capture is visible AND Content=Detail. Requires an actually-live backing
-  // track (not just a visible layer) so idle/unavailable layers never trigger
-  // needless 1080p Agora billing; reverts to 720p the instant capture ends.
-  const agoraDetail = settings.contentMode === "detail" && activeScene.layers.some((l) => {
-    if (!l.visible || l.sourceUnavailable) return false;
-    if (l.type === "screenshare") {
-      try { return localScreenTrack?.getMediaStreamTrack().readyState === "live"; } catch { return false; }
-    }
-    if (l.type === "browser") {
-      const el = getSource(l.id);
-      const src = el?.srcObject;
-      const t = src instanceof MediaStream ? src.getVideoTracks()[0] : null;
-      return t?.readyState === "live";
-    }
-    return false;
-  });
+  // A selected 1080p Detail/30 program remains 1080p for native DITCH viewers;
+  // Motion/60 keeps the lighter 720p30 Agora profile to protect encoder headroom.
+  const agoraDetail = settings.outputResolution === "1080p"
+    && settings.contentMode === "detail"
+    && targetFps === 30;
 
   // The interactive (Agora) profile is INDEPENDENT of the broadcast canvas.
   const agoraProfile = useMemo(() => (agoraDetail
-    ? { width: 1920, height: 1080, frameRate: 30, bitrateMax: 5000, optimizationMode: "detail" as const, label: "desktop-detail 1080p30 @5Mbps" }
+    ? { width: 1920, height: 1080, frameRate: 30, bitrateMax: 5000, optimizationMode: "detail" as const, label: "program-detail 1080p30 @5Mbps" }
     : { width: 1280, height: 720, frameRate: 30, bitrateMax: 3000,
         optimizationMode: settings.contentMode === "motion" ? ("motion" as const) : ("detail" as const),
         label: `720p30 @3Mbps (${settings.contentMode})` }

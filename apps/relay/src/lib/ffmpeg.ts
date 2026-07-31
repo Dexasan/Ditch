@@ -214,13 +214,18 @@ export function buildArgs(
   // tee) with forced 2s keyframes and CFR output, while other targets keep the
   // lossless passthrough in a second output branch of the same process.
   //
-  // The WebCodecs path (container "mp4") emits guaranteed 2s keyframes, so its
-  // sources CAN be copied to keyframe-strict targets — but only after each is
-  // verified live. `reencodeMatcher()` keeps YouTube/Twitch on re-encode by
-  // default and lets ops move a verified destination to copy via
-  // RELAY_REENCODE_PLATFORMS, one at a time.
-  const reencodeTargets = targets.filter(needsReencodeFn);
-  const copyTargets = targets.filter((t) => !needsReencodeFn(t));
+  // WebCodecs MP4 has a guaranteed two-second IDR cadence, so it is safe for
+  // keyframe-strict RTMP ingests and MPEG-TS HLS. Preserve its first-generation
+  // browser encode for every RTMP/HLS output; only legacy WebM needs x264 here.
+  // RELAY_REENCODE_WEB_CODECS=true is the emergency compatibility rollback.
+  const copyKeyframeControlledVideo =
+    mp4 && process.env.RELAY_REENCODE_WEB_CODECS !== "true";
+  const reencodeTargets = copyKeyframeControlledVideo
+    ? []
+    : targets.filter(needsReencodeFn);
+  const copyTargets = copyKeyframeControlledVideo
+    ? targets
+    : targets.filter((t) => !needsReencodeFn(t));
 
   // Audio is always transcoded Opus → AAC since RTMP does not carry Opus.
   // Keep the native 48kHz sample rate (Opus is 48kHz; both Twitch and YouTube
@@ -233,7 +238,9 @@ export function buildArgs(
   ];
 
   // Pass H264 NAL units from the browser straight into FLV (no re-encode).
-  const copyFlags = ["-c:v", "copy", ...audioFlags];
+  // tee does not automatically translate MP4's avc1 tag for FLV/MPEG-TS.
+  // Normalize it before writing headers; the video payload remains untouched.
+  const copyFlags = ["-c:v", "copy", "-tag:v", "7", ...audioFlags];
 
   const reencodeFlags = [
     "-c:v", "libx264",
@@ -291,10 +298,16 @@ export function buildArgs(
 
 
   const hasHls = Boolean(hlsPlaylistPath);
+  // HLS shares the lossless branch when WebCodecs provides the required IDRs;
+  // Opus audio is still converted to AAC by copyFlags.
+  const copyHls = hasHls && copyKeyframeControlledVideo;
+  const reencodeHls = hasHls && !copyHls;
   return [
     ...inputFlags,
-    ...(copyTargets.length ? outputBranch(copyFlags, copyTargets) : []),
-    ...(reencodeTargets.length || hasHls ? outputBranch(reencodeFlags, reencodeTargets, hasHls) : []),
+    ...(copyTargets.length || copyHls ? outputBranch(copyFlags, copyTargets, copyHls) : []),
+    ...(reencodeTargets.length || reencodeHls
+      ? outputBranch(reencodeFlags, reencodeTargets, reencodeHls)
+      : []),
   ];
 }
 /**

@@ -8,10 +8,11 @@ Items that are identified, understood, and ready to implement — just not done 
 
 ### Relay: browser-side key frame control (WebCodecs) — IMPLEMENTED, awaiting sustained live verification
 
-**Status (2026-07-25):** Code shipped behind a capability gate with a MediaRecorder
-fallback. **Not yet marked Done** — it moves to the Done section only after a sustained
-live test confirms key frames on a real YouTube/Twitch ingest and 30fps holds with the
-tab backgrounded. Until then the relay keeps transcoding YouTube/Twitch.
+**Status (2026-07-31):** Browser key-frame control and first-generation MP4 passthrough
+are implemented behind a capability gate with a MediaRecorder fallback. **Not yet marked
+Done** — it moves to the Done section only after a sustained live test confirms the copy
+path on real YouTube/Twitch ingest and target FPS holds with the tab backgrounded. The
+legacy MediaRecorder/WebM fallback still uses relay transcoding.
 
 **Why:** With `-c:v copy` in ffmpeg, key frames came from the browser's `MediaRecorder`
 on its own schedule — a random 0-4s gap at stream start (YouTube can't decode until it
@@ -31,10 +32,11 @@ explicit key frame control.
   message, and on any WebCodecs runtime failure latches to MediaRecorder for the rest of
   the session.
 - Relay `ffmpeg.ts` — selects the demuxer by `container` (`-f mp4` with a larger probesize
-  for the fMP4 moov, else `-f webm`). Copy/re-encode branches are unchanged.
-- Relay `RELAY_REENCODE_PLATFORMS` env (default `youtube,twitch`) replaces the hardcoded
-  re-encode set, so a destination verified on the key-frame path can be moved to `-c:v
-  copy` one at a time without a deploy.
+  for the fMP4 moov, else `-f webm`). Keyframe-controlled MP4 video now passes through
+  unchanged to RTMP and DITCH HLS; Opus audio is still converted to AAC. Legacy WebM keeps
+  the platform-matched x264 branch so the relay can enforce its GOP.
+- `RELAY_REENCODE_WEB_CODECS=true` is the emergency rollback to the former MP4 re-encode
+  policy if a destination rejects the browser-produced H264 bitstream.
 - Selectable **1080p** output enabled (720p default): the compositor renders the 1280x720
   design space scaled up to 1920x1080; `recommendedBitrateKbps` targets 6-8 Mbps.
 
@@ -43,8 +45,9 @@ first-key-frame delivery is deterministic at ~2s (vs the old random 0-4s) and st
 relay latency tracks the 2s key frame interval — acceptable on the broadcast-out RTMP path
 (destinations buffer; the interactive path runs over Agora, not this relay).
 
-**Remaining to reach Done:** sustained live test (per CLAUDE.md Day-10 step), then move
-verified destinations off `RELAY_REENCODE_PLATFORMS`.
+**Remaining to reach Done:** sustained live test on real destinations, confirming stable
+background-tab FPS, two-second key frames, accepted MP4 passthrough, and no growing socket
+or encoder queues.
 
 ---
 

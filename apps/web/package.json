@@ -10,6 +10,7 @@
     "check-dashes": "node scripts/check-dashes.mjs",
     "type-check": "tsc --noEmit",
     "test:graphics-only-stream": "node scripts/verify-graphics-only-stream.mjs",
+    "test:compositor-pacing": "node scripts/verify-compositor-pacing.mjs",
     "test:relay-reliability": "node scripts/verify-relay-reliability.mjs",
     "test:mobile-audience": "node scripts/verify-mobile-audience.mjs"
   },
