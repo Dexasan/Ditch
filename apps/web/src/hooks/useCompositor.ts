@@ -90,14 +90,67 @@ function supportsBreakoutBox(): boolean {
 }
 
 // Inline worker source - drives the draw tick from a separate thread.
-// Workers are not subject to the main thread's background-tab CPU budget throttling,
-// so the timer fires reliably even when the streaming tab loses focus.
-// Start message: { type: "start", interval: number } - interval in ms between ticks.
+// This isolates pacing from React/main-thread timers. Browsers may still throttle
+// or freeze a hidden page, so delayed ticks must be dropped instead of queued.
+//
+// Only one tick may be outstanding at a time. The old setInterval producer kept
+// posting while the main thread was drawing, so a short interaction could build a
+// queue of stale 1080p frames. Draining that queue then competed with new frames
+// and UI work. The ready handshake bounds the queue, while the monotonic deadline
+// keeps draw time out of the frame interval.
 const WORKER_SRC = `
   let timer = null;
+  let running = false;
+  let waiting = false;
+  let interval = 1000 / 30;
+  let nextDeadline = 0;
+  let frameIndex = 0;
+
+  function schedule() {
+    if (!running || waiting) return;
+
+    const now = performance.now();
+    timer = setTimeout(() => {
+      timer = null;
+      if (!running) return;
+
+      const wokeAt = performance.now();
+      let skipped = 0;
+      if (wokeAt - nextDeadline >= interval) {
+        // Select the deadline nearest to the wake-up. Rounding avoids emitting
+        // a stale frame immediately before the next deadline (a catch-up burst).
+        skipped = Math.round((wokeAt - nextDeadline) / interval);
+        nextDeadline += skipped * interval;
+        frameIndex += skipped;
+      }
+
+      waiting = true;
+      self.postMessage({ type: "tick", frameIndex, skipped });
+      frameIndex += 1;
+      nextDeadline += interval;
+    }, Math.max(0, nextDeadline - now));
+  }
+
   self.onmessage = (e) => {
-    if (e.data?.type === "start") timer = setInterval(() => self.postMessage("tick"), e.data.interval);
-    if (e.data?.type === "stop")  { clearInterval(timer); timer = null; }
+    if (e.data?.type === "start") {
+      clearTimeout(timer);
+      interval = e.data.interval;
+      nextDeadline = performance.now();
+      frameIndex = 0;
+      waiting = false;
+      running = true;
+      schedule();
+    }
+    if (e.data?.type === "ready") {
+      waiting = false;
+      schedule();
+    }
+    if (e.data?.type === "stop") {
+      running = false;
+      waiting = false;
+      clearTimeout(timer);
+      timer = null;
+    }
   };
 `;
 
@@ -184,7 +237,15 @@ export function useCompositor({
 
   const canvasRef    = useRef<HTMLCanvasElement | null>(null);
   const workerRef    = useRef<Worker | null>(null);
-  const fpsRef       = useRef({ frames: 0, lastLog: Date.now() });
+  const fpsRef       = useRef({
+    drawn: 0,
+    delivered: 0,
+    dropped: 0,
+    lastLog: Date.now(),
+  });
+  // The output track survives draw-loop restarts, so its timestamps must too.
+  // Keep them strictly increasing if the source track or FPS setting changes.
+  const lastOutputTimestampUsRef = useRef(0);
   // layers, remoteUsers, and liveParticipants live in refs so Inspector updates
   // and participant churn don't restart the worker (a restart costs a frame gap).
   // Synced from the props on each render via effects.
@@ -321,6 +382,7 @@ export function useCompositor({
       workerRef.current = null;
       frameWriterRef.current?.close().catch(() => {});
       frameWriterRef.current = null;
+      lastOutputTimestampUsRef.current = 0;
       captureTrackRef.current = null;
       audioCtx.close().catch(() => {});
       audioCtxRef.current  = null;
@@ -405,8 +467,13 @@ export function useCompositor({
     const canvas = canvasRef.current;
     if (!enabled || !canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", {
+      alpha: false,
+      desynchronized: true,
+    });
     if (!ctx) return;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
 
     // Terminate any previous worker before starting a new one
     workerRef.current?.postMessage({ type: "stop" });
@@ -732,7 +799,46 @@ export function useCompositor({
 
     const scale = OUTPUT_SCALE[outputResolution];
 
-    function draw() {
+    let frameWritePending = false;
+    let stopped = false;
+    const frameDurationUs = Math.round(1_000_000 / targetFps);
+    const frameClockStartUs = Math.max(
+      Math.round(performance.now() * 1000),
+      lastOutputTimestampUsRef.current + frameDurationUs,
+    );
+
+    function reportFps() {
+      const fps = fpsRef.current;
+      const now = Date.now();
+      if (now - fps.lastLog < 5000) return;
+
+      const seconds = (now - fps.lastLog) / 1000;
+      const measured = fps.delivered / seconds;
+      console.log(
+        `[compositor] fps: ${measured.toFixed(1)} delivered | ` +
+        `${(fps.drawn / seconds).toFixed(1)} drawn | ${fps.dropped} dropped | ` +
+        `${canvas!.width}x${canvas!.height} | target: ${targetFps} | ` +
+        `tab: ${document.visibilityState}`,
+      );
+      onFps?.(Math.round(measured));
+      fps.drawn = 0;
+      fps.delivered = 0;
+      fps.dropped = 0;
+      fps.lastLog = now;
+    }
+
+    function draw(frameIndex: number) {
+      const writer = frameWriterRef.current;
+      // MediaStreamTrackGenerator applies backpressure through desiredSize.
+      // Never paint/copy another 1080p frame while the previous one is still
+      // being accepted: parallel write() calls otherwise retain VideoFrames and
+      // create exactly the CPU/GPU queue that starves UI work at 60fps.
+      if (writer && (frameWritePending || (writer.desiredSize ?? 1) <= 0)) {
+        fpsRef.current.dropped++;
+        reportFps();
+        return;
+      }
+
       // Base transform: scale the 1280x720 design space up to the output
       // resolution so every draw call below stays in design coordinates.
       ctx!.setTransform(scale, 0, 0, scale, 0, 0);
@@ -802,44 +908,65 @@ export function useCompositor({
         }
       }
 
-      // Deliver the composite frame to the output track
-      if (frameWriterRef.current) {
-        // Breakout Box path: push VideoFrame explicitly
+      fpsRef.current.drawn++;
+
+      // Deliver the composite frame to the output track.
+      if (writer) {
+        // Breakout Box path: push a paced VideoFrame explicitly.
         try {
+          const timestamp = Math.max(
+            frameClockStartUs + frameIndex * frameDurationUs,
+            lastOutputTimestampUsRef.current + 1,
+          );
+          lastOutputTimestampUsRef.current = timestamp;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const frame = new (window as any).VideoFrame(canvas, { timestamp: performance.now() * 1000 });
-          frameWriterRef.current.write(frame).catch(() => {}).finally(() => { try { frame.close(); } catch {} });
-        } catch {}
+          const frame = new (window as any).VideoFrame(canvas, {
+            timestamp,
+            duration: frameDurationUs,
+          });
+          frameWritePending = true;
+          writer.write(frame)
+            .then(() => { if (!stopped) fpsRef.current.delivered++; })
+            .catch(() => { if (!stopped) fpsRef.current.dropped++; })
+            .finally(() => {
+              frameWritePending = false;
+              try { frame.close(); } catch {}
+            });
+        } catch {
+          fpsRef.current.dropped++;
+        }
       } else {
-        // Fallback path: signal captureStream to grab the current canvas state right now
+        // Fallback path: signal captureStream to grab the current canvas state right now.
         captureTrackRef.current?.requestFrame();
+        fpsRef.current.delivered++;
       }
 
-      // FPS counter
-      const fps = fpsRef.current;
-      fps.frames++;
-      const now = Date.now();
-      if (now - fps.lastLog >= 5000) {
-        const measured = fps.frames / ((now - fps.lastLog) / 1000);
-        console.log(`[compositor] fps: ${measured.toFixed(1)} | ${canvas!.width}x${canvas!.height} | target: ${targetFps} | tab: ${document.visibilityState}`);
-        onFps?.(Math.round(measured));
-        fps.frames = 0;
-        fps.lastLog = now;
-      }
+      reportFps();
     }
 
-    // Spawn an inline Worker to drive the tick. Workers run in their own thread
-    // and are not subject to the main thread's background-tab CPU budget, so the
-    // 30fps timer fires reliably even when the tab is not in focus.
+    // Spawn an inline Worker to drive the tick independently of React/UI work.
+    // A browser or OS can still throttle or freeze a hidden page; the handshake
+    // turns a delayed wake-up into skipped frames instead of a stale-frame queue.
     const blob = new Blob([WORKER_SRC], { type: "application/javascript" });
     const blobUrl = URL.createObjectURL(blob);
     const worker = new Worker(blobUrl);
     URL.revokeObjectURL(blobUrl); // safe to revoke after worker is created
-    worker.onmessage = () => draw();
+    worker.onmessage = (event: MessageEvent<{ type?: string; frameIndex?: number; skipped?: number }>) => {
+      if (event.data?.type !== "tick") return;
+      if (event.data.skipped) fpsRef.current.dropped += event.data.skipped;
+      try {
+        draw(event.data.frameIndex ?? 0);
+      } finally {
+        // Schedule against the Worker's existing monotonic deadline. This does
+        // not add draw time to the 16.7ms period.
+        worker.postMessage({ type: "ready" });
+      }
+    };
     worker.postMessage({ type: "start", interval: 1000 / targetFps });
     workerRef.current = worker;
 
     return () => {
+      stopped = true;
       worker.postMessage({ type: "stop" });
       worker.terminate();
     };

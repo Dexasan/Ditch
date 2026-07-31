@@ -7,6 +7,7 @@
     "build": "mkdir -p vendor && curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz | tar -xJ --strip-components=1 -C vendor --wildcards '*/ffmpeg' && chmod +x vendor/ffmpeg && tsc",
     "start": "tsx src/index.ts",
     "type-check": "tsc --noEmit",
+    "test:browser-encode-policy": "node --import tsx scripts/verify-browser-encode-policy.mjs",
     "test:ingest": "node scripts/verify-rtmp-ingest.mjs",
     "test:ingest:transport": "node scripts/rtmp-transport-smoke.mjs"
   },
