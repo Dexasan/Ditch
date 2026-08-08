@@ -31,7 +31,7 @@ export interface User {
 export interface Channel {
   id: string;
   owner_id: string;
-  slug: string;           // unique URL slug, e.g. ditch.tv/c/creativechris
+  slug: string;           // unique URL slug, e.g. ditchlive.app/c/creativechris
   display_name: string;
   description: string | null;
   created_at: string;

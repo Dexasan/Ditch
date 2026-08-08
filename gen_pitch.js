@@ -227,7 +227,7 @@ function pill(slide, label, x, y, bg, textColor) {
   txt(s, 'Startcup Lazio 2026', 0.6, 6.92, 5, 0.4, {
     fontSize: 13, color: C.muted, valign: 'middle',
   });
-  txt(s, 'ditch.live', W - 2.4, 6.92, 1.8, 0.4, {
+  txt(s, 'ditchlive.app', W - 2.4, 6.92, 1.8, 0.4, {
     fontSize: 13, color: C.accent, valign: 'middle', align: 'right',
   });
 
@@ -779,7 +779,7 @@ function pill(slide, label, x, y, bg, textColor) {
 
   // URL callout
   rect(s, 0, 6.6, W, 0.9, C.greenDark);
-  txt(s, 'Live now at  ditch.live  →  frontend on Vercel · API + relay on Railway · DB on Supabase', 0, 6.6, W, 0.9, {
+  txt(s, 'Live now at  ditchlive.app  →  frontend on Vercel · API + relay on Railway · DB on Supabase', 0, 6.6, W, 0.9, {
     fontSize: 15, bold: true, color: C.green, align: 'center', valign: 'middle',
   });
 }
@@ -875,7 +875,7 @@ function pill(slide, label, x, y, bg, textColor) {
 
   // Bottom
   rect(s, 0, 6.9, W, 0.6, C.bgCardDeep);
-  txt(s, 'ditch.live', 0.6, 6.92, 4, 0.4, { fontSize: 14, bold: true, color: C.accent, valign: 'middle' });
+  txt(s, 'ditchlive.app', 0.6, 6.92, 4, 0.4, { fontSize: 14, bold: true, color: C.accent, valign: 'middle' });
   txt(s, 'Startcup Lazio 2026', W - 3.2, 6.92, 2.8, 0.4, { fontSize: 13, color: C.muted, align: 'right', valign: 'middle' });
 }
 

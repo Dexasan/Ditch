@@ -129,7 +129,7 @@ export default function SessionPanel({
 
       <div className="text-xs text-[var(--color-text-muted)]">
         Channel URL:{" "}
-        <span className="text-[var(--color-text)]">ditch.live/c/{channelSlug}</span>
+        <span className="text-[var(--color-text)]">ditchlive.app/c/{channelSlug}</span>
       </div>
 
       {error && <p className="text-red-400 text-sm">{error}</p>}

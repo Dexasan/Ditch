@@ -72,7 +72,7 @@ export default function OnboardingForm({ defaultDisplayName }: { defaultDisplayN
           Channel handle
         </label>
         <div className="flex items-center rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-surface-border)] focus-within:border-[var(--color-brand)] transition-colors overflow-hidden">
-          <span className="pl-3 pr-1 text-sm text-[var(--color-text-muted)] shrink-0">ditch.live/c/</span>
+          <span className="pl-3 pr-1 text-sm text-[var(--color-text-muted)] shrink-0">ditchlive.app/c/</span>
           <input
             id="slug"
             type="text"

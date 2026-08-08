@@ -48,7 +48,7 @@ export default async function DashboardExperience() {
             <div className={styles.channelAvatar}>{channelInitial}</div>
             <p>CHANNEL / PRIMARY</p>
             <h2>{channel.display_name}</h2>
-            <Link href={`/c/${channel.slug}`}>ditch.live/c/{channel.slug}</Link>
+            <Link href={`/c/${channel.slug}`}>ditchlive.app/c/{channel.slug}</Link>
           </div>
 
           <nav className={styles.railNav} aria-label="Studio setup sections">

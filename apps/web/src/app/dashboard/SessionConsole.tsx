@@ -209,7 +209,7 @@ export default function SessionConsole({
 
       <div className={styles.channelAddress}>
         <span>PUBLIC ROOM</span>
-        <a href={`/c/${channelSlug}`}>ditch.live/c/{channelSlug}</a>
+        <a href={`/c/${channelSlug}`}>ditchlive.app/c/{channelSlug}</a>
         <b>{isActive ? "OPEN" : "READY"}</b>
       </div>
 
