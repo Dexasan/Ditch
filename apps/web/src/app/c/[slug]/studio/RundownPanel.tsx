@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { CommunityRundownItem } from "@ditch/types/src/community";
@@ -55,7 +56,7 @@ export default function RundownPanel({ sessionId, token }: { sessionId: string; 
       {items.length === 0 ? (
         <div className="flex h-32 flex-col items-center justify-center gap-2 px-4 text-center">
           <p className="text-[11px] text-[var(--text-muted)]">No Ideas in this show yet</p>
-          <a href="/dashboard/community" className="text-[10px] font-semibold text-[var(--accent-primary)]">Open community inbox</a>
+          <Link href="/dashboard/community" className="text-xs font-semibold text-[var(--accent-primary)]">Open community inbox</Link>
         </div>
       ) : items.map((item, index) => (
         <article key={item.id} className="space-y-2 border-b border-[var(--border)] px-3 py-3">

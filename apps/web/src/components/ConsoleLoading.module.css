@@ -1,0 +1,57 @@
+.page {
+  min-height: 100vh;
+  color: #f5f0ea;
+  background: #11100f;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  align-items: center;
+  gap: 22px;
+  min-height: 68px;
+  padding: 0 max(24px, calc((100vw - 1380px) / 2));
+  border-bottom: 1px solid #302c29;
+  background: #151312;
+}
+
+.logo,
+.wordmark,
+.nav i,
+.eyebrow,
+.title,
+.copy,
+.cards > div {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #211e1b 20%, #302a27 45%, #211e1b 70%);
+  background-size: 220% 100%;
+  animation: loadingSweep 1.3s ease-in-out infinite;
+}
+
+.logo { width: 36px; height: 36px; }
+.wordmark { width: 94px; height: 11px; margin-left: 50px; margin-top: -24px; }
+.nav { display: flex; justify-content: center; gap: 22px; }
+.nav i { width: 72px; height: 12px; }
+.main { width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding: 64px 0; }
+.eyebrow { width: 150px; height: 10px; }
+.title { width: min(470px, 70vw); height: 58px; margin-top: 20px; }
+.copy { width: min(580px, 82vw); height: 15px; margin-top: 18px; }
+.cards { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 18px; margin-top: 48px; }
+.cards > div { min-height: 330px; }
+
+@keyframes loadingSweep {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+@media (max-width: 760px) {
+  .header { grid-template-columns: 1fr; }
+  .nav { display: none; }
+  .cards { grid-template-columns: 1fr; }
+  .cards > div { min-height: 240px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo, .wordmark, .nav i, .eyebrow, .title, .copy, .cards > div { animation: none; }
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useRtcRoom } from "@/hooks/useRtcRoom";
 import { useClipBuffer } from "@/hooks/useClipBuffer";
@@ -759,13 +760,13 @@ function TopBar({ slug, channelName, sessionId, channelId, token, onRecordClick,
         style={{ gridArea: "topbar" }}
       >
         <div className={studioStyles.brandCluster}>
-          <a href="/dashboard" className={studioStyles.studioBrand} aria-label="Back to dashboard">
+          <Link href="/dashboard" className={studioStyles.studioBrand} aria-label="Back to dashboard">
             <img src="/logo.png" alt="" />
             <span>
               <b>DITCH</b>
               <small>Transmission control</small>
             </span>
-          </a>
+          </Link>
           <div className={studioStyles.channelIdent}>
             <small>Channel</small>
             <strong>{channelName}</strong>

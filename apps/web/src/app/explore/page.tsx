@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { api } from "@/lib/api";
+import ConsoleHeader from "@/components/ConsoleHeader";
 
 type StreamPlatform = "twitch" | "youtube" | "tiktok" | "kick";
 
@@ -37,7 +38,7 @@ function channelGradient(slug: string): string {
 
 function LiveBadge() {
   return (
-    <span className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full"
+    <span className="flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded-full"
       style={{ background: "rgba(255,29,180,0.15)", color: "#FF1DB4", border: "1px solid rgba(255,29,180,0.3)" }}>
       <span className="w-1.5 h-1.5 rounded-full bg-[#FF1DB4] animate-pulse" />
       Live
@@ -54,7 +55,7 @@ function PlatformPills({ platforms }: { platforms: StreamPlatform[] }) {
         if (!cfg) return null;
         return (
           <span key={p}
-            className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+            className="text-xs font-semibold px-2 py-0.5 rounded-full"
             style={{ color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}30` }}>
             {cfg.label}
           </span>
@@ -80,7 +81,7 @@ function FeaturedCard({ item }: { item: LiveChannel }) {
       <div className="flex items-center justify-between px-5 pt-5 pb-2">
         <LiveBadge />
         {item.on_screen > 0 && (
-          <span className="text-xs text-white/50 font-medium">
+          <span className="text-xs text-white/70 font-medium">
             {item.on_screen} on screen
           </span>
         )}
@@ -93,7 +94,7 @@ function FeaturedCard({ item }: { item: LiveChannel }) {
           {item.channel.display_name[0].toUpperCase()}
         </div>
         <h2 className="text-2xl font-bold text-white mb-1 leading-tight">{item.channel.display_name}</h2>
-        <p className="text-sm text-white/45 leading-snug line-clamp-2 max-w-xs">
+        <p className="text-sm text-white/70 leading-snug line-clamp-2 max-w-xs">
           {item.channel.description ?? "Broadcasting live on DITCH"}
         </p>
       </div>
@@ -102,7 +103,7 @@ function FeaturedCard({ item }: { item: LiveChannel }) {
       <div className="px-5 pb-5 pt-2 flex items-end justify-between gap-3 border-t border-white/5">
         <div className="space-y-2">
           {item.platforms.length > 0 && (
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30">Also streaming on</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/55">Also streaming on</p>
           )}
           <PlatformPills platforms={item.platforms} />
         </div>
@@ -128,7 +129,7 @@ function ChannelCard({ item }: { item: LiveChannel }) {
       <div className="flex items-center justify-between px-4 pt-4 pb-1">
         <LiveBadge />
         {item.on_screen > 0 && (
-          <span className="text-[11px] text-white/40 font-medium">{item.on_screen} on screen</span>
+          <span className="text-xs text-white/65 font-medium">{item.on_screen} on screen</span>
         )}
       </div>
 
@@ -138,7 +139,7 @@ function ChannelCard({ item }: { item: LiveChannel }) {
           {item.channel.display_name[0].toUpperCase()}
         </div>
         <h3 className="text-lg font-bold text-white mb-0.5 leading-tight">{item.channel.display_name}</h3>
-        <p className="text-xs text-white/40 line-clamp-1">
+        <p className="text-xs text-white/65 line-clamp-1">
           {item.channel.description ?? "Broadcasting live"}
         </p>
       </div>
@@ -147,7 +148,7 @@ function ChannelCard({ item }: { item: LiveChannel }) {
         {item.platforms.length > 0 ? (
           <PlatformPills platforms={item.platforms} />
         ) : (
-          <span className="text-[11px] text-white/25">DITCH only</span>
+          <span className="text-xs text-white/50">DITCH only</span>
         )}
       </div>
     </Link>
@@ -165,7 +166,7 @@ function EmptyState() {
         </svg>
       </div>
       <p className="text-white font-semibold mb-1">Nothing live right now</p>
-      <p className="text-sm text-white/40 max-w-xs">
+      <p className="text-sm text-white/65 max-w-xs">
         Be the first to go live. Channels you follow will appear here when they&apos;re streaming.
       </p>
       <Link href="/dashboard"
@@ -181,53 +182,39 @@ export default async function ExplorePage() {
   const { data: { session: authSession } } = await supabase.auth.getSession();
 
   const { channels } = await api
-    .get<{ channels: LiveChannel[] }>("/channels/live")
+    .get<{ channels: LiveChannel[] }>("/channels/live", {
+      cache: "force-cache",
+      revalidate: 5,
+    })
     .catch(() => ({ channels: [] }));
 
   const [featured, ...rest] = channels;
 
   return (
-    <div className="min-h-screen" style={{ background: "#080810" }}>
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-white/5 backdrop-blur-md"
-        style={{ background: "rgba(8,8,16,0.85)" }}>
-        <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-6">
+    <div className="min-h-screen" style={{ background: "#11100F" }}>
+      {authSession ? (
+        <ConsoleHeader active="explore" />
+      ) : (
+        <header className="sticky top-0 z-50 border-b border-white/10 bg-[#11100f]/95 backdrop-blur-md">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
             <Link href="/" className="flex items-center gap-2.5">
-              <img src="/logo.png" alt="DITCH" className="h-7 w-7 rounded-md" />
-              <span className="text-lg font-bold tracking-tight text-[#FF1DB4]">DITCH</span>
+              <img src="/logo.png" alt="DITCH" className="h-8 w-8 rounded-md" />
+              <span className="text-xl font-bold tracking-tight text-[#FF2D93]">DITCH</span>
             </Link>
-            <span className="text-white/20 text-sm hidden sm:block">Explore</span>
+            <nav className="flex items-center gap-4">
+              <Link href="/auth" className="text-sm font-medium text-white/70 hover:text-white">Sign in</Link>
+              <Link href="/auth" className="rounded-md bg-[#D9217F] px-4 py-2 text-sm font-semibold text-white">Get started</Link>
+            </nav>
           </div>
-          <nav className="flex items-center gap-4">
-            {authSession ? (
-              <Link href="/dashboard"
-                className="text-sm font-medium text-white/50 hover:text-white transition-colors">
-                Studio
-              </Link>
-            ) : (
-              <>
-                <Link href="/auth"
-                  className="text-sm font-medium text-white/50 hover:text-white transition-colors">
-                  Sign in
-                </Link>
-                <Link href="/auth"
-                  className="text-sm font-semibold px-4 py-2 rounded-lg transition-colors text-white"
-                  style={{ background: "#FF1DB4" }}>
-                  Get started
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
+        </header>
+      )}
 
       <main className="mx-auto max-w-6xl px-6 py-10">
         {/* Section heading */}
         <div className="mb-8 flex items-baseline gap-3">
           <h1 className="text-2xl font-bold text-white">What&apos;s Live</h1>
           {channels.length > 0 && (
-            <span className="text-sm text-white/35 font-medium">
+            <span className="text-sm text-white/60 font-medium">
               {channels.length} {channels.length === 1 ? "channel" : "channels"} streaming now
             </span>
           )}

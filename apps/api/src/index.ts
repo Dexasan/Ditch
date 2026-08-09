@@ -11,6 +11,7 @@ import { savedDestinationRoutes } from "./routes/saved-destinations";
 import { participantRoutes } from "./routes/participants";
 import { communityRoutes } from "./routes/community";
 import { communityV2Routes } from "./routes/community-v2";
+import { consoleRoutes } from "./routes/console";
 import { agoraRoutes } from "./routes/agora";
 import { livekitRoutes } from "./routes/livekit";
 import { relayRoutes } from "./routes/relay";
@@ -69,6 +70,7 @@ async function start() {
   await server.register(participantRoutes);
   await server.register(communityRoutes);
   await server.register(communityV2Routes);
+  await server.register(consoleRoutes);
   await server.register(agoraRoutes);
   await server.register(livekitRoutes);
   await server.register(relayRoutes);

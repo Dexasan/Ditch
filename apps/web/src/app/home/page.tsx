@@ -22,9 +22,9 @@ export default async function HomePage() {
         <section className={styles.intro}>
           <div className={styles.introCopy}>
             <p className={styles.eyebrow}>
-              <span>HOME FEED</span>
+              <span>YOUR DITCH</span>
               <i />
-              System 01 / Ready
+              Pick up where you left off
             </p>
             <h1>
               Welcome back,
@@ -35,31 +35,10 @@ export default async function HomePage() {
             </p>
           </div>
 
-          <div className={styles.readiness} aria-label="Broadcast system status">
-            <div className={styles.readinessTop}>
-              <span>TX READY</span>
-              <div className={styles.meter} aria-hidden="true">
-                {Array.from({ length: 14 }).map((_, index) => <i key={index} />)}
-              </div>
-            </div>
-            <div className={styles.readinessBody}>
-              <span className={styles.readyLamp} />
-              <div>
-                <strong>Studio standing by</strong>
-                <small>Browser capture / destinations / audience return</small>
-              </div>
-              <b>100%</b>
-            </div>
-          </div>
         </section>
 
         <HomeActions />
 
-        <footer className={styles.telemetry} aria-label="System telemetry">
-          <span><i /> Network online</span>
-          <span>DITCH / BROADCAST DESK</span>
-          <span>Signal path: browser to everywhere</span>
-        </footer>
       </main>
     </div>
   );

@@ -28,17 +28,20 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // This is a fast navigation guard. Sensitive data still goes through the
+  // API, where access tokens are verified cryptographically. Reading the
+  // cookie-backed session avoids a Supabase Auth round trip on every route.
+  const { data: { session } } = await supabase.auth.getSession();
   const { pathname } = request.nextUrl;
 
   const isProtected = PROTECTED.some((p) => pathname.startsWith(p));
   const isAuthOnly = AUTH_ONLY.some((p) => pathname.startsWith(p));
 
-  if (isProtected && !user) {
+  if (isProtected && !session) {
     return NextResponse.redirect(new URL("/auth", request.url));
   }
 
-  if (isAuthOnly && user) {
+  if (isAuthOnly && session) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
@@ -47,6 +50,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|pptx)$).*)",
+    "/home/:path*",
+    "/dashboard/:path*",
+    "/inbox/:path*",
+    "/onboarding/:path*",
+    "/explore/:path*",
+    "/auth",
+    "/c/:slug/live/:path*",
+    "/c/:slug/studio/:path*",
   ],
 };

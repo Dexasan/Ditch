@@ -1,13 +1,21 @@
 import Image from "next/image";
 import Link from "next/link";
-import SignOutButton from "@/app/dashboard/SignOutButton";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import styles from "./ConsoleHeader.module.css";
 
 type ConsoleHeaderProps = {
-  active: "home" | "studio" | "community" | "inbox";
+  active: "home" | "studio" | "community" | "explore" | "inbox";
   channelSlug?: string;
   liveControlHref?: string;
 };
+
+async function signOut() {
+  "use server";
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/auth");
+}
 
 const NAV_ITEMS = [
   { id: "home", label: "Home", href: "/home" },
@@ -58,7 +66,7 @@ export default function ConsoleHeader({ active, channelSlug, liveControlHref }: 
               <ArrowIcon />
             </Link>
           )}
-          <SignOutButton className={styles.signOut} />
+          <form action={signOut}><button type="submit" className={styles.signOut}>Sign out</button></form>
         </div>
       </div>
     </header>

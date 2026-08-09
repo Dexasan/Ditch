@@ -40,10 +40,10 @@
 
 .intro {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+  grid-template-columns: minmax(0, 760px);
   align-items: end;
-  gap: 70px;
-  margin-bottom: 44px;
+  gap: 0;
+  margin-bottom: 32px;
 }
 
 .eyebrow {
@@ -51,9 +51,9 @@
   align-items: center;
   gap: 11px;
   margin: 0 0 17px;
-  color: #88817b;
+  color: #aaa29a;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -66,7 +66,7 @@
   margin: 0;
   color: #f7f2ec;
   font-family: var(--font-bebas), Impact, sans-serif;
-  font-size: clamp(58px, 6.4vw, 92px);
+  font-size: clamp(48px, 5.3vw, 74px);
   font-weight: 400;
   line-height: 0.88;
   letter-spacing: -0.035em;
@@ -105,7 +105,7 @@
   color: #7d756e;
   background: #141210;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 7px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
 }
@@ -165,9 +165,9 @@
 .readinessBody small {
   margin-top: 4px;
   overflow: hidden;
-  color: #706a64;
+  color: #9a928a;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 6px;
+  font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -175,19 +175,19 @@
 .readinessBody b {
   color: #9bd1c2;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .cards {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(330px, 0.75fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
   gap: 18px;
 }
 
 .actionCard {
   position: relative;
   display: flex;
-  min-height: 510px;
+  min-height: 440px;
   overflow: hidden;
   border: 1px solid #3a3531;
   border-radius: 6px;
@@ -232,7 +232,7 @@
   color: #8c847d;
   background: rgba(20, 18, 17, 0.92);
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 7px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -294,7 +294,7 @@
   color: #f08791;
   background: rgba(65, 15, 24, 0.62);
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 7px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.12em;
 }
@@ -329,7 +329,7 @@
   position: relative;
   z-index: 1;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 0.16em;
 }
 
@@ -348,7 +348,7 @@
   color: #d8d1ca;
   background: rgba(10, 9, 10, 0.72);
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 6px;
+  font-size: 10px;
   letter-spacing: 0.1em;
   backdrop-filter: blur(8px);
 }
@@ -390,8 +390,8 @@
 }
 
 .consoleStrip > div:last-child { border: 0; }
-.consoleStrip small { color: #625c56; font-family: var(--font-jbmono), monospace; font-size: 6px; letter-spacing: 0.12em; }
-.consoleStrip span, .consoleStrip strong { color: #aaa29a; font-size: 8px; }
+.consoleStrip small { color: #928a83; font-family: var(--font-jbmono), monospace; font-size: 10px; letter-spacing: 0.12em; }
+.consoleStrip span, .consoleStrip strong { color: #aaa29a; font-size: 11px; }
 .consoleStrip span { display: flex; align-items: center; gap: 6px; }
 .consoleStrip span > i { width: 5px; height: 5px; border-radius: 50%; background: #8cc9b8; }
 
@@ -429,7 +429,7 @@
   margin: 0 0 7px;
   color: #ff62ad;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 7px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.13em;
 }
@@ -547,7 +547,7 @@
   align-self: end;
   color: #8cc9b8;
   font-family: var(--font-jbmono), monospace;
-  font-size: 7px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.13em;
 }
@@ -575,7 +575,7 @@
   background: #272223;
   box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.3);
   font-family: var(--font-jbmono), monospace;
-  font-size: 7px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -606,7 +606,7 @@
   border-top: 1px solid #312d2a;
   color: #5d5752;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 6px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;

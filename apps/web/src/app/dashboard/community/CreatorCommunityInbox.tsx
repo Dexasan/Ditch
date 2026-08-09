@@ -43,26 +43,26 @@ export default function CreatorCommunityInbox({
       {posts.length === 0 ? (
         <div className="rounded-xl border border-dashed border-white/10 px-6 py-16 text-center">
           <p className="text-sm font-semibold text-white/60">Your community queue is clear.</p>
-          <p className="mt-1 text-xs text-white/30">New Ideas and conversations needing attention will appear here.</p>
+          <p className="mt-1 text-xs text-white/55">New Ideas and conversations needing attention will appear here.</p>
         </div>
       ) : posts.map((post) => (
         <article key={post.id} className="rounded-xl border border-white/8 bg-white/[0.025] p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-[0.16em]">
+              <div className="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-[0.16em]">
                 <span className="text-[#FF75CD]">{post.type === "suggestion" ? "Idea" : post.type}</span>
                 <span className="text-emerald-300">{post.status}</span>
               </div>
               <Link href={`/c/${channelSlug}/community/${post.id}`} className="group block">
                 <h2 className="mt-2 text-base font-semibold text-white group-hover:text-[#FF75CD]">{post.title}</h2>
-                {post.body && <p className="mt-1 line-clamp-2 text-sm text-white/40">{post.body}</p>}
+                {post.body && <p className="mt-1 line-clamp-2 text-sm text-white/65">{post.body}</p>}
               </Link>
-              <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-white/25">
+              <div className="mt-3 flex flex-wrap gap-3 text-xs text-white/50">
                 <span>{post.author_display_name}</span><span>{post.vote_count} support</span><span>{post.comment_count} replies</span>
               </div>
             </div>
             <div className="flex shrink-0 gap-2">
-              <Link href={`/c/${channelSlug}/community/${post.id}`} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white/55 hover:text-white">Review</Link>
+              <Link href={`/c/${channelSlug}/community/${post.id}`} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white/75 hover:text-white">Review</Link>
               {activeSessionId && post.type === "suggestion" && post.status !== "planned" && (
                 <button type="button" disabled={busyId === post.id} onClick={() => addToShow(post)} className="rounded-lg bg-[#FF1DB4] px-3 py-2 text-xs font-bold text-white disabled:opacity-40">
                   {busyId === post.id ? "Adding..." : "Add to show"}

@@ -14,7 +14,7 @@ export default async function InboxPage() {
     .catch(() => ({ notifications: [] }));
 
   return (
-    <div className="min-h-screen bg-[#080810] text-white">
+    <div className="min-h-screen bg-[#11100F] text-white">
       <ConsoleHeader active="inbox" />
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <InboxList initialNotifications={notifications} token={session.access_token} />

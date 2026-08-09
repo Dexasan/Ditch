@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/browser";
 import { api, ApiError } from "@/lib/api";
 import type { StreamPlatform } from "@ditch/types";
 import { readDisabled, writeDisabled } from "./destinationSelection";
@@ -45,18 +44,14 @@ const CHANNEL_REF_HINT: Partial<Record<StreamPlatform, { label: string; placehol
   youtube: { label: "YouTube channel ID or @handle", placeholder: "e.g. @MrBeast or UC..." },
 };
 
-async function getToken() {
-  const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
-}
-
 export default function DestinationConsole({
   channelId,
   initialDestinations,
+  token,
 }: {
   channelId: string;
   initialDestinations: SavedDestination[];
+  token: string;
 }) {
   const [destinations, setDestinations] = useState<SavedDestination[]>(initialDestinations);
   const [adding, setAdding] = useState(false);
@@ -91,11 +86,10 @@ export default function DestinationConsole({
     setLoading(true);
     setError(null);
     try {
-      const token = await getToken();
       const { saved_destination } = await api.post<{ saved_destination: SavedDestination }>(
         "/saved-destinations",
         {
-          token: token!,
+          token,
           body: {
             channel_id: channelId,
             platform,
@@ -118,9 +112,8 @@ export default function DestinationConsole({
   }
 
   async function removeDestination(id: string) {
-    const token = await getToken();
     try {
-      await api.delete(`/saved-destinations/${id}`, { token: token! });
+      await api.delete(`/saved-destinations/${id}`, { token });
       setDestinations((previous) => previous.filter((destination) => destination.id !== id));
       setDisabled((previous) => {
         if (!previous.has(id)) return previous;

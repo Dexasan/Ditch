@@ -10,12 +10,14 @@ const REQUEST_TIMEOUT_MS = 8000;
 type RequestOptions = {
   token?: string;
   body?: unknown;
+  cache?: RequestCache;
+  revalidate?: number;
 };
 
 async function request<T>(
   method: string,
   path: string,
-  { token, body }: RequestOptions = {}
+  { token, body, cache = "no-store", revalidate }: RequestOptions = {}
 ): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -27,8 +29,8 @@ async function request<T>(
     res = await fetch(`${API_BASE}${path}`, {
       method,
       headers,
-      // Prevent Next.js data cache from serving stale session/channel state
-      cache: "no-store",
+      cache,
+      next: revalidate !== undefined ? { revalidate } : undefined,
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });

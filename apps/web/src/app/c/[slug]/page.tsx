@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { api } from "@/lib/api";
@@ -62,7 +63,7 @@ export default async function ChannelPage({
       }}
     >
       <header className="channel-header flex min-w-0 shrink-0 items-center gap-2.5 border-b border-white/6 sm:gap-3">
-        <a href="/home" className="shrink-0"><img src="/logo.png" alt="DITCH" className="h-7 w-7 rounded-md" /></a>
+        <Link href="/home" className="shrink-0"><img src="/logo.png" alt="DITCH" className="h-7 w-7 rounded-md" /></Link>
         <span className="channel-header-divider shrink-0 text-sm text-white/25">/</span>
         <span className="channel-header-name min-w-0 truncate text-sm font-semibold text-white">{channel.display_name}</span>
         {isLive ? (
@@ -75,7 +76,7 @@ export default async function ChannelPage({
         )}
 
         <div className="channel-page-tabs ml-auto flex shrink-0 items-center gap-1 rounded-lg bg-white/5 p-1">
-          <a
+          <Link
             href={`/c/${slug}?tab=live`}
             className="channel-page-tab rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all sm:px-3"
             style={{
@@ -84,8 +85,8 @@ export default async function ChannelPage({
             }}
           >
             {isLive ? "● Live" : "Live"}
-          </a>
-          <a
+          </Link>
+          <Link
             href={`/c/${slug}?tab=community`}
             className="channel-page-tab rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all sm:px-3"
             style={{
@@ -94,7 +95,7 @@ export default async function ChannelPage({
             }}
           >
             Community
-          </a>
+          </Link>
         </div>
       </header>
 
@@ -121,9 +122,9 @@ export default async function ChannelPage({
                 <p className="text-sm text-white/40">{channel.description ?? "Check back soon."}</p>
               </div>
             </div>
-            <a href={`/c/${slug}?tab=community`} className="text-xs font-semibold text-[#FF1DB4] hover:text-white">
+            <Link href={`/c/${slug}?tab=community`} className="text-xs font-semibold text-[#FF1DB4] hover:text-white">
               See the community →
-            </a>
+            </Link>
           </div>
         )
       ) : (

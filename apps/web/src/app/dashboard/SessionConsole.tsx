@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/browser";
 import { api, ApiError } from "@/lib/api";
 import type { IngestCredentials, LiveSession, SessionSource, SessionStatus } from "@ditch/types";
 import { readDisabled } from "./destinationSelection";
@@ -15,20 +15,16 @@ const STATUS_LABEL: Record<SessionStatus, string> = {
   ended: "Ended",
 };
 
-async function getToken() {
-  const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
-}
-
 export default function SessionConsole({
   channelId,
   channelSlug,
   initialSession,
+  token,
 }: {
   channelId: string;
   channelSlug: string;
   initialSession: LiveSession | null;
+  token: string;
 }) {
   const router = useRouter();
   const [session, setSession] = useState<LiveSession | null>(initialSession);
@@ -41,9 +37,8 @@ export default function SessionConsole({
     setLoading(true);
     setError(null);
     try {
-      const token = await getToken();
       const { session: nextSession } = await api.post<{ session: LiveSession }>("/sessions", {
-        token: token!,
+        token,
         body: { channel_id: channelId },
       });
       setSession(nextSession);
@@ -55,16 +50,15 @@ export default function SessionConsole({
   }
 
   async function applySavedDestinations(sessionId: string): Promise<number> {
-    const token = await getToken();
     const { saved_destinations } = await api.get<{ saved_destinations: { id: string }[] }>(
       `/saved-destinations?channel_id=${channelId}`,
-      { token: token! },
+      { token },
     );
     const disabled = readDisabled(channelId);
     const ids = saved_destinations.map((destination) => destination.id).filter((id) => !disabled.has(id));
     if (ids.length === 0) return 0;
     await api.post(`/sessions/${sessionId}/apply-destinations`, {
-      token: token!,
+      token,
       body: { saved_destination_ids: ids },
     });
     return ids.length;
@@ -75,9 +69,8 @@ export default function SessionConsole({
     setLoading(true);
     setError(null);
     try {
-      const token = await getToken();
       const { session: nextSession } = await api.patch<{ session: LiveSession }>(`/sessions/${session.id}`, {
-        token: token!,
+        token,
         body: { status, ...(source_type ? { source_type } : {}) },
       });
       setSession(nextSession);
@@ -99,10 +92,9 @@ export default function SessionConsole({
         setLoading(false);
         return;
       }
-      const token = await getToken();
       const response = await api.post<{ credentials: IngestCredentials }>(
         `/sessions/${session.id}/ingest-credentials`,
-        { token: token!, body: {} },
+        { token, body: {} },
       );
       setCredentials(response.credentials);
       setSession((current) => current ? { ...current, source_type: "rtmp" } : current);
@@ -128,9 +120,8 @@ export default function SessionConsole({
     setLoading(true);
     setError(null);
     try {
-      const token = await getToken();
       const { session: nextSession } = await api.delete<{ session: LiveSession }>(`/sessions/${session.id}`, {
-        token: token!,
+        token,
       });
       setSession(nextSession);
       router.refresh();
@@ -145,10 +136,9 @@ export default function SessionConsole({
     let cancelled = false;
     const poll = async () => {
       try {
-        const token = await getToken();
-        const { session: nextSession } = await api.get<{ session: LiveSession }>(
+          const { session: nextSession } = await api.get<{ session: LiveSession }>(
           `/sessions/${session.id}`,
-          { token: token! },
+          { token },
         );
         if (cancelled) return;
         setSession(nextSession);
@@ -209,7 +199,7 @@ export default function SessionConsole({
 
       <div className={styles.channelAddress}>
         <span>PUBLIC ROOM</span>
-        <a href={`/c/${channelSlug}`}>ditchlive.app/c/{channelSlug}</a>
+        <Link href={`/c/${channelSlug}`}>ditchlive.app/c/{channelSlug}</Link>
         <b>{isActive ? "OPEN" : "READY"}</b>
       </div>
 

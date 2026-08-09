@@ -14,20 +14,20 @@ export default async function DashboardExperience() {
   if (!session) redirect("/auth");
 
   const token = session.access_token;
-  const { channel } = await api.get<{ channel: Channel | null }>("/channels/mine", { token });
-  if (!channel) redirect("/onboarding");
+  const {
+    channel,
+    session: liveSession,
+    saved_destinations,
+    suggestions,
+  } = await api.get<{
+    channel: Channel | null;
+    session: LiveSession | null;
+    saved_destinations: SavedDestination[];
+    suggestions: CommunityPost[];
+    unread_notifications: number;
+  }>("/console/bootstrap", { token });
 
-  const [{ session: liveSession }, { saved_destinations }, { suggestions }] = await Promise.all([
-    api.get<{ session: LiveSession | null; channel: Channel }>(`/channels/${channel.slug}`).then(
-      (response) => ({ session: response.session }),
-    ),
-    api
-      .get<{ saved_destinations: SavedDestination[] }>(`/saved-destinations?channel_id=${channel.id}`, { token })
-      .catch(() => ({ saved_destinations: [] as SavedDestination[] })),
-    api
-      .get<{ suggestions: CommunityPost[] }>("/channels/mine/suggestions", { token })
-      .catch(() => ({ suggestions: [] as CommunityPost[] })),
-  ]);
+  if (!channel) redirect("/onboarding");
 
   const isLive = Boolean(liveSession && liveSession.status !== "ended");
   const usesBrowserStudio = liveSession?.source_type !== "rtmp";
@@ -104,12 +104,14 @@ export default async function DashboardExperience() {
                 channelId={channel.id}
                 channelSlug={channel.slug}
                 initialSession={liveSession ?? null}
+                token={token}
               />
             </div>
             <div id="destinations">
               <DestinationConsole
                 channelId={channel.id}
                 initialDestinations={saved_destinations}
+                token={token}
               />
             </div>
           </div>
