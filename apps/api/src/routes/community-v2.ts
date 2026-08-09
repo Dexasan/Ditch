@@ -140,6 +140,38 @@ export async function communityV2Routes(server: FastifyInstance) {
     },
   );
 
+  server.get<{ Params: { slug: string } }>(
+    "/channels/:slug/community-summary",
+    async (request, reply) => {
+      const channel = await getChannelBySlug(request.params.slug);
+      if (!channel) return reply.status(404).send({ error: "Channel not found" });
+      const userId = await optionalUserId(request.headers.authorization);
+      const [{ count: memberCount, error }, member] = await Promise.all([
+        db.from("channel_memberships").select("*", { count: "exact", head: true }).eq("channel_id", channel.id),
+        isMember(channel.id, userId),
+      ]);
+      if (error) return reply.status(500).send({ error: "Failed to fetch community summary" });
+      return reply.send({
+        is_member: member,
+        member_count: memberCount ?? 0,
+        is_owner: userId === channel.owner_id,
+      });
+    },
+  );
+
+  server.get(
+    "/community/subscriptions",
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const { data, error } = await db
+        .from("channel_memberships")
+        .select("channel_id")
+        .eq("user_id", request.user.id);
+      if (error) return reply.status(500).send({ error: "Failed to fetch subscriptions" });
+      return reply.send({ channel_ids: (data ?? []).map((membership: any) => membership.channel_id) });
+    },
+  );
+
   server.post<{
     Params: { slug: string };
     Body: { type: string; title: string; body?: string; media_url?: string; session_id?: string };
@@ -158,7 +190,7 @@ export async function communityV2Routes(server: FastifyInstance) {
       }
       const member = await isMember(channel.id, request.user.id);
       if (!member && channel.owner_id !== request.user.id) {
-        return reply.status(403).send({ error: "Join this channel before posting" });
+        return reply.status(403).send({ error: "Subscribe to this channel before posting" });
       }
       if (session_id) {
         const { data: session } = await db.from("live_sessions").select("id").eq("id", session_id).eq("channel_id", channel.id).maybeSingle();
@@ -180,12 +212,15 @@ export async function communityV2Routes(server: FastifyInstance) {
     async (request, reply) => {
       const channel = await getChannelBySlug(request.params.slug);
       if (!channel) return reply.status(404).send({ error: "Channel not found" });
+      if (channel.owner_id === request.user.id) {
+        return reply.status(409).send({ error: "You already own this channel" });
+      }
       const { error } = await db.from("channel_memberships").upsert({
         channel_id: channel.id,
         user_id: request.user.id,
       }, { onConflict: "channel_id,user_id" });
-      if (error) return reply.status(500).send({ error: "Failed to join channel" });
-      return reply.send({ joined: true });
+      if (error) return reply.status(500).send({ error: "Failed to subscribe" });
+      return reply.send({ joined: true, subscribed: true });
     },
   );
 
@@ -196,7 +231,7 @@ export async function communityV2Routes(server: FastifyInstance) {
       const channel = await getChannelBySlug(request.params.slug);
       if (!channel) return reply.status(404).send({ error: "Channel not found" });
       await db.from("channel_memberships").delete().eq("channel_id", channel.id).eq("user_id", request.user.id);
-      return reply.send({ joined: false });
+      return reply.send({ joined: false, subscribed: false });
     },
   );
 
@@ -258,7 +293,7 @@ export async function communityV2Routes(server: FastifyInstance) {
       if (!post) return reply.status(404).send({ error: "Post not found" });
       const ownerId = post.channels?.owner_id as string;
       if (!(await isMember(post.channel_id, request.user.id)) && ownerId !== request.user.id) {
-        return reply.status(403).send({ error: "Join this channel before replying" });
+        return reply.status(403).send({ error: "Subscribe to this channel before replying" });
       }
       const { data: comment, error } = await db
         .from("community_comments")

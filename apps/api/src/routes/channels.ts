@@ -161,6 +161,43 @@ export async function channelRoutes(server: FastifyInstance) {
       return reply.status(500).send({ error: "Failed to fetch live channels" });
     }
 
+    const channelIds = (sessions ?? []).map((session: any) => session.channels.id);
+    const [
+      { data: memberships, error: membershipsError },
+      { data: communityPosts, error: communityPostsError },
+    ] = channelIds.length > 0
+      ? await Promise.all([
+          supabaseAdmin!
+            .from("channel_memberships")
+            .select("channel_id")
+            .in("channel_id", channelIds),
+          supabaseAdmin!
+            .from("community_posts")
+            .select("id, channel_id, title, type, status, created_at, community_votes ( user_id ), community_comments ( id )")
+            .in("channel_id", channelIds)
+            .order("created_at", { ascending: false }),
+        ])
+      : [
+          { data: [], error: null },
+          { data: [], error: null },
+        ];
+
+    if (membershipsError || communityPostsError) {
+      return reply.status(500).send({ error: "Failed to fetch channel communities" });
+    }
+
+    const memberCounts = new Map<string, number>();
+    for (const membership of memberships ?? []) {
+      memberCounts.set(membership.channel_id, (memberCounts.get(membership.channel_id) ?? 0) + 1);
+    }
+
+    const postsByChannel = new Map<string, any[]>();
+    for (const post of communityPosts ?? []) {
+      const posts = postsByChannel.get(post.channel_id) ?? [];
+      posts.push(post);
+      postsByChannel.set(post.channel_id, posts);
+    }
+
     const channels = (sessions ?? []).map((s: any) => ({
       session_id: s.id,
       live_since: s.created_at,
@@ -171,6 +208,19 @@ export async function channelRoutes(server: FastifyInstance) {
           .filter((p: string) => p !== "ditch"),
       )],
       on_screen: (s.participants ?? []).filter((p: any) => p.status === "live").length,
+      community: {
+        member_count: memberCounts.get(s.channels.id) ?? 0,
+        post_count: (postsByChannel.get(s.channels.id) ?? []).length,
+        recent_posts: (postsByChannel.get(s.channels.id) ?? []).slice(0, 2).map((post: any) => ({
+          id: post.id,
+          title: post.title,
+          type: post.type,
+          status: post.status ?? "open",
+          created_at: post.created_at,
+          vote_count: (post.community_votes ?? []).length,
+          comment_count: (post.community_comments ?? []).length,
+        })),
+      },
     }));
 
     return reply.status(200).send({ channels });

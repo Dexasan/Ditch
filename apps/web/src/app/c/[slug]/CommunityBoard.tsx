@@ -84,7 +84,7 @@ export default function CommunityBoard({
         setMemberCount((count) => count + 1);
       }
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "Could not update membership");
+      setError(caught instanceof ApiError ? caught.message : "Could not update subscription");
     } finally {
       setJoining(false);
     }
@@ -140,18 +140,20 @@ export default function CommunityBoard({
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-white/60">{memberCount} {memberCount === 1 ? "member" : "members"}</span>
+            <span className="text-xs text-white/60">{memberCount} {memberCount === 1 ? "subscriber" : "subscribers"}</span>
             {token ? (
               <button
                 type="button"
                 onClick={toggleMembership}
                 disabled={joining || isOwner}
+                aria-pressed={joined}
+                title={joined && !isOwner ? "Unsubscribe from this channel" : undefined}
                 className={`rounded-lg px-4 py-2 text-xs font-bold transition-colors disabled:opacity-60 ${joined ? "border border-white/10 text-white/60 hover:text-white" : "bg-[#FF1DB4] text-white hover:bg-[#ff45c0]"}`}
               >
-                {isOwner ? "Your channel" : joined ? "Joined" : "Join channel"}
+                {isOwner ? "Your channel" : joined ? "Subscribed" : "Subscribe"}
               </button>
             ) : (
-              <Link href="/auth" className="rounded-lg bg-[#FF1DB4] px-4 py-2 text-xs font-bold text-white">Join channel</Link>
+              <Link href="/auth" className="rounded-lg bg-[#FF1DB4] px-4 py-2 text-xs font-bold text-white">Subscribe</Link>
             )}
           </div>
         </div>
@@ -212,7 +214,7 @@ export default function CommunityBoard({
             )
           ) : (
             <div className="mb-4 rounded-xl border border-white/8 bg-white/[0.025] px-4 py-3 text-sm text-white/60">
-              {token ? "Join the channel to contribute and reply." : <><Link href="/auth" className="text-[#FF75CD]">Sign in</Link> and join to contribute.</>}
+              {token ? "Subscribe to contribute and reply." : <><Link href="/auth" className="text-[#FF75CD]">Sign in</Link> and subscribe to contribute.</>}
             </div>
           )}
 

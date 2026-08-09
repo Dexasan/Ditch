@@ -6,6 +6,7 @@ import type { Channel, LiveSession } from "@ditch/types";
 import type { CommunityPostV2 } from "@ditch/types/src/community";
 import ChannelView from "./ChannelView";
 import CommunityBoard from "./CommunityBoard";
+import ChannelSubscribeButton from "@/components/ChannelSubscribeButton";
 
 export default async function ChannelPage({
   params,
@@ -29,28 +30,31 @@ export default async function ChannelPage({
   const token = authSession?.access_token ?? null;
   const viewerName = authSession?.user.user_metadata?.display_name ?? null;
 
-  let isOwner = false;
-  if (authSession) {
-    const { channel: myChannel } = await api
-      .get<{ channel: { slug: string } | null }>("/channels/mine", { token: authSession.access_token })
-      .catch(() => ({ channel: null }));
-    isOwner = myChannel?.slug === slug;
-  }
-
   const isLive = Boolean(session && session.status !== "ended");
   const activeTab = tab === "community" ? "community" : tab === "live" ? "live" : (isLive ? "live" : "community");
   const isActiveLiveSession = activeTab === "live" && isLive && Boolean(session);
 
+  type CommunityPayload = {
+    posts: CommunityPostV2[];
+    is_member: boolean;
+    member_count: number;
+    is_owner: boolean;
+  };
+  const emptyCommunity: CommunityPayload = {
+    posts: [],
+    is_member: false,
+    member_count: 0,
+    is_owner: false,
+  };
   const community = activeTab === "community"
     ? await api
-        .get<{
-          posts: CommunityPostV2[];
-          is_member: boolean;
-          member_count: number;
-          is_owner: boolean;
-        }>(`/channels/${slug}/community-v2`, token ? { token } : undefined)
-        .catch(() => ({ posts: [] as CommunityPostV2[], is_member: false, member_count: 0, is_owner: false }))
-    : { posts: [] as CommunityPostV2[], is_member: false, member_count: 0, is_owner: false };
+        .get<CommunityPayload>(`/channels/${slug}/community-v2`, token ? { token } : undefined)
+        .catch(() => emptyCommunity)
+    : await api
+        .get<Omit<CommunityPayload, "posts">>(`/channels/${slug}/community-summary`, token ? { token } : undefined)
+        .then((summary) => ({ ...summary, posts: [] as CommunityPostV2[] }))
+        .catch(() => emptyCommunity);
+  const isOwner = community.is_owner;
 
   return (
     <div
@@ -62,7 +66,7 @@ export default async function ChannelPage({
         overflowY: isActiveLiveSession ? "hidden" : undefined,
       }}
     >
-      <header className="channel-header flex min-w-0 shrink-0 items-center gap-2.5 border-b border-white/6 sm:gap-3">
+      <header className="channel-header flex min-w-0 shrink-0 flex-wrap items-center gap-2.5 border-b border-white/6 sm:flex-nowrap sm:gap-3">
         <Link href="/home" className="shrink-0"><img src="/logo.png" alt="DITCH" className="h-7 w-7 rounded-md" /></Link>
         <span className="channel-header-divider shrink-0 text-sm text-white/25">/</span>
         <span className="channel-header-name min-w-0 truncate text-sm font-semibold text-white">{channel.display_name}</span>
@@ -97,6 +101,18 @@ export default async function ChannelPage({
             Community
           </Link>
         </div>
+        {activeTab === "live" && (
+          <div className="order-last flex w-full justify-end border-t border-white/5 pt-2 sm:order-none sm:w-auto sm:border-0 sm:pt-0">
+            <ChannelSubscribeButton
+              channelSlug={slug}
+              token={token}
+              initialSubscribed={community.is_member}
+              initialCount={community.member_count}
+              isOwner={isOwner}
+              compact
+            />
+          </div>
+        )}
       </header>
 
       {activeTab === "live" ? (
