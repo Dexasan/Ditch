@@ -4,7 +4,7 @@ import SignOutButton from "@/app/dashboard/SignOutButton";
 import styles from "./ConsoleHeader.module.css";
 
 type ConsoleHeaderProps = {
-  active: "home" | "studio";
+  active: "home" | "studio" | "community" | "inbox";
   channelSlug?: string;
   liveControlHref?: string;
 };
@@ -12,14 +12,12 @@ type ConsoleHeaderProps = {
 const NAV_ITEMS = [
   { id: "home", label: "Home", href: "/home" },
   { id: "studio", label: "Studio", href: "/dashboard" },
+  { id: "community", label: "Community", href: "/dashboard/community" },
   { id: "explore", label: "Explore", href: "/explore" },
+  { id: "inbox", label: "Inbox", href: "/inbox" },
 ] as const;
 
-export default function ConsoleHeader({
-  active,
-  channelSlug,
-  liveControlHref,
-}: ConsoleHeaderProps) {
+export default function ConsoleHeader({ active, channelSlug, liveControlHref }: ConsoleHeaderProps) {
   return (
     <header className={styles.header}>
       <div className={styles.headerInner}>
@@ -41,7 +39,7 @@ export default function ConsoleHeader({
               className={styles.navLink}
               data-active={active === item.id ? "true" : "false"}
             >
-              <span>0{index + 1}</span>
+              <span>{(index + 1).toString().padStart(2, "0")}</span>
               {item.label}
             </Link>
           ))}

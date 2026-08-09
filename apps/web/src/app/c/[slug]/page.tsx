@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { api } from "@/lib/api";
-import type { Channel, LiveSession, CommunityPost } from "@ditch/types";
+import type { Channel, LiveSession } from "@ditch/types";
+import type { CommunityPostV2 } from "@ditch/types/src/community";
 import ChannelView from "./ChannelView";
-import CommunityTab from "./CommunityTab";
+import CommunityBoard from "./CommunityBoard";
 
 export default async function ChannelPage({
   params,
@@ -13,19 +14,18 @@ export default async function ChannelPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const { slug } = await params;
-  const { tab }  = await searchParams;
+  const { tab } = await searchParams;
 
   const result = await api
     .get<{ channel: Channel; session: LiveSession | null }>(`/channels/${slug}`)
     .catch(() => null);
 
   if (!result) notFound();
-
   const { channel, session } = result;
 
   const supabase = await createClient();
   const { data: { session: authSession } } = await supabase.auth.getSession();
-  const token      = authSession?.access_token ?? null;
+  const token = authSession?.access_token ?? null;
   const viewerName = authSession?.user.user_metadata?.display_name ?? null;
 
   let isOwner = false;
@@ -36,18 +36,20 @@ export default async function ChannelPage({
     isOwner = myChannel?.slug === slug;
   }
 
-  const isLive = !!(session && session.status !== "ended");
-
-  // Default tab: community when offline, live when streaming
+  const isLive = Boolean(session && session.status !== "ended");
   const activeTab = tab === "community" ? "community" : tab === "live" ? "live" : (isLive ? "live" : "community");
-  const isActiveLiveSession = activeTab === "live" && isLive && !!session;
+  const isActiveLiveSession = activeTab === "live" && isLive && Boolean(session);
 
-  // Fetch community posts when community tab is active
-  const { posts: initialPosts } = activeTab === "community"
+  const community = activeTab === "community"
     ? await api
-        .get<{ posts: CommunityPost[] }>(`/channels/${slug}/community`, token ? { token } : undefined)
-        .catch(() => ({ posts: [] as CommunityPost[] }))
-    : { posts: [] as CommunityPost[] };
+        .get<{
+          posts: CommunityPostV2[];
+          is_member: boolean;
+          member_count: number;
+          is_owner: boolean;
+        }>(`/channels/${slug}/community-v2`, token ? { token } : undefined)
+        .catch(() => ({ posts: [] as CommunityPostV2[], is_member: false, member_count: 0, is_owner: false }))
+    : { posts: [] as CommunityPostV2[], is_member: false, member_count: 0, is_owner: false };
 
   return (
     <div
@@ -59,7 +61,6 @@ export default async function ChannelPage({
         overflowY: isActiveLiveSession ? "hidden" : undefined,
       }}
     >
-      {/* Header */}
       <header className="channel-header flex min-w-0 shrink-0 items-center gap-2.5 border-b border-white/6 sm:gap-3">
         <a href="/home" className="shrink-0"><img src="/logo.png" alt="DITCH" className="h-7 w-7 rounded-md" /></a>
         <span className="channel-header-divider shrink-0 text-sm text-white/25">/</span>
@@ -70,12 +71,9 @@ export default async function ChannelPage({
             LIVE
           </span>
         ) : (
-          <span className="shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-white/30">
-            Offline
-          </span>
+          <span className="shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-white/30">Offline</span>
         )}
 
-        {/* Tab switcher */}
         <div className="channel-page-tabs ml-auto flex shrink-0 items-center gap-1 rounded-lg bg-white/5 p-1">
           <a
             href={`/c/${slug}?tab=live`}
@@ -100,7 +98,6 @@ export default async function ChannelPage({
         </div>
       </header>
 
-      {/* Content */}
       {activeTab === "live" ? (
         isLive && session ? (
           <ChannelView
@@ -111,34 +108,32 @@ export default async function ChannelPage({
             channelSlug={slug}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center gap-6">
-            <div className="text-center space-y-3">
+          <div className="flex flex-1 flex-col items-center justify-center gap-6">
+            <div className="space-y-3 text-center">
               <div
-                className="w-14 h-14 rounded-full flex items-center justify-center mx-auto"
+                className="mx-auto flex h-14 w-14 items-center justify-center rounded-full"
                 style={{ background: "rgba(255,29,180,0.08)", border: "1px solid rgba(255,29,180,0.15)" }}
               >
-                <span className="text-xl">📡</span>
+                <span className="text-xl">◉</span>
               </div>
               <div className="space-y-1">
                 <p className="font-semibold text-white">{channel.display_name} is offline</p>
-                <p className="text-sm text-white/40">
-                  {channel.description ?? "Check back soon."}
-                </p>
+                <p className="text-sm text-white/40">{channel.description ?? "Check back soon."}</p>
               </div>
             </div>
-            <a
-              href={`/c/${slug}?tab=community`}
-              className="text-xs font-semibold text-[#FF1DB4] hover:text-white transition-colors"
-            >
+            <a href={`/c/${slug}?tab=community`} className="text-xs font-semibold text-[#FF1DB4] hover:text-white">
               See the community →
             </a>
           </div>
         )
       ) : (
-        <CommunityTab
+        <CommunityBoard
           channelSlug={slug}
-          initialPosts={initialPosts}
+          initialPosts={community.posts}
           token={token}
+          initialIsMember={community.is_member}
+          initialMemberCount={community.member_count}
+          isOwner={isOwner}
         />
       )}
     </div>

@@ -20,6 +20,7 @@ import type { ILocalAudioTrack, ILocalVideoTrack } from "agora-rtc-sdk-ng";
 import { ToastManager } from "./Toast";
 import { useStudioShortcuts } from "@/hooks/useStudioShortcuts";
 import studioStyles from "./studio.module.css";
+import RundownPanel from "./RundownPanel";
 
 const MAX_CHAT = 200;
 const TOTAL_SLOTS = 4;
@@ -3040,7 +3041,11 @@ function Inspector({
   chatProps,
   queueProps,
   layerProps,
+  sessionId,
+  token,
 }: {
+  sessionId: string;
+  token: string;
   chatProps: {
     messages: ChatMessage[];
     chatBody: string;
@@ -3060,7 +3065,7 @@ function Inspector({
     switchCamDevice: (deviceId: string) => Promise<void>;
   };
 }) {
-  const [tab, setTab] = useState<"properties" | "chat" | "queue">("properties");
+  const [tab, setTab] = useState<"properties" | "chat" | "queue" | "rundown">("properties");
   const {
     scenes, activeSceneId,
     selectedLayerId, setSelectedLayerId,
@@ -3098,7 +3103,7 @@ function Inspector({
 
       {/* Tab strip */}
       <div className="flex shrink-0 border-b border-[var(--border)]">
-        {(["properties", "chat", "queue"] as const).map((t) => (
+        {(["properties", "chat", "queue", "rundown"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -3281,6 +3286,7 @@ function Inspector({
         )}
         {tab === "chat" && <ChatPanel {...chatProps} />}
         {tab === "queue" && <QueuePanel {...queueProps} />}
+        {tab === "rundown" && <RundownPanel sessionId={sessionId} token={token} />}
       </div>
     </div>
   );
@@ -4373,6 +4379,8 @@ export default function Studio({
           </div>
         </div>
         <Inspector
+          sessionId={sessionId}
+          token={token}
           chatProps={{ messages, chatBody, onChange: setChatBody, onSend: sendChat }}
           queueProps={{ waiting, approved, nextSlot, onChangeStatus: changeParticipantStatus }}
           layerProps={{ attachFile, attachDisplayCapture, videoInputs, switchCamDevice }}

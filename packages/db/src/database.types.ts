@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      channel_memberships: {
+        Row: {
+          channel_id: string
+          joined_at: string
+          notification_level: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          joined_at?: string
+          notification_level?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          joined_at?: string
+          notification_level?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_memberships_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channels: {
         Row: {
           created_at: string
@@ -87,42 +123,233 @@ export type Database = {
           },
         ]
       }
+      community_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          post_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          post_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_notifications: {
+        Row: {
+          actor_id: string | null
+          body: string
+          channel_id: string
+          comment_id: string | null
+          created_at: string
+          id: string
+          post_id: string | null
+          read_at: string | null
+          recipient_id: string
+          type: Database["public"]["Enums"]["community_notification_type"]
+        }
+        Insert: {
+          actor_id?: string | null
+          body: string
+          channel_id: string
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          read_at?: string | null
+          recipient_id: string
+          type: Database["public"]["Enums"]["community_notification_type"]
+        }
+        Update: {
+          actor_id?: string | null
+          body?: string
+          channel_id?: string
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          read_at?: string | null
+          recipient_id?: string
+          type?: Database["public"]["Enums"]["community_notification_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_notifications_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_notifications_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_notifications_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "community_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_notifications_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_post_events: {
+        Row: {
+          actor_id: string
+          created_at: string
+          event_type: string
+          from_status:
+            | Database["public"]["Enums"]["community_post_status"]
+            | null
+          id: string
+          post_id: string
+          session_id: string | null
+          to_status: Database["public"]["Enums"]["community_post_status"] | null
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          event_type: string
+          from_status?:
+            | Database["public"]["Enums"]["community_post_status"]
+            | null
+          id?: string
+          post_id: string
+          session_id?: string | null
+          to_status?:
+            | Database["public"]["Enums"]["community_post_status"]
+            | null
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          event_type?: string
+          from_status?:
+            | Database["public"]["Enums"]["community_post_status"]
+            | null
+          id?: string
+          post_id?: string
+          session_id?: string | null
+          to_status?:
+            | Database["public"]["Enums"]["community_post_status"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_post_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_post_events_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_post_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_posts: {
         Row: {
           author_id: string
           body: string | null
           channel_id: string
           created_at: string
+          creator_response: string | null
           id: string
           is_pinned: boolean
           media_url: string | null
           session_id: string | null
+          status: Database["public"]["Enums"]["community_post_status"]
           title: string
           type: Database["public"]["Enums"]["community_post_type"]
+          updated_at: string
         }
         Insert: {
           author_id: string
           body?: string | null
           channel_id: string
           created_at?: string
+          creator_response?: string | null
           id?: string
           is_pinned?: boolean
           media_url?: string | null
           session_id?: string | null
+          status?: Database["public"]["Enums"]["community_post_status"]
           title: string
           type: Database["public"]["Enums"]["community_post_type"]
+          updated_at?: string
         }
         Update: {
           author_id?: string
           body?: string | null
           channel_id?: string
           created_at?: string
+          creator_response?: string | null
           id?: string
           is_pinned?: boolean
           media_url?: string | null
           session_id?: string | null
+          status?: Database["public"]["Enums"]["community_post_status"]
           title?: string
           type?: Database["public"]["Enums"]["community_post_type"]
+          updated_at?: string
         }
         Relationships: [
           {
@@ -308,6 +535,51 @@ export type Database = {
           },
         ]
       }
+      show_rundown_items: {
+        Row: {
+          added_at: string
+          id: string
+          position: number
+          post_id: string
+          session_id: string
+          state: Database["public"]["Enums"]["rundown_item_state"]
+          used_at: string | null
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          position?: number
+          post_id: string
+          session_id: string
+          state?: Database["public"]["Enums"]["rundown_item_state"]
+          used_at?: string | null
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          position?: number
+          post_id?: string
+          session_id?: string
+          state?: Database["public"]["Enums"]["rundown_item_state"]
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "show_rundown_items_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "show_rundown_items_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stream_destinations: {
         Row: {
           channel_ref: string | null
@@ -381,9 +653,22 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      community_notification_type:
+        | "comment"
+        | "creator_response"
+        | "status_change"
+        | "used_on_stream"
+      community_post_status:
+        | "open"
+        | "shortlisted"
+        | "planned"
+        | "used"
+        | "completed"
+        | "declined"
       community_post_type: "moment" | "discussion" | "suggestion"
       destination_status: "connecting" | "live" | "error" | "stopped" | "idle"
       participant_status: "waiting" | "approved" | "live" | "removed"
+      rundown_item_state: "planned" | "used" | "skipped"
       session_source: "browser" | "rtmp"
       session_status: "idle" | "live" | "ending" | "ended"
       stream_platform: "twitch" | "youtube" | "tiktok" | "kick" | "ditch"
@@ -514,9 +799,25 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      community_notification_type: [
+        "comment",
+        "creator_response",
+        "status_change",
+        "used_on_stream",
+      ],
+      community_post_status: [
+        "open",
+        "shortlisted",
+        "planned",
+        "used",
+        "completed",
+        "declined",
+      ],
       community_post_type: ["moment", "discussion", "suggestion"],
       destination_status: ["connecting", "live", "error", "stopped", "idle"],
       participant_status: ["waiting", "approved", "live", "removed"],
+      rundown_item_state: ["planned", "used", "skipped"],
+      session_source: ["browser", "rtmp"],
       session_status: ["idle", "live", "ending", "ended"],
       stream_platform: ["twitch", "youtube", "tiktok", "kick", "ditch"],
     },
