@@ -53,10 +53,10 @@ export default function CommunityThread({
     setBusy(true);
     setError(null);
     try {
-      await api.post(`/channels/${detail.post.channel_slug}/membership`, { token });
+      await api.post(`/channels/${detail.post.channel_slug}/membership`, { token, body: {} });
       setDetail((current) => ({ ...current, is_member: true }));
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "Could not join this channel");
+      setError(caught instanceof ApiError ? caught.message : "Could not subscribe to this channel");
     } finally {
       setBusy(false);
     }

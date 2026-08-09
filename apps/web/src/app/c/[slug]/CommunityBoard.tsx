@@ -79,7 +79,7 @@ export default function CommunityBoard({
         setJoined(false);
         setMemberCount((count) => Math.max(0, count - 1));
       } else {
-        await api.post(`/channels/${channelSlug}/membership`, { token });
+        await api.post(`/channels/${channelSlug}/membership`, { token, body: {} });
         setJoined(true);
         setMemberCount((count) => count + 1);
       }

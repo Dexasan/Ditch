@@ -37,7 +37,7 @@ export default function ChannelSubscribeButton({
 
     try {
       if (nextSubscribed) {
-        await api.post(`/channels/${channelSlug}/membership`, { token });
+        await api.post(`/channels/${channelSlug}/membership`, { token, body: {} });
       } else {
         await api.delete(`/channels/${channelSlug}/membership`, { token });
       }
