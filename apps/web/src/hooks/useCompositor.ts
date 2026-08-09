@@ -300,6 +300,7 @@ export function useCompositor({
   const connectedAudioRef  = useRef<Set<string>>(new Set());
   const srcNodesRef        = useRef<Map<string, MediaStreamAudioSourceNode>>(new Map());
   const connectedTrackIdRef = useRef<Map<string, string>>(new Map());
+  const highpassNodesRef   = useRef<Map<string, BiquadFilterNode>>(new Map());
   const gainNodesRef       = useRef<Map<string, GainNode>>(new Map());
   const analyserNodesRef   = useRef<Map<string, AnalyserNode>>(new Map());
   // Re-render once graph nodes exist so VU meters receive their analysers immediately.
@@ -327,7 +328,9 @@ export function useCompositor({
     canvas.height = Math.round(H * scale);
     canvasRef.current = canvas;
 
-    const audioCtx  = new AudioContext();
+    // Pin the program mix to the relay's 48 kHz audio clock to avoid an
+    // unnecessary browser-rate conversion before the Opus -> AAC relay encode.
+    const audioCtx  = new AudioContext({ sampleRate: 48_000 });
     const audioDest = audioCtx.createMediaStreamDestination();
     audioCtxRef.current  = audioCtx;
     audioDestRef.current = audioDest;
@@ -981,9 +984,11 @@ export function useCompositor({
 
     function disconnectSource(sourceId: string) {
       try { srcNodesRef.current.get(sourceId)?.disconnect(); } catch {}
+      try { highpassNodesRef.current.get(sourceId)?.disconnect(); } catch {}
       try { gainNodesRef.current.get(sourceId)?.disconnect(); } catch {}
       try { analyserNodesRef.current.get(sourceId)?.disconnect(); } catch {}
       srcNodesRef.current.delete(sourceId);
+      highpassNodesRef.current.delete(sourceId);
       gainNodesRef.current.delete(sourceId);
       analyserNodesRef.current.delete(sourceId);
       connectedAudioRef.current.delete(sourceId);
@@ -1006,7 +1011,20 @@ export function useCompositor({
         analyser.fftSize = 2048;
         analyser.smoothingTimeConstant = 0.8;
         gain.gain.value = 1.0;
-        src.connect(gain);
+        // Remove wind/fan/handling rumble from voice sources only. Media and
+        // screen audio retain their full frequency range.
+        const isVoiceSource = sourceId === "mic" || sourceId.startsWith("participant-");
+        if (isVoiceSource) {
+          const highpass = ctx.createBiquadFilter();
+          highpass.type = "highpass";
+          highpass.frequency.value = 100;
+          highpass.Q.value = Math.SQRT1_2;
+          src.connect(highpass);
+          highpass.connect(gain);
+          highpassNodesRef.current.set(sourceId, highpass);
+        } else {
+          src.connect(gain);
+        }
         gain.connect(analyser);
         analyser.connect(audioDestRef.current!);
         srcNodesRef.current.set(sourceId, src);

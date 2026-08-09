@@ -7,11 +7,22 @@ import type {
   ILocalVideoTrack,
   ILocalAudioTrack,
   IMicrophoneAudioTrack,
+  MicrophoneAudioTrackInitConfig,
 } from "agora-rtc-sdk-ng";
 import { AGORA_APP_ID, CREATOR_COMPOSITE_UID, getAgoraRTC } from "@/lib/agora";
 import type { ContentMode } from "@/lib/studio-store";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+
+// Spoken-word capture should stay mono and suppress steady room/fan noise before
+// it reaches either Agora or the broadcast compositor. AGC remains disabled so
+// quiet sections do not pump the residual noise floor back up.
+const MICROPHONE_AUDIO_CONFIG: MicrophoneAudioTrackInitConfig = {
+  encoderConfig: "high_quality",
+  AEC: true,
+  AGC: false,
+  ANS: true,
+};
 
 // Encode codec for this client's published stream. Default H.264 (iOS decodes it
 // fine, which fixed iPhone viewing). But iOS Safari's H.264 *encoder* is broken
@@ -360,18 +371,7 @@ export function useAgoraRoom(options: {
         const AgoraRTC = await getAgoraRTC();
 
         if (wantAudio && !localAudioTrackRef.current) {
-          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-            // 48kHz stereo @ 192kbps, matching the AudioContext rate so nothing
-            // resamples on the way into the compositor mixer.
-            encoderConfig: "high_quality_stereo",
-            // Keep echo cancellation on: some creators/participants monitor
-            // through speakers, and AEC prevents feedback there. But disable
-            // auto-gain (AGC) and noise suppression (ANS): both are aggressive
-            // DSP passes that muffle the signal and cause level pumping.
-            AEC: true,
-            AGC: false,
-            ANS: false,
-          });
+          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack(MICROPHONE_AUDIO_CONFIG);
           if (cancelled || clientRef.current !== client) {
             audioTrack.close();
           } else {
@@ -542,7 +542,9 @@ export function useAgoraRoom(options: {
       // is still valid, otherwise the prompt never resolves and the button hangs
       // on "Starting…". If this throws (permission denied) we bail before leaving
       // the audience client, so the user keeps watching.
-      const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+      const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
+        MICROPHONE_AUDIO_CONFIG,
+      );
 
       // Leave the current audience client before re-joining as host.
       if (clientRef.current) {

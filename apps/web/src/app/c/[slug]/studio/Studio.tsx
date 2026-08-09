@@ -25,6 +25,13 @@ import RundownPanel from "./RundownPanel";
 
 const MAX_CHAT = 200;
 const TOTAL_SLOTS = 4;
+const PROGRAM_MIC_CONSTRAINTS: MediaTrackConstraints = {
+  channelCount: { ideal: 1 },
+  sampleRate: { ideal: 48_000 },
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: false,
+};
 
 const PLATFORM_COLOR: Record<string, string> = {
   twitch:  "#9146ff",
@@ -4096,7 +4103,7 @@ export default function Studio({
     // the RTC room joining successfully.
     const capturePromise = navigator.mediaDevices.getUserMedia({
       video: false,
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      audio: PROGRAM_MIC_CONSTRAINTS,
     });
     try {
       const [running, capture] = await Promise.all([resumePromise, capturePromise]);
@@ -4130,7 +4137,7 @@ export default function Studio({
     void resumeAudio();
     const capture = await navigator.mediaDevices.getUserMedia({
       video: false,
-      audio: { deviceId: { exact: deviceId }, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      audio: { ...PROGRAM_MIC_CONSTRAINTS, deviceId: { exact: deviceId } },
     });
     const microphone = capture.getAudioTracks()[0];
     if (!microphone) {
