@@ -42,7 +42,7 @@ export default async function LivePage({
     <Studio
       sessionId={session.id}
       channelId={channel.id}
-      token={token}
+      token="cookie-session"
       creatorName={creatorName}
       channelName={channel.display_name}
       slug={slug}

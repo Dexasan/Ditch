@@ -1,0 +1,2276 @@
+{
+  "buckets": null,
+  "functions": [
+    {
+      "name": "email",
+      "role": "anon",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "email",
+      "role": "authenticated",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "jwt",
+      "role": "anon",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "jwt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "role",
+      "role": "anon",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "role",
+      "role": "authenticated",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uid",
+      "role": "anon",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uid",
+      "role": "authenticated",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "armor",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "armor",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text[], text[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "armor",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "armor",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text[], text[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "crypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "crypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "dearmor",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "dearmor",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "decrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "decrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "decrypt_iv",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "decrypt_iv",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "digest",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "digest",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "digest",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "digest",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "encrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "encrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "encrypt_iv",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "encrypt_iv",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_random_bytes",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_random_bytes",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_random_uuid",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_random_uuid",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_salt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_salt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_salt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_salt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "grant_pg_cron_access",
+      "role": "anon",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "grant_pg_cron_access",
+      "role": "authenticated",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "grant_pg_graphql_access",
+      "role": "anon",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "grant_pg_graphql_access",
+      "role": "authenticated",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "grant_pg_net_access",
+      "role": "anon",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "grant_pg_net_access",
+      "role": "authenticated",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "hmac",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "hmac",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "hmac",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "hmac",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pg_stat_statements",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "showtext boolean, OUT userid oid, OUT dbid oid, OUT toplevel boolean, OUT queryid bigint, OUT query text, OUT plans bigint, OUT total_plan_time double precision, OUT min_plan_time double precision, OUT max_plan_time double precision, OUT mean_plan_time double precision, OUT stddev_plan_time double precision, OUT calls bigint, OUT total_exec_time double precision, OUT min_exec_time double precision, OUT max_exec_time double precision, OUT mean_exec_time double precision, OUT stddev_exec_time double precision, OUT rows bigint, OUT shared_blks_hit bigint, OUT shared_blks_read bigint, OUT shared_blks_dirtied bigint, OUT shared_blks_written bigint, OUT local_blks_hit bigint, OUT local_blks_read bigint, OUT local_blks_dirtied bigint, OUT local_blks_written bigint, OUT temp_blks_read bigint, OUT temp_blks_written bigint, OUT shared_blk_read_time double precision, OUT shared_blk_write_time double precision, OUT local_blk_read_time double precision, OUT local_blk_write_time double precision, OUT temp_blk_read_time double precision, OUT temp_blk_write_time double precision, OUT wal_records bigint, OUT wal_fpi bigint, OUT wal_bytes numeric, OUT jit_functions bigint, OUT jit_generation_time double precision, OUT jit_inlining_count bigint, OUT jit_inlining_time double precision, OUT jit_optimization_count bigint, OUT jit_optimization_time double precision, OUT jit_emission_count bigint, OUT jit_emission_time double precision, OUT jit_deform_count bigint, OUT jit_deform_time double precision, OUT stats_since timestamp with time zone, OUT minmax_stats_since timestamp with time zone",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pg_stat_statements",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "showtext boolean, OUT userid oid, OUT dbid oid, OUT toplevel boolean, OUT queryid bigint, OUT query text, OUT plans bigint, OUT total_plan_time double precision, OUT min_plan_time double precision, OUT max_plan_time double precision, OUT mean_plan_time double precision, OUT stddev_plan_time double precision, OUT calls bigint, OUT total_exec_time double precision, OUT min_exec_time double precision, OUT max_exec_time double precision, OUT mean_exec_time double precision, OUT stddev_exec_time double precision, OUT rows bigint, OUT shared_blks_hit bigint, OUT shared_blks_read bigint, OUT shared_blks_dirtied bigint, OUT shared_blks_written bigint, OUT local_blks_hit bigint, OUT local_blks_read bigint, OUT local_blks_dirtied bigint, OUT local_blks_written bigint, OUT temp_blks_read bigint, OUT temp_blks_written bigint, OUT shared_blk_read_time double precision, OUT shared_blk_write_time double precision, OUT local_blk_read_time double precision, OUT local_blk_write_time double precision, OUT temp_blk_read_time double precision, OUT temp_blk_write_time double precision, OUT wal_records bigint, OUT wal_fpi bigint, OUT wal_bytes numeric, OUT jit_functions bigint, OUT jit_generation_time double precision, OUT jit_inlining_count bigint, OUT jit_inlining_time double precision, OUT jit_optimization_count bigint, OUT jit_optimization_time double precision, OUT jit_emission_count bigint, OUT jit_emission_time double precision, OUT jit_deform_count bigint, OUT jit_deform_time double precision, OUT stats_since timestamp with time zone, OUT minmax_stats_since timestamp with time zone",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pg_stat_statements_info",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "OUT dealloc bigint, OUT stats_reset timestamp with time zone",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pg_stat_statements_info",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "OUT dealloc bigint, OUT stats_reset timestamp with time zone",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_armor_headers",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, OUT key text, OUT value text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_armor_headers",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, OUT key text, OUT value text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_key_id",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_key_id",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgrst_ddl_watch",
+      "role": "anon",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgrst_ddl_watch",
+      "role": "authenticated",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgrst_drop_watch",
+      "role": "anon",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgrst_drop_watch",
+      "role": "authenticated",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "set_graphql_placeholder",
+      "role": "anon",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "set_graphql_placeholder",
+      "role": "authenticated",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v1",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v1",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v1mc",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v1mc",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v3",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "namespace uuid, name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v3",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "namespace uuid, name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v4",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v4",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v5",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "namespace uuid, name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v5",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "namespace uuid, name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_nil",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_nil",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_dns",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_dns",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_oid",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_oid",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_url",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_url",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_x500",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_x500",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "graphql",
+      "role": "anon",
+      "config": null,
+      "schema": "graphql_public",
+      "arguments": "\"operationName\" text, query text, variables jsonb, extensions jsonb",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "graphql",
+      "role": "authenticated",
+      "config": null,
+      "schema": "graphql_public",
+      "arguments": "\"operationName\" text, query text, variables jsonb, extensions jsonb",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "apply_rls",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "wal jsonb, max_record_bytes integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "apply_rls",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "wal jsonb, max_record_bytes integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "broadcast_changes",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "broadcast_changes",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "build_prepared_statement_sql",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "prepared_statement_name text, entity regclass, columns realtime.wal_column[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "build_prepared_statement_sql",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "prepared_statement_name text, entity regclass, columns realtime.wal_column[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "cast",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "val text, type_ regtype",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "cast",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "val text, type_ regtype",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "check_equality_op",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "op realtime.equality_op, type_ regtype, val_1 text, val_2 text, negate boolean",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "check_equality_op",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "op realtime.equality_op, type_ regtype, val_1 text, val_2 text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "check_equality_op",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "op realtime.equality_op, type_ regtype, val_1 text, val_2 text, negate boolean",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "check_equality_op",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "op realtime.equality_op, type_ regtype, val_1 text, val_2 text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "is_visible_through_filters",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "columns realtime.wal_column[], filters realtime.user_defined_filter[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "is_visible_through_filters",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "columns realtime.wal_column[], filters realtime.user_defined_filter[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "list_changes",
+      "role": "anon",
+      "config": [
+        "log_min_messages=fatal"
+      ],
+      "schema": "realtime",
+      "arguments": "publication name, slot_name name, max_changes integer, max_record_bytes integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "list_changes",
+      "role": "authenticated",
+      "config": [
+        "log_min_messages=fatal"
+      ],
+      "schema": "realtime",
+      "arguments": "publication name, slot_name name, max_changes integer, max_record_bytes integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "quote_wal2json",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "entity regclass",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "quote_wal2json",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "entity regclass",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "send",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "payload jsonb, event text, topic text, private boolean",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "send",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "payload jsonb, event text, topic text, private boolean",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "send_binary",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "payload bytea, event text, topic text, private boolean",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "send_binary",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "payload bytea, event text, topic text, private boolean",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "subscription_check_filters",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "subscription_check_filters",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "to_regrole",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "role_name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "to_regrole",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "role_name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "topic",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "topic",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "wal2json_escape_identifier",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "wal2json_escape_identifier",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "allow_any_operation",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "expected_operations text[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "allow_any_operation",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "expected_operations text[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "allow_only_operation",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "expected_operation text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "allow_only_operation",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "expected_operation text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "can_insert_object",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "bucketid text, name text, owner uuid, metadata jsonb",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "can_insert_object",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "bucketid text, name text, owner uuid, metadata jsonb",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "enforce_bucket_name_length",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "enforce_bucket_name_length",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "extension",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "extension",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "filename",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "filename",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "foldername",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "foldername",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "get_common_prefix",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "p_key text, p_prefix text, p_delimiter text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "get_common_prefix",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "p_key text, p_prefix text, p_delimiter text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "get_size_by_bucket",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "get_size_by_bucket",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "list_multipart_uploads_with_delimiter",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "bucket_id text, prefix_param text, delimiter_param text, max_keys integer, next_key_token text, next_upload_token text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "list_multipart_uploads_with_delimiter",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "bucket_id text, prefix_param text, delimiter_param text, max_keys integer, next_key_token text, next_upload_token text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "list_objects_with_delimiter",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "_bucket_id text, prefix_param text, delimiter_param text, max_keys integer, start_after text, next_token text, sort_order text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "list_objects_with_delimiter",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "_bucket_id text, prefix_param text, delimiter_param text, max_keys integer, start_after text, next_token text, sort_order text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "operation",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "operation",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "protect_delete",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "protect_delete",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "search",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "prefix text, bucketname text, limits integer, levels integer, offsets integer, search text, sortcolumn text, sortorder text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "search",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "prefix text, bucketname text, limits integer, levels integer, offsets integer, search text, sortcolumn text, sortorder text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "search_by_timestamp",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "p_prefix text, p_bucket_id text, p_limit integer, p_level integer, p_start_after text, p_sort_order text, p_sort_column text, p_sort_column_after text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "search_by_timestamp",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "p_prefix text, p_bucket_id text, p_limit integer, p_level integer, p_start_after text, p_sort_order text, p_sort_column text, p_sort_column_after text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "search_v2",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "prefix text, bucket_name text, limits integer, levels integer, start_after text, sort_order text, sort_column text, sort_column_after text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "search_v2",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "prefix text, bucket_name text, limits integer, levels integer, start_after text, sort_order text, sort_column text, sort_column_after text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "update_updated_at_column",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "update_updated_at_column",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    }
+  ],
+  "relations": [
+    {
+      "kind": "v",
+      "name": "pg_stat_statements",
+      "role": "anon",
+      "schema": "extensions",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": false
+    },
+    {
+      "kind": "v",
+      "name": "pg_stat_statements",
+      "role": "authenticated",
+      "schema": "extensions",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": false
+    },
+    {
+      "kind": "v",
+      "name": "pg_stat_statements_info",
+      "role": "anon",
+      "schema": "extensions",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": false
+    },
+    {
+      "kind": "v",
+      "name": "pg_stat_statements_info",
+      "role": "authenticated",
+      "schema": "extensions",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": false
+    },
+    {
+      "kind": "r",
+      "name": "channel_memberships",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "channel_memberships: scoped read",
+          "check": null,
+          "roles": [
+            "16485"
+          ],
+          "using": "((user_id = ( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1\n   FROM channels c\n  WHERE ((c.id = channel_memberships.channel_id) AND (c.owner_id = ( SELECT auth.uid() AS uid))))))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "channels",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "channels: scoped read",
+          "check": null,
+          "roles": [
+            "16485"
+          ],
+          "using": "(owner_id = ( SELECT auth.uid() AS uid))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "chat_messages",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "chat_messages: scoped read",
+          "check": null,
+          "roles": [
+            "16485"
+          ],
+          "using": "(EXISTS ( SELECT 1\n   FROM (live_sessions s\n     JOIN channels c ON ((c.id = s.channel_id)))\n  WHERE ((s.id = chat_messages.session_id) AND (c.owner_id = ( SELECT auth.uid() AS uid)))))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_comments",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_comments: scoped read",
+          "check": null,
+          "roles": [
+            "16485"
+          ],
+          "using": "((author_id = ( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1\n   FROM (community_posts p\n     JOIN channels c ON ((c.id = p.channel_id)))\n  WHERE ((p.id = community_comments.post_id) AND (c.owner_id = ( SELECT auth.uid() AS uid))))))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_notifications",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_notifications: scoped read",
+          "check": null,
+          "roles": [
+            "16485"
+          ],
+          "using": "(recipient_id = ( SELECT auth.uid() AS uid))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_post_events",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_post_events: scoped read",
+          "check": null,
+          "roles": [
+            "16485"
+          ],
+          "using": "((actor_id = ( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1\n   FROM (community_posts p\n     JOIN channels c ON ((c.id = p.channel_id)))\n  WHERE ((p.id = community_post_events.post_id) AND (c.owner_id = ( SELECT auth.uid() AS uid))))))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_posts",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_posts: scoped read",
+          "check": null,
+          "roles": [
+            "16485"
+          ],
+          "using": "((author_id = ( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1\n   FROM channels c\n  WHERE ((c.id = community_posts.channel_id) AND (c.owner_id = ( SELECT auth.uid() AS uid))))))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_votes",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_votes: scoped read",
+          "check": null,
+          "roles": [
+            "16485"
+          ],
+          "using": "(user_id = ( SELECT auth.uid() AS uid))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "live_sessions",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "live_sessions: scoped read",
+          "check": null,
+          "roles": [
+            "16485"
+          ],
+          "using": "(EXISTS ( SELECT 1\n   FROM channels c\n  WHERE ((c.id = live_sessions.channel_id) AND (c.owner_id = ( SELECT auth.uid() AS uid)))))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "participants",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "participants: scoped read",
+          "check": null,
+          "roles": [
+            "16485"
+          ],
+          "using": "((user_id = ( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1\n   FROM (live_sessions s\n     JOIN channels c ON ((c.id = s.channel_id)))\n  WHERE ((s.id = participants.session_id) AND (c.owner_id = ( SELECT auth.uid() AS uid))))))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "show_rundown_items",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "show_rundown_items: scoped read",
+          "check": null,
+          "roles": [
+            "16485"
+          ],
+          "using": "(EXISTS ( SELECT 1\n   FROM (live_sessions s\n     JOIN channels c ON ((c.id = s.channel_id)))\n  WHERE ((s.id = show_rundown_items.session_id) AND (c.owner_id = ( SELECT auth.uid() AS uid)))))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "users",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "users: scoped read",
+          "check": null,
+          "roles": [
+            "16485"
+          ],
+          "using": "(id = ( SELECT auth.uid() AS uid))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "p",
+      "name": "messages",
+      "role": "anon",
+      "schema": "realtime",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "p",
+      "name": "messages",
+      "role": "authenticated",
+      "schema": "realtime",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "subscription",
+      "role": "anon",
+      "schema": "realtime",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": false
+    },
+    {
+      "kind": "r",
+      "name": "subscription",
+      "role": "authenticated",
+      "schema": "realtime",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": false
+    },
+    {
+      "kind": "r",
+      "name": "buckets",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "buckets",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "buckets_analytics",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "buckets_analytics",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "buckets_vectors",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "buckets_vectors",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "objects",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "objects",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "s3_multipart_uploads",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "s3_multipart_uploads",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "s3_multipart_uploads_parts",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "s3_multipart_uploads_parts",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "vector_indexes",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "vector_indexes",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    }
+  ],
+  "api_schemas": null
+}

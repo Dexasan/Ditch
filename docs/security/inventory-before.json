@@ -1,0 +1,3396 @@
+{
+  "buckets": null,
+  "functions": [
+    {
+      "name": "email",
+      "role": "anon",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "email",
+      "role": "authenticated",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "jwt",
+      "role": "anon",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "jwt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "role",
+      "role": "anon",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "role",
+      "role": "authenticated",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uid",
+      "role": "anon",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uid",
+      "role": "authenticated",
+      "config": null,
+      "schema": "auth",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "armor",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text[], text[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "armor",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "armor",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text[], text[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "armor",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "crypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "crypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "dearmor",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "dearmor",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "decrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "decrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "decrypt_iv",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "decrypt_iv",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "digest",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "digest",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "digest",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "digest",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "encrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "encrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "encrypt_iv",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "encrypt_iv",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_random_bytes",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_random_bytes",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_random_uuid",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_random_uuid",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_salt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_salt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_salt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "gen_salt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "grant_pg_cron_access",
+      "role": "anon",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "grant_pg_cron_access",
+      "role": "authenticated",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "grant_pg_graphql_access",
+      "role": "anon",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "grant_pg_graphql_access",
+      "role": "authenticated",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "grant_pg_net_access",
+      "role": "anon",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "grant_pg_net_access",
+      "role": "authenticated",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "hmac",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "hmac",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "hmac",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "hmac",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pg_stat_statements",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "showtext boolean, OUT userid oid, OUT dbid oid, OUT toplevel boolean, OUT queryid bigint, OUT query text, OUT plans bigint, OUT total_plan_time double precision, OUT min_plan_time double precision, OUT max_plan_time double precision, OUT mean_plan_time double precision, OUT stddev_plan_time double precision, OUT calls bigint, OUT total_exec_time double precision, OUT min_exec_time double precision, OUT max_exec_time double precision, OUT mean_exec_time double precision, OUT stddev_exec_time double precision, OUT rows bigint, OUT shared_blks_hit bigint, OUT shared_blks_read bigint, OUT shared_blks_dirtied bigint, OUT shared_blks_written bigint, OUT local_blks_hit bigint, OUT local_blks_read bigint, OUT local_blks_dirtied bigint, OUT local_blks_written bigint, OUT temp_blks_read bigint, OUT temp_blks_written bigint, OUT shared_blk_read_time double precision, OUT shared_blk_write_time double precision, OUT local_blk_read_time double precision, OUT local_blk_write_time double precision, OUT temp_blk_read_time double precision, OUT temp_blk_write_time double precision, OUT wal_records bigint, OUT wal_fpi bigint, OUT wal_bytes numeric, OUT jit_functions bigint, OUT jit_generation_time double precision, OUT jit_inlining_count bigint, OUT jit_inlining_time double precision, OUT jit_optimization_count bigint, OUT jit_optimization_time double precision, OUT jit_emission_count bigint, OUT jit_emission_time double precision, OUT jit_deform_count bigint, OUT jit_deform_time double precision, OUT stats_since timestamp with time zone, OUT minmax_stats_since timestamp with time zone",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pg_stat_statements",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "showtext boolean, OUT userid oid, OUT dbid oid, OUT toplevel boolean, OUT queryid bigint, OUT query text, OUT plans bigint, OUT total_plan_time double precision, OUT min_plan_time double precision, OUT max_plan_time double precision, OUT mean_plan_time double precision, OUT stddev_plan_time double precision, OUT calls bigint, OUT total_exec_time double precision, OUT min_exec_time double precision, OUT max_exec_time double precision, OUT mean_exec_time double precision, OUT stddev_exec_time double precision, OUT rows bigint, OUT shared_blks_hit bigint, OUT shared_blks_read bigint, OUT shared_blks_dirtied bigint, OUT shared_blks_written bigint, OUT local_blks_hit bigint, OUT local_blks_read bigint, OUT local_blks_dirtied bigint, OUT local_blks_written bigint, OUT temp_blks_read bigint, OUT temp_blks_written bigint, OUT shared_blk_read_time double precision, OUT shared_blk_write_time double precision, OUT local_blk_read_time double precision, OUT local_blk_write_time double precision, OUT temp_blk_read_time double precision, OUT temp_blk_write_time double precision, OUT wal_records bigint, OUT wal_fpi bigint, OUT wal_bytes numeric, OUT jit_functions bigint, OUT jit_generation_time double precision, OUT jit_inlining_count bigint, OUT jit_inlining_time double precision, OUT jit_optimization_count bigint, OUT jit_optimization_time double precision, OUT jit_emission_count bigint, OUT jit_emission_time double precision, OUT jit_deform_count bigint, OUT jit_deform_time double precision, OUT stats_since timestamp with time zone, OUT minmax_stats_since timestamp with time zone",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pg_stat_statements_info",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "OUT dealloc bigint, OUT stats_reset timestamp with time zone",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pg_stat_statements_info",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "OUT dealloc bigint, OUT stats_reset timestamp with time zone",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_armor_headers",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, OUT key text, OUT value text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_armor_headers",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, OUT key text, OUT value text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_key_id",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_key_id",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_decrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_pub_encrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, bytea",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_decrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "text, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt_bytea",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgp_sym_encrypt_bytea",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "bytea, text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgrst_ddl_watch",
+      "role": "anon",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgrst_ddl_watch",
+      "role": "authenticated",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgrst_drop_watch",
+      "role": "anon",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "pgrst_drop_watch",
+      "role": "authenticated",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "set_graphql_placeholder",
+      "role": "anon",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "set_graphql_placeholder",
+      "role": "authenticated",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v1",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v1",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v1mc",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v1mc",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v3",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "namespace uuid, name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v3",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "namespace uuid, name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v4",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v4",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v5",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "namespace uuid, name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_generate_v5",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "namespace uuid, name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_nil",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_nil",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_dns",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_dns",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_oid",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_oid",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_url",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_url",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_x500",
+      "role": "anon",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "uuid_ns_x500",
+      "role": "authenticated",
+      "config": null,
+      "schema": "extensions",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "graphql",
+      "role": "anon",
+      "config": null,
+      "schema": "graphql_public",
+      "arguments": "\"operationName\" text, query text, variables jsonb, extensions jsonb",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "graphql",
+      "role": "authenticated",
+      "config": null,
+      "schema": "graphql_public",
+      "arguments": "\"operationName\" text, query text, variables jsonb, extensions jsonb",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "handle_new_user",
+      "role": "anon",
+      "config": [
+        "search_path=public"
+      ],
+      "schema": "public",
+      "arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.handle_new_user()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nbegin\r\n  insert into public.users (id, email, display_name, avatar_url)\r\n  values (\r\n    new.id,\r\n    new.email,\r\n    coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1)),\r\n    new.raw_user_meta_data->>'avatar_url'\r\n  );\r\n  return new;\r\nend;\r\n$function$\n",
+      "security_definer": true
+    },
+    {
+      "name": "handle_new_user",
+      "role": "authenticated",
+      "config": [
+        "search_path=public"
+      ],
+      "schema": "public",
+      "arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.handle_new_user()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nbegin\r\n  insert into public.users (id, email, display_name, avatar_url)\r\n  values (\r\n    new.id,\r\n    new.email,\r\n    coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1)),\r\n    new.raw_user_meta_data->>'avatar_url'\r\n  );\r\n  return new;\r\nend;\r\n$function$\n",
+      "security_definer": true
+    },
+    {
+      "name": "rls_auto_enable",
+      "role": "anon",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "schema": "public",
+      "arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.rls_auto_enable()\n RETURNS event_trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE\n  cmd record;\nBEGIN\n  FOR cmd IN\n    SELECT *\n    FROM pg_event_trigger_ddl_commands()\n    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')\n      AND object_type IN ('table','partitioned table')\n  LOOP\n     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN\n      BEGIN\n        EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity);\n        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;\n      EXCEPTION\n        WHEN OTHERS THEN\n          RAISE LOG 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity;\n      END;\n     ELSE\n        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;\n     END IF;\n  END LOOP;\nEND;\n$function$\n",
+      "security_definer": true
+    },
+    {
+      "name": "rls_auto_enable",
+      "role": "authenticated",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "schema": "public",
+      "arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.rls_auto_enable()\n RETURNS event_trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE\n  cmd record;\nBEGIN\n  FOR cmd IN\n    SELECT *\n    FROM pg_event_trigger_ddl_commands()\n    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')\n      AND object_type IN ('table','partitioned table')\n  LOOP\n     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN\n      BEGIN\n        EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity);\n        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;\n      EXCEPTION\n        WHEN OTHERS THEN\n          RAISE LOG 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity;\n      END;\n     ELSE\n        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;\n     END IF;\n  END LOOP;\nEND;\n$function$\n",
+      "security_definer": true
+    },
+    {
+      "name": "apply_rls",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "wal jsonb, max_record_bytes integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "apply_rls",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "wal jsonb, max_record_bytes integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "broadcast_changes",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "broadcast_changes",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "build_prepared_statement_sql",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "prepared_statement_name text, entity regclass, columns realtime.wal_column[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "build_prepared_statement_sql",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "prepared_statement_name text, entity regclass, columns realtime.wal_column[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "cast",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "val text, type_ regtype",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "cast",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "val text, type_ regtype",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "check_equality_op",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "op realtime.equality_op, type_ regtype, val_1 text, val_2 text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "check_equality_op",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "op realtime.equality_op, type_ regtype, val_1 text, val_2 text, negate boolean",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "check_equality_op",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "op realtime.equality_op, type_ regtype, val_1 text, val_2 text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "check_equality_op",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "op realtime.equality_op, type_ regtype, val_1 text, val_2 text, negate boolean",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "is_visible_through_filters",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "columns realtime.wal_column[], filters realtime.user_defined_filter[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "is_visible_through_filters",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "columns realtime.wal_column[], filters realtime.user_defined_filter[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "list_changes",
+      "role": "anon",
+      "config": [
+        "log_min_messages=fatal"
+      ],
+      "schema": "realtime",
+      "arguments": "publication name, slot_name name, max_changes integer, max_record_bytes integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "list_changes",
+      "role": "authenticated",
+      "config": [
+        "log_min_messages=fatal"
+      ],
+      "schema": "realtime",
+      "arguments": "publication name, slot_name name, max_changes integer, max_record_bytes integer",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "quote_wal2json",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "entity regclass",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "quote_wal2json",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "entity regclass",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "send",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "payload jsonb, event text, topic text, private boolean",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "send",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "payload jsonb, event text, topic text, private boolean",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "send_binary",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "payload bytea, event text, topic text, private boolean",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "send_binary",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "payload bytea, event text, topic text, private boolean",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "subscription_check_filters",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "subscription_check_filters",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "to_regrole",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "role_name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "to_regrole",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "role_name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "topic",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "topic",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "wal2json_escape_identifier",
+      "role": "anon",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "wal2json_escape_identifier",
+      "role": "authenticated",
+      "config": null,
+      "schema": "realtime",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "allow_any_operation",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "expected_operations text[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "allow_any_operation",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "expected_operations text[]",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "allow_only_operation",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "expected_operation text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "allow_only_operation",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "expected_operation text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "can_insert_object",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "bucketid text, name text, owner uuid, metadata jsonb",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "can_insert_object",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "bucketid text, name text, owner uuid, metadata jsonb",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "enforce_bucket_name_length",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "enforce_bucket_name_length",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "extension",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "extension",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "filename",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "filename",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "foldername",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "foldername",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "name text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "get_common_prefix",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "p_key text, p_prefix text, p_delimiter text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "get_common_prefix",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "p_key text, p_prefix text, p_delimiter text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "get_size_by_bucket",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "get_size_by_bucket",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "list_multipart_uploads_with_delimiter",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "bucket_id text, prefix_param text, delimiter_param text, max_keys integer, next_key_token text, next_upload_token text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "list_multipart_uploads_with_delimiter",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "bucket_id text, prefix_param text, delimiter_param text, max_keys integer, next_key_token text, next_upload_token text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "list_objects_with_delimiter",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "_bucket_id text, prefix_param text, delimiter_param text, max_keys integer, start_after text, next_token text, sort_order text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "list_objects_with_delimiter",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "_bucket_id text, prefix_param text, delimiter_param text, max_keys integer, start_after text, next_token text, sort_order text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "operation",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "operation",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "protect_delete",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "protect_delete",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "search",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "prefix text, bucketname text, limits integer, levels integer, offsets integer, search text, sortcolumn text, sortorder text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "search",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "prefix text, bucketname text, limits integer, levels integer, offsets integer, search text, sortcolumn text, sortorder text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "search_by_timestamp",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "p_prefix text, p_bucket_id text, p_limit integer, p_level integer, p_start_after text, p_sort_order text, p_sort_column text, p_sort_column_after text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "search_by_timestamp",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "p_prefix text, p_bucket_id text, p_limit integer, p_level integer, p_start_after text, p_sort_order text, p_sort_column text, p_sort_column_after text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "search_v2",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "prefix text, bucket_name text, limits integer, levels integer, start_after text, sort_order text, sort_column text, sort_column_after text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "search_v2",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "prefix text, bucket_name text, limits integer, levels integer, start_after text, sort_order text, sort_column text, sort_column_after text",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "update_updated_at_column",
+      "role": "anon",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    },
+    {
+      "name": "update_updated_at_column",
+      "role": "authenticated",
+      "config": null,
+      "schema": "storage",
+      "arguments": "",
+      "definition": null,
+      "security_definer": false
+    }
+  ],
+  "relations": [
+    {
+      "kind": "v",
+      "name": "pg_stat_statements",
+      "role": "anon",
+      "schema": "extensions",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": false
+    },
+    {
+      "kind": "v",
+      "name": "pg_stat_statements",
+      "role": "authenticated",
+      "schema": "extensions",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": false
+    },
+    {
+      "kind": "v",
+      "name": "pg_stat_statements_info",
+      "role": "anon",
+      "schema": "extensions",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": false
+    },
+    {
+      "kind": "v",
+      "name": "pg_stat_statements_info",
+      "role": "authenticated",
+      "schema": "extensions",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": false
+    },
+    {
+      "kind": "r",
+      "name": "channel_memberships",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "channel_memberships: self delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(user_id = auth.uid())",
+          "command": "d"
+        },
+        {
+          "name": "channel_memberships: self insert",
+          "check": "(user_id = auth.uid())",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "channel_memberships: self or channel owner read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "((user_id = auth.uid()) OR (auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = channel_memberships.channel_id))))",
+          "command": "r"
+        },
+        {
+          "name": "channel_memberships: self update",
+          "check": "(user_id = auth.uid())",
+          "roles": [
+            "0"
+          ],
+          "using": "(user_id = auth.uid())",
+          "command": "w"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "channel_memberships",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "channel_memberships: self delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(user_id = auth.uid())",
+          "command": "d"
+        },
+        {
+          "name": "channel_memberships: self insert",
+          "check": "(user_id = auth.uid())",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "channel_memberships: self or channel owner read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "((user_id = auth.uid()) OR (auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = channel_memberships.channel_id))))",
+          "command": "r"
+        },
+        {
+          "name": "channel_memberships: self update",
+          "check": "(user_id = auth.uid())",
+          "roles": [
+            "0"
+          ],
+          "using": "(user_id = auth.uid())",
+          "command": "w"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "channels",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "channels: owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = owner_id)",
+          "command": "d"
+        },
+        {
+          "name": "channels: owner insert",
+          "check": "(auth.uid() = owner_id)",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "channels: owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = owner_id)",
+          "command": "w"
+        },
+        {
+          "name": "channels: public read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "true",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "channels",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "channels: owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = owner_id)",
+          "command": "d"
+        },
+        {
+          "name": "channels: owner insert",
+          "check": "(auth.uid() = owner_id)",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "channels: owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = owner_id)",
+          "command": "w"
+        },
+        {
+          "name": "channels: public read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "true",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "chat_messages",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "chat_messages: authenticated insert",
+          "check": "(auth.uid() IS NOT NULL)",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "chat_messages: public read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "true",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "chat_messages",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "chat_messages: authenticated insert",
+          "check": "(auth.uid() IS NOT NULL)",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "chat_messages: public read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "true",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_comments",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_comments: author or owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "((author_id = auth.uid()) OR (auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN community_posts p ON ((p.channel_id = c.id)))\n  WHERE (p.id = community_comments.post_id))))",
+          "command": "d"
+        },
+        {
+          "name": "community_comments: author or owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "((author_id = auth.uid()) OR (auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN community_posts p ON ((p.channel_id = c.id)))\n  WHERE (p.id = community_comments.post_id))))",
+          "command": "w"
+        },
+        {
+          "name": "community_comments: public read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "true",
+          "command": "r"
+        },
+        {
+          "name": "community_comments: self insert",
+          "check": "(author_id = auth.uid())",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_comments",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_comments: author or owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "((author_id = auth.uid()) OR (auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN community_posts p ON ((p.channel_id = c.id)))\n  WHERE (p.id = community_comments.post_id))))",
+          "command": "d"
+        },
+        {
+          "name": "community_comments: author or owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "((author_id = auth.uid()) OR (auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN community_posts p ON ((p.channel_id = c.id)))\n  WHERE (p.id = community_comments.post_id))))",
+          "command": "w"
+        },
+        {
+          "name": "community_comments: public read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "true",
+          "command": "r"
+        },
+        {
+          "name": "community_comments: self insert",
+          "check": "(author_id = auth.uid())",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_notifications",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_notifications: recipient read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(recipient_id = auth.uid())",
+          "command": "r"
+        },
+        {
+          "name": "community_notifications: recipient update",
+          "check": "(recipient_id = auth.uid())",
+          "roles": [
+            "0"
+          ],
+          "using": "(recipient_id = auth.uid())",
+          "command": "w"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_notifications",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_notifications: recipient read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(recipient_id = auth.uid())",
+          "command": "r"
+        },
+        {
+          "name": "community_notifications: recipient update",
+          "check": "(recipient_id = auth.uid())",
+          "roles": [
+            "0"
+          ],
+          "using": "(recipient_id = auth.uid())",
+          "command": "w"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_post_events",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_post_events: channel owner insert",
+          "check": "((actor_id = auth.uid()) AND (auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN community_posts p ON ((p.channel_id = c.id)))\n  WHERE (p.id = community_post_events.post_id))))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "community_post_events: public read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "true",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_post_events",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_post_events: channel owner insert",
+          "check": "((actor_id = auth.uid()) AND (auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN community_posts p ON ((p.channel_id = c.id)))\n  WHERE (p.id = community_post_events.post_id))))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "community_post_events: public read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "true",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_posts",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_posts: authenticated insert",
+          "check": "((auth.uid() IS NOT NULL) AND (auth.uid() = author_id))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "community_posts: author or owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "((auth.uid() = author_id) OR (auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = community_posts.channel_id))))",
+          "command": "d"
+        },
+        {
+          "name": "community_posts: owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = community_posts.channel_id)))",
+          "command": "w"
+        },
+        {
+          "name": "community_posts: public read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "true",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_posts",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_posts: authenticated insert",
+          "check": "((auth.uid() IS NOT NULL) AND (auth.uid() = author_id))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "community_posts: author or owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "((auth.uid() = author_id) OR (auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = community_posts.channel_id))))",
+          "command": "d"
+        },
+        {
+          "name": "community_posts: owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = community_posts.channel_id)))",
+          "command": "w"
+        },
+        {
+          "name": "community_posts: public read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "true",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_votes",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_votes: authenticated insert",
+          "check": "((auth.uid() IS NOT NULL) AND (auth.uid() = user_id))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "community_votes: self delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = user_id)",
+          "command": "d"
+        },
+        {
+          "name": "community_votes: self or channel owner read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "((user_id = auth.uid()) OR (auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN community_posts p ON ((p.channel_id = c.id)))\n  WHERE (p.id = community_votes.post_id))))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "community_votes",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "community_votes: authenticated insert",
+          "check": "((auth.uid() IS NOT NULL) AND (auth.uid() = user_id))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "community_votes: self delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = user_id)",
+          "command": "d"
+        },
+        {
+          "name": "community_votes: self or channel owner read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "((user_id = auth.uid()) OR (auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN community_posts p ON ((p.channel_id = c.id)))\n  WHERE (p.id = community_votes.post_id))))",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "live_sessions",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "live_sessions: owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT channels.owner_id\n   FROM (channels\n     JOIN live_sessions ls ON ((ls.channel_id = channels.id)))\n  WHERE (ls.id = live_sessions.id)))",
+          "command": "d"
+        },
+        {
+          "name": "live_sessions: owner insert",
+          "check": "(auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = live_sessions.channel_id)))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "live_sessions: owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT channels.owner_id\n   FROM (channels\n     JOIN live_sessions ls ON ((ls.channel_id = channels.id)))\n  WHERE (ls.id = live_sessions.id)))",
+          "command": "w"
+        },
+        {
+          "name": "live_sessions: public read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "true",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "live_sessions",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "live_sessions: owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT channels.owner_id\n   FROM (channels\n     JOIN live_sessions ls ON ((ls.channel_id = channels.id)))\n  WHERE (ls.id = live_sessions.id)))",
+          "command": "d"
+        },
+        {
+          "name": "live_sessions: owner insert",
+          "check": "(auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = live_sessions.channel_id)))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "live_sessions: owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT channels.owner_id\n   FROM (channels\n     JOIN live_sessions ls ON ((ls.channel_id = channels.id)))\n  WHERE (ls.id = live_sessions.id)))",
+          "command": "w"
+        },
+        {
+          "name": "live_sessions: public read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "true",
+          "command": "r"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "participants",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "participants: owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = participants.session_id)))",
+          "command": "d"
+        },
+        {
+          "name": "participants: owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = participants.session_id)))",
+          "command": "w"
+        },
+        {
+          "name": "participants: public read live only",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "((status = 'live'::participant_status) OR (user_id = auth.uid()) OR (auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = participants.session_id))))",
+          "command": "r"
+        },
+        {
+          "name": "participants: self insert",
+          "check": "((auth.uid() IS NOT NULL) AND ((user_id = auth.uid()) OR (user_id IS NULL)))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "participants",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "participants: owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = participants.session_id)))",
+          "command": "d"
+        },
+        {
+          "name": "participants: owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = participants.session_id)))",
+          "command": "w"
+        },
+        {
+          "name": "participants: public read live only",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "((status = 'live'::participant_status) OR (user_id = auth.uid()) OR (auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = participants.session_id))))",
+          "command": "r"
+        },
+        {
+          "name": "participants: self insert",
+          "check": "((auth.uid() IS NOT NULL) AND ((user_id = auth.uid()) OR (user_id IS NULL)))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "saved_destinations",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "saved_destinations: owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = saved_destinations.channel_id)))",
+          "command": "d"
+        },
+        {
+          "name": "saved_destinations: owner insert",
+          "check": "(auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = saved_destinations.channel_id)))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "saved_destinations: owner read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = saved_destinations.channel_id)))",
+          "command": "r"
+        },
+        {
+          "name": "saved_destinations: owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = saved_destinations.channel_id)))",
+          "command": "w"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "saved_destinations",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "saved_destinations: owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = saved_destinations.channel_id)))",
+          "command": "d"
+        },
+        {
+          "name": "saved_destinations: owner insert",
+          "check": "(auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = saved_destinations.channel_id)))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "saved_destinations: owner read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = saved_destinations.channel_id)))",
+          "command": "r"
+        },
+        {
+          "name": "saved_destinations: owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT channels.owner_id\n   FROM channels\n  WHERE (channels.id = saved_destinations.channel_id)))",
+          "command": "w"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "show_rundown_items",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "show_rundown_items: channel owner all",
+          "check": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions s ON ((s.channel_id = c.id)))\n  WHERE (s.id = show_rundown_items.session_id)))",
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions s ON ((s.channel_id = c.id)))\n  WHERE (s.id = show_rundown_items.session_id)))",
+          "command": "*"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "show_rundown_items",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "show_rundown_items: channel owner all",
+          "check": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions s ON ((s.channel_id = c.id)))\n  WHERE (s.id = show_rundown_items.session_id)))",
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions s ON ((s.channel_id = c.id)))\n  WHERE (s.id = show_rundown_items.session_id)))",
+          "command": "*"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "stream_destinations",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "stream_destinations: owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = stream_destinations.session_id)))",
+          "command": "d"
+        },
+        {
+          "name": "stream_destinations: owner insert",
+          "check": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = stream_destinations.session_id)))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "stream_destinations: owner read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = stream_destinations.session_id)))",
+          "command": "r"
+        },
+        {
+          "name": "stream_destinations: owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = stream_destinations.session_id)))",
+          "command": "w"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "stream_destinations",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "stream_destinations: owner delete",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = stream_destinations.session_id)))",
+          "command": "d"
+        },
+        {
+          "name": "stream_destinations: owner insert",
+          "check": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = stream_destinations.session_id)))",
+          "roles": [
+            "0"
+          ],
+          "using": null,
+          "command": "a"
+        },
+        {
+          "name": "stream_destinations: owner read",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = stream_destinations.session_id)))",
+          "command": "r"
+        },
+        {
+          "name": "stream_destinations: owner update",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = ( SELECT c.owner_id\n   FROM (channels c\n     JOIN live_sessions ls ON ((ls.channel_id = c.id)))\n  WHERE (ls.id = stream_destinations.session_id)))",
+          "command": "w"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "users",
+      "role": "anon",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "users: read own",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = id)",
+          "command": "r"
+        },
+        {
+          "name": "users: update own",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = id)",
+          "command": "w"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "users",
+      "role": "authenticated",
+      "schema": "public",
+      "options": null,
+      "policies": [
+        {
+          "name": "users: read own",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = id)",
+          "command": "r"
+        },
+        {
+          "name": "users: update own",
+          "check": null,
+          "roles": [
+            "0"
+          ],
+          "using": "(auth.uid() = id)",
+          "command": "w"
+        }
+      ],
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "p",
+      "name": "messages",
+      "role": "anon",
+      "schema": "realtime",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "p",
+      "name": "messages",
+      "role": "authenticated",
+      "schema": "realtime",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "subscription",
+      "role": "anon",
+      "schema": "realtime",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": false
+    },
+    {
+      "kind": "r",
+      "name": "subscription",
+      "role": "authenticated",
+      "schema": "realtime",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": false
+    },
+    {
+      "kind": "r",
+      "name": "buckets",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "buckets",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "buckets_analytics",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "buckets_analytics",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "buckets_vectors",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "buckets_vectors",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "objects",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "objects",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "s3_multipart_uploads",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "s3_multipart_uploads",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "s3_multipart_uploads_parts",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "s3_multipart_uploads_parts",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "vector_indexes",
+      "role": "anon",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    },
+    {
+      "kind": "r",
+      "name": "vector_indexes",
+      "role": "authenticated",
+      "schema": "storage",
+      "options": null,
+      "policies": null,
+      "privileges": [
+        "SELECT"
+      ],
+      "rls_forced": false,
+      "rls_enabled": true
+    }
+  ],
+  "api_schemas": null
+}

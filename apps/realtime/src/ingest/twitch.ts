@@ -69,7 +69,7 @@ export function startTwitch(channelRef: string, emit: EmitFn): Ingestor {
   }
 
   connect();
-  console.log(`[ingest] twitch connector started for #${login}`);
+  if (process.env.NODE_ENV !== "production") console.log(`[ingest] twitch connector started for #${login}`);
 
   return {
     stop: () => {

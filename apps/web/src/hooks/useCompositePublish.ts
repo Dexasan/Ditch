@@ -12,7 +12,7 @@ import { useEffect } from "react";
 import type { IAgoraRTCClient, ILocalAudioTrack, ILocalVideoTrack } from "agora-rtc-sdk-ng";
 import { AGORA_APP_ID, CREATOR_COMPOSITE_UID, getAgoraRTC } from "@/lib/agora";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+const API_BASE = "/api/backend";
 
 /**
  * Fetches the composite publisher's Agora token, throwing on failure.
@@ -26,7 +26,6 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 async function fetchToken(sessionId: string, authToken?: string): Promise<string | null> {
   const url = `${API_BASE}/agora/token?session_id=${encodeURIComponent(sessionId)}&uid=${CREATOR_COMPOSITE_UID}`;
   const headers: Record<string, string> = {};
-  if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
 
   let res: Response;
   try {

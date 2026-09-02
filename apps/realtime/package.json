@@ -11,13 +11,13 @@
   "dependencies": {
     "@ditch/db": "workspace:*",
     "@ditch/types": "workspace:*",
-    "socket.io": "^4.7.0",
-    "tsx": "^4.0.0",
-    "ws": "^8.16.0"
+    "socket.io": "^4.8.3",
+    "tsx": "^4.23.13",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/ws": "^8.5.10",
-    "typescript": "^5.4.0"
+    "@types/node": "^20.19.43",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.9.3"
   }
 }

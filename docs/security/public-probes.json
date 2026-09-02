@@ -1,0 +1,68 @@
+[
+  {
+    "url": "https://ditchlive.app/auth",
+    "status": 200,
+    "headers": {
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.agora.io wss://*.agora.io https://*.agoraio.cn wss://*.agoraio.cn https://ditchapi-production.up.railway.app https://ditchrealtime-production.up.railway.app wss://relay-production-8f90.up.railway.app; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+      "x-powered-by": "Next.js"
+    },
+    "scripts": 9,
+    "urlWithNewline": true,
+    "serviceKeyFound": false,
+    "solvingFound": false
+  },
+  {
+    "url": "https://ditch-web-drab.vercel.app/auth",
+    "status": 200,
+    "headers": {
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.agora.io wss://*.agora.io https://*.agoraio.cn wss://*.agoraio.cn https://ditchapi-production.up.railway.app https://ditchrealtime-production.up.railway.app wss://relay-production-8f90.up.railway.app; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+      "x-powered-by": "Next.js"
+    },
+    "scripts": 9,
+    "urlWithNewline": true,
+    "serviceKeyFound": false,
+    "solvingFound": false
+  },
+  {
+    "url": "https://relay-production-8f90.up.railway.app/health",
+    "status": 200,
+    "headers": {},
+    "jsonKeys": [
+      "status",
+      "active_streams",
+      "max_active_streams",
+      "hls_enabled",
+      "rtmp_ingest_enabled",
+      "active_ingests",
+      "uptime_seconds"
+    ]
+  },
+  {
+    "url": "https://ditchapi-production.up.railway.app/health",
+    "status": 200,
+    "headers": {},
+    "jsonKeys": [
+      "status"
+    ]
+  },
+  {
+    "url": "https://ditchapi-production.up.railway.app/channels/mine",
+    "status": 401,
+    "headers": {},
+    "jsonKeys": [
+      "error"
+    ]
+  },
+  {
+    "url": "https://ditchapi-production.up.railway.app/community/notifications",
+    "status": 401,
+    "headers": {},
+    "jsonKeys": [
+      "error"
+    ]
+  },
+  {
+    "url": "https://ditchrealtime-production.up.railway.app/",
+    "error": "The operation was aborted due to timeout"
+  }
+]

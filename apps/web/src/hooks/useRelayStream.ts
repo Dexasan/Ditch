@@ -194,8 +194,8 @@ export function useRelayStream({
       if (process.env.NEXT_PUBLIC_RELAY_DISCOVERY === "true") {
         try {
           const response = await fetch(
-            `${API_BASE}/relay/assignment?session_id=${encodeURIComponent(sessionId)}`,
-            { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
+            `/api/backend/relay/assignment?session_id=${encodeURIComponent(sessionId)}`,
+            { cache: "no-store" },
           );
           if (response.ok) {
             const assignment = await response.json() as { relay_url?: string };
@@ -224,6 +224,16 @@ export function useRelayStream({
       }
       if (cancelled) return;
       const useWebCodecsNow = webCodecsCapable && !webCodecsDisabled;
+      let relayTicket: string;
+      try {
+        const response = await fetch("/api/backend/relay/ticket", {
+          method: "POST", headers: { "Content-Type": "application/json", "X-Ditch-Request": "1" },
+          body: JSON.stringify({ session_id: sessionId }), cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Relay authorization failed");
+        relayTicket = (await response.json()).token;
+      } catch { scheduleReconnect("Relay authorization failed. Please sign in again."); return; }
+      if (cancelled) return;
       const ws = new WebSocket(relayUrl);
       wsRef.current = ws;
 
@@ -236,7 +246,7 @@ export function useRelayStream({
         ws.send(JSON.stringify({
           type: "start",
           session_id: sessionId,
-          token,
+          token: relayTicket,
           video_bitrate_kbps: enc.videoBitrateKbps,
           audio_bitrate_kbps: enc.audioBitrateKbps,
           encoder_preset: enc.encoderPreset,

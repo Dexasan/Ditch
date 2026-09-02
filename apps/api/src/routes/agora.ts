@@ -6,7 +6,7 @@ import { verifyParticipantToken } from "../lib/participantToken";
 
 const APP_ID          = process.env.AGORA_APP_ID ?? "";
 const APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE ?? "";
-const TOKEN_TTL_SECS  = 3600; // 1 hour; client renews at the 30-second warning
+const TOKEN_TTL_SECS  = 300; // 5 minutes; renewal rechecks live slot authorization
 
 // NEXT_PUBLIC_AGORA_APP_ID is inlined into the browser bundle, so the App ID is
 // public by construction. The App Certificate is the only thing that stops a
@@ -17,7 +17,7 @@ const TOKEN_TTL_SECS  = 3600; // 1 hour; client renews at the 30-second warning
 const TOKEN_AUTH_REQUIRED = process.env.NODE_ENV === "production";
 
 // UID authorisation rules:
-//   0          → audience subscriber, no auth required
+//   >=1000     → audience subscriber, no auth required, bound to that exact UID
 //   1-4        → participant publisher, must be authenticated + live in that session's slot
 //   998-999    → creator publisher (screen / cam), must own the session's channel
 //   anything else → 400
@@ -44,7 +44,7 @@ export async function agoraRoutes(server: FastifyInstance) {
    * Issues an Agora RTC token scoped to the given session (which is also the
    * Agora channel name) and UID. Auth requirements vary by UID:
    *
-   *   uid 0        → SUBSCRIBER token, no auth (audience viewer)
+   *   uid >= 1000  -> SUBSCRIBER token for that exact UID, no auth (public audience)
    *   uid 1-4      -> PUBLISHER token, caller must be a live participant holding
    *                  slot uid - 1, proven either by their Supabase identity or
    *                  by the participant_token issued at POST /participants
@@ -62,7 +62,7 @@ export async function agoraRoutes(server: FastifyInstance) {
           required: ["session_id", "uid"],
           properties: {
             session_id:        { type: "string", format: "uuid" },
-            uid:               { type: "integer", minimum: 0, maximum: 999 },
+            uid:               { type: "integer", minimum: 1, maximum: 2147483647 },
             // Issued by POST /participants. Lets a guest with no account prove
             // which participant row is theirs; see lib/participantToken.
             participant_token: { type: "string", maxLength: 512 },
@@ -71,7 +71,8 @@ export async function agoraRoutes(server: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { session_id, uid, participant_token } = request.query;
+      const { session_id, uid } = request.query;
+      const participant_token = typeof request.headers["x-participant-token"] === "string" ? request.headers["x-participant-token"] : undefined;
 
       if (TOKEN_AUTH_REQUIRED && (!APP_ID || !APP_CERTIFICATE)) {
         request.log.error(
@@ -95,9 +96,9 @@ export async function agoraRoutes(server: FastifyInstance) {
         return reply.status(403).send({ error: "Session has ended" });
       }
 
-      // ── uid 0: audience viewer — no auth required ────────────────────────────
-      if (uid === 0) {
-        const token = makeToken(session_id, 0, RtcRole.SUBSCRIBER);
+      // Public audience tokens never use wildcard UID 0 or a reserved publisher UID.
+      if (uid >= 1000) {
+        const token = makeToken(session_id, uid, RtcRole.SUBSCRIBER);
         return reply.send({ token, expires_in: TOKEN_TTL_SECS });
       }
 

@@ -79,7 +79,7 @@ export async function startIngest(sessionId: string): Promise<void> {
     );
 
     active.set(sessionId, connectors);
-    console.log(`[ingest] session ${sessionId}: ${connectors.length} connector(s) running`);
+    if (process.env.NODE_ENV !== "production") console.log(`[ingest] session ${sessionId}: ${connectors.length} connector(s) running`);
   } catch (err) {
     console.error("[ingest] startIngest failed:", err);
   } finally {
@@ -99,7 +99,7 @@ export function stopIngest(sessionId: string): void {
     }
   }
   active.delete(sessionId);
-  console.log(`[ingest] session ${sessionId}: ingestion stopped`);
+  if (process.env.NODE_ENV !== "production") console.log(`[ingest] session ${sessionId}: ingestion stopped`);
 }
 
 // Periodic reconciler. Handles the common race where the creator opens the

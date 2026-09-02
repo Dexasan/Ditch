@@ -56,7 +56,7 @@ export function startRtmpIngest(options: {
     void active.hls?.stop();
     if (closePublisher) active.publisher.close();
     if (endSession) await markEnded(sessionId);
-    console.log(`[ingest] session ${sessionId} stopped`);
+    if (process.env.NODE_ENV !== "production") console.log(`[ingest] session ${sessionId} stopped`);
   }
 
   nms.on("postPublish", (publisher) => {
@@ -124,7 +124,7 @@ export function startRtmpIngest(options: {
         });
         ffmpeg.onExit((code, signal) => {
           if (external.has(sessionId)) {
-            console.log(`[ingest] ffmpeg exited for ${sessionId}: code=${code}, signal=${signal}`);
+            if (process.env.NODE_ENV !== "production") console.log(`[ingest] ffmpeg exited for ${sessionId}: code=${code}, signal=${signal}`);
             void stop(sessionId, true, true);
           }
         });
@@ -142,7 +142,7 @@ export function startRtmpIngest(options: {
           await stop(sessionId, true, true);
           return;
         }
-        console.log(`[ingest] session ${sessionId} live from RTMP to ${targets.length} destination(s)`);
+        if (process.env.NODE_ENV !== "production") console.log(`[ingest] session ${sessionId} live from RTMP to ${targets.length} destination(s)`);
       } catch (error) {
         void hls?.stop();
         publisher.close();
@@ -170,6 +170,6 @@ export function startRtmpIngest(options: {
   }, STATUS_POLL_MS).unref();
 
   nms.run();
-  console.log(`[ingest] RTMP listener enabled on port ${port}`);
+  if (process.env.NODE_ENV !== "production") console.log(`[ingest] RTMP listener enabled on port ${port}`);
   return { activeCount: () => external.size };
 }

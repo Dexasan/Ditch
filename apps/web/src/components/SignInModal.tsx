@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { createClient } from "@/lib/supabase/browser";
 
 type Mode = "signin" | "signup";
@@ -24,6 +25,8 @@ export default function SignInModal({
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string>();
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
   const [loading, setLoading] = useState(false);
   const [signedUp, setSignedUp] = useState(false);
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -51,19 +54,20 @@ export default function SignInModal({
         email,
         password,
         options: {
+          captchaToken,
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: { display_name: displayName.trim() },
         },
       });
       if (error) {
-        setError(error.message);
+        setError(mode === "signup" ? "Unable to create an account. Please try again." : "Unable to sign in. Check your details and try again.");
       } else {
         setSignedUp(true);
       }
     } else {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
       if (error) {
-        setError(error.message);
+        setError("Unable to sign in. Check your details and try again.");
       } else if (data.session) {
         const name =
           (data.user.user_metadata?.display_name as string | undefined) ??
@@ -73,6 +77,8 @@ export default function SignInModal({
       }
     }
 
+    setCaptchaToken(undefined);
+    setCaptchaAttempt(value => value + 1);
     setLoading(false);
   }
 
@@ -194,18 +200,23 @@ export default function SignInModal({
                   type="password"
                   autoComplete={mode === "signin" ? "current-password" : "new-password"}
                   required
-                  minLength={8}
+                  minLength={mode === "signup" ? 12 : 1}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-surface-border)] text-sm focus:outline-none focus:border-[var(--color-brand)] transition-colors"
                 />
               </div>
 
-              {error && <p className="text-red-400 text-xs">{error}</p>}
+              {process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY && (
+                  <HCaptcha key={captchaAttempt} sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY}
+                    onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(undefined)} onError={() => setCaptchaToken(undefined)} />
+                )}
+
+                {error && <p className="text-red-400 text-xs">{error}</p>}
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (!!process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY && !captchaToken)}
                 className="w-full py-2 rounded-lg bg-[var(--color-brand)] hover:bg-[var(--color-brand-light)] text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "…" : mode === "signin" ? "Sign in" : "Create account"}

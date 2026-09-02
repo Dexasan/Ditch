@@ -23,10 +23,22 @@ export function getSocket(token?: string | null): Socket {
   }
 
   _socket = io(process.env.NEXT_PUBLIC_REALTIME_URL!, {
-    auth: token ? { token } : {},
+    auth: async (callback) => {
+      if (!token) return callback({});
+      try {
+        const response = await fetch("/api/backend/auth/realtime-ticket", {
+          method: "POST", headers: { "X-Ditch-Request": "1" }, cache: "no-store",
+        });
+        if (!response.ok) return callback({ token: "invalid" });
+        callback(await response.json());
+      } catch { callback({ token: "invalid" }); }
+    },
     autoConnect: false,
   });
 
+  _socket.on("disconnect", (reason) => {
+    if (reason === "io server disconnect") _socket?.connect();
+  });
   _socketKey = key;
   return _socket;
 }

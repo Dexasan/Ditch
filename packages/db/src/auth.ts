@@ -29,7 +29,7 @@ const secretKey = jwtSecret ? new TextEncoder().encode(jwtSecret) : null;
 // at the project's JWKS endpoint. createRemoteJWKSet caches them in memory and
 // only refetches when it sees an unknown `kid`, so this stays a local ~1ms
 // check after the first call - and keeps working during an Auth outage.
-const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseUrl = process.env.SUPABASE_URL?.trim().replace(/\\[rn]/g, "");
 const jwks = supabaseUrl
   ? createRemoteJWKSet(new URL(`${supabaseUrl.replace(/\/+$/, "")}/auth/v1/.well-known/jwks.json`), {
       cacheMaxAge: 10 * 60 * 1000, // 10 min
@@ -75,8 +75,8 @@ export async function verifyAccessToken(token: string): Promise<VerifiedUser | n
 
   try {
     const { payload } = useSecret
-      ? await jwtVerify(token, secretKey!, { audience: "authenticated" })
-      : await jwtVerify(token, jwks!, { audience: "authenticated" });
+      ? await jwtVerify(token, secretKey!, { audience: "authenticated", issuer: `${supabaseUrl}/auth/v1`, algorithms: useSecret ? ["HS256"] : ["ES256", "RS256", "PS256"] })
+      : await jwtVerify(token, jwks!, { audience: "authenticated", issuer: `${supabaseUrl}/auth/v1`, algorithms: useSecret ? ["HS256"] : ["ES256", "RS256", "PS256"] });
 
     if (!payload.sub) return null;
     const email = typeof payload["email"] === "string" ? payload["email"] : null;

@@ -15,7 +15,6 @@ import { getSocket, type SessionJoinAck } from "@/lib/socket";
 import { recommendedBitrateKbps, useStudioStore } from "@/lib/studio-store";
 import { api, ApiError } from "@/lib/api";
 import { getChromaKeyEffect, withChromaKey, DEFAULT_CHROMA_KEY, type ChromaKeyConfig } from "@/lib/chromaKey";
-import { createClient } from "@/lib/supabase/browser";
 import type { ChatMessage, Participant, ParticipantStatus, StreamPlatform } from "@ditch/types";
 import type { ILocalAudioTrack, ILocalVideoTrack } from "agora-rtc-sdk-ng";
 import { ToastManager } from "./Toast";
@@ -3825,15 +3824,9 @@ export default function Studio({
     if (recoveryChecked.current) return;
     recoveryChecked.current = true;
 
-    createClient()
-      .from("live_sessions")
-      .select("status")
-      .eq("channel_id", channelId)
-      .eq("status", "live")
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setStreamStatus("live");
-      });
+    api.get<{ session: { id: string; status: string } | null }>(`/channels/${slug}`, { token })
+      .then(({ session }) => { if (session?.id === sessionId && session.status === "live") setStreamStatus("live"); })
+      .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

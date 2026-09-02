@@ -29,7 +29,7 @@ export default async function CommunityPostPage({ params }: { params: Promise<{ 
         <span className="text-white/20">/</span>
         <span className="truncate text-xs text-white/35">Community</span>
       </header>
-      <CommunityThread initialDetail={detail} token={token} activeSessionId={activeSession?.id ?? null} />
+      <CommunityThread initialDetail={detail} token={token ? "cookie-session" : null} activeSessionId={activeSession?.id ?? null} />
     </div>
   );
 }

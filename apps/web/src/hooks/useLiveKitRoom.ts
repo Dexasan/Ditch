@@ -10,11 +10,11 @@ import type {
 import type { AgoraRoomState } from "./useAgoraRoom";
 import { loadLiveKit, type LiveKitModule } from "@/lib/livekit";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+const API_BASE = "/api/backend";
 
-async function fetchToken(sessionId: string, uid: number, authToken?: string) {
+async function fetchToken(sessionId: string, uid: number, participantToken?: string) {
   const headers: Record<string, string> = {};
-  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  if (participantToken) headers["X-Participant-Token"] = participantToken;
   const response = await fetch(
     `${API_BASE}/livekit/token?session_id=${encodeURIComponent(sessionId)}&uid=${uid}`,
     { headers, cache: "no-store" },
@@ -75,8 +75,9 @@ export function useLiveKitRoom(options: {
   enabled: boolean;
   screenShareUid?: number;
   authToken?: string;
+  participantToken?: string;
 }): AgoraRoomState {
-  const { channelName, uid, role, publish, publishAudio, enabled, screenShareUid, authToken } = options;
+  const { channelName, uid, role, publish, publishAudio, enabled, screenShareUid, participantToken } = options;
   const roomRef = useRef<Room | null>(null);
   const cameraRef = useRef<LocalVideoTrack | null>(null);
   const microphoneRef = useRef<LocalAudioTrack | null>(null);
@@ -146,7 +147,7 @@ export function useLiveKitRoom(options: {
     // import does not add a round trip to stream startup.
     const [lk, credentials] = await Promise.all([
       loadLiveKit(),
-      fetchToken(channelName, connectUid, authToken),
+      fetchToken(channelName, connectUid, participantToken),
     ]);
     const room = new lk.Room({ adaptiveStream: true, dynacast: true });
     const sync = () => syncRemoteUsers(room, lk);
@@ -180,7 +181,7 @@ export function useLiveKitRoom(options: {
     }
     sync();
     setState((previous) => ({ ...previous, joined: true, connectionState: "connected" }));
-  }, [authToken, channelName, disconnect, syncRemoteUsers]);
+  }, [participantToken, channelName, disconnect, syncRemoteUsers]);
 
   useEffect(() => {
     if (!enabled || !channelName) return;

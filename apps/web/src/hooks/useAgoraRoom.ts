@@ -12,7 +12,7 @@ import type {
 import { AGORA_APP_ID, CREATOR_COMPOSITE_UID, getAgoraRTC } from "@/lib/agora";
 import type { ContentMode } from "@/lib/studio-store";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+const API_BASE = "/api/backend";
 
 // Spoken-word capture should stay mono and suppress steady room/fan noise before
 // it reaches either Agora or the broadcast compositor. AGC remains disabled so
@@ -97,10 +97,9 @@ async function fetchAgoraToken(
 ): Promise<string | null> {
   // A guest with no account has no Authorization header to send; the
   // participant credential is what identifies them to the token route.
-  const url = `${API_BASE}/agora/token?session_id=${encodeURIComponent(sessionId)}&uid=${uid}`
-    + (participantToken ? `&participant_token=${encodeURIComponent(participantToken)}` : "");
+  const url = `${API_BASE}/agora/token?session_id=${encodeURIComponent(sessionId)}&uid=${uid}`;
   const headers: Record<string, string> = {};
-  if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+  if (participantToken) headers["X-Participant-Token"] = participantToken;
 
   let res: Response;
   try {
@@ -179,7 +178,10 @@ export function useAgoraRoom(options: {
    *  drop a nominal 60fps target to 30 when the device can't sustain it. */
   onCaptureFps?: (info: { source: "camera" | "screen"; frameRate: number | undefined }) => void;
 }): AgoraRoomState {
-  const { channelName, uid, role, publish, publishAudio, enabled, screenShareUid, authToken, participantToken } = options;
+  const { channelName, uid: requestedUid, role, publish, publishAudio, enabled, screenShareUid, authToken, participantToken } = options;
+  const audienceUidRef = useRef(0);
+  if (!audienceUidRef.current) audienceUidRef.current = 1000 + crypto.getRandomValues(new Uint32Array(1))[0] % (2147483647 - 1000);
+  const uid = requestedUid === 0 ? audienceUidRef.current : requestedUid;
   const contentMode: ContentMode = options.contentMode ?? "detail";
   // Fail-safe default false ⇒ publish the fallback camera. Any uncertainty
   // degrades to today's always-publish behavior, never "guest sees nothing".
@@ -637,12 +639,12 @@ export function useAgoraRoom(options: {
       client.on("user-left", syncRemote);
 
       await client.setClientRole("audience");
-      const agoraToken = await fetchAgoraToken(channelNameRef.current, 0, authTokenRef.current, participantTokenRef.current);
+      const agoraToken = await fetchAgoraToken(channelNameRef.current, audienceUidRef.current, authTokenRef.current, participantTokenRef.current);
       applyProxyIfNeeded(client);
-      await client.join(AGORA_APP_ID, channelNameRef.current, agoraToken, 0);
+      await client.join(AGORA_APP_ID, channelNameRef.current, agoraToken, audienceUidRef.current);
       client.on("token-privilege-will-expire", async () => {
         try {
-          const newToken = await fetchAgoraToken(channelNameRef.current, 0, authTokenRef.current, participantTokenRef.current);
+          const newToken = await fetchAgoraToken(channelNameRef.current, audienceUidRef.current, authTokenRef.current, participantTokenRef.current);
           if (newToken) await client.renewToken(newToken);
         } catch (err) {
           setState((prev) => ({ ...prev, error: `Token renewal failed: ${String(err)}` }));

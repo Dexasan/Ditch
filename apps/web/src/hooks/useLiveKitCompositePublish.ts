@@ -5,7 +5,7 @@ import type { Room } from "livekit-client";
 import { CREATOR_COMPOSITE_UID } from "@/lib/agora";
 import { loadLiveKit } from "@/lib/livekit";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+const API_BASE = "/api/backend";
 
 export function useLiveKitCompositePublish({
   stream,
@@ -26,7 +26,6 @@ export function useLiveKitCompositePublish({
 
     void (async () => {
       const headers: Record<string, string> = {};
-      if (authToken) headers.Authorization = `Bearer ${authToken}`;
       // Pull the SDK chunk alongside the token request so the lazy import does
       // not add a round trip before the program feed goes up.
       const [lk, response] = await Promise.all([

@@ -9,11 +9,12 @@
     "generate-types": "supabase gen types typescript --project-id kgdlmfybxnqpkhfbjull > src/database.types.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.43.0",
-    "jose": "^5.9.6"
+    "livekit-server-sdk": "2.17.0",
+    "@supabase/supabase-js": "^2.114.0",
+    "jose": "^5.10.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.4.0"
+    "@types/node": "^20.19.43",
+    "typescript": "^5.9.3"
   }
 }

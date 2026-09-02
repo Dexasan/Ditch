@@ -120,7 +120,7 @@ export async function channelRoutes(server: FastifyInstance) {
       // Fetch the most recent session that hasn't ended — the "active" session
       const { data: session } = await supabaseAdmin!
         .from("live_sessions")
-        .select("*")
+        .select("id, channel_id, status, source_type, started_at, ended_at, created_at")
         .eq("channel_id", channel.id)
         .neq("status", "ended")
         .order("created_at", { ascending: false })

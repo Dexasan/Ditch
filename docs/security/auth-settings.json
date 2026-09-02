@@ -1,0 +1,18 @@
+{
+  "jwt_exp": 3600,
+  "password_hibp_enabled": false,
+  "password_min_length": 12,
+  "rate_limit_anonymous_users": 30,
+  "rate_limit_email_sent": 2,
+  "rate_limit_sms_sent": 30,
+  "rate_limit_token_refresh": 150,
+  "rate_limit_verify": 30,
+  "rate_limit_otp": 30,
+  "rate_limit_web3": 30,
+  "refresh_token_rotation_enabled": true,
+  "security_captcha_enabled": false,
+  "security_captcha_provider": "hcaptcha",
+  "security_refresh_token_reuse_interval": 10,
+  "site_url": "https://ditchlive.app",
+  "uri_allow_list": "https://ditch-web-drab.vercel.app/auth/callback,https://ditchlive.app/**"
+}

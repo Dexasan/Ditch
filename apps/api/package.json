@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "test:security": "node --import tsx --test scripts/security.test.mts",
     "dev": "node --env-file=../../.env --import tsx --watch src/index.ts",
     "build": "tsc",
     "start": "tsx src/index.ts",
@@ -11,16 +12,15 @@
   "dependencies": {
     "@ditch/db": "workspace:*",
     "@ditch/types": "workspace:*",
-    "@fastify/cors": "^9.0.0",
-    "@fastify/jwt": "^8.0.0",
-    "@fastify/rate-limit": "^9.1.0",
-    "agora-token": "^2.0.5",
+    "@fastify/cors": "^11.3.0",
+    "@fastify/rate-limit": "^11.2.0",
+    "agora-token": "^2.0.6",
+    "fastify": "^5.12.1",
     "livekit-server-sdk": "2.17.0",
-    "fastify": "^4.27.0",
-    "tsx": "^4.0.0"
+    "tsx": "^4.23.13"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.4.0"
+    "@types/node": "^20.19.43",
+    "typescript": "^5.9.3"
   }
 }

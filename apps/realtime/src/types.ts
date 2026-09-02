@@ -4,7 +4,7 @@ import type { Participant, ChatMessage, ParticipantStatus, StreamPlatform } from
 
 export interface ClientToServerEvents {
   "session:join": (
-    data: { session_id: string },
+    data: { session_id: string; participant_token?: string },
     ack: (err: string | null, state?: { participants: Participant[]; recentMessages: ChatMessage[] }) => void
   ) => void;
 

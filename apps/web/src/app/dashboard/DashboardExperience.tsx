@@ -104,14 +104,14 @@ export default async function DashboardExperience() {
                 channelId={channel.id}
                 channelSlug={channel.slug}
                 initialSession={liveSession ?? null}
-                token={token}
+                token="cookie-session"
               />
             </div>
             <div id="destinations">
               <DestinationConsole
                 channelId={channel.id}
                 initialDestinations={saved_destinations}
-                token={token}
+                token="cookie-session"
               />
             </div>
           </div>

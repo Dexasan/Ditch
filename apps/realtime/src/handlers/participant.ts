@@ -1,6 +1,6 @@
 import type { Server, Socket } from "socket.io";
 import type { ClientToServerEvents, ServerToClientEvents, SocketData } from "../types.js";
-import { supabaseAdmin } from "@ditch/db";
+import { supabaseAdmin, removeLiveKitParticipant } from "@ditch/db";
 import type { Participant, ParticipantStatus } from "@ditch/types";
 
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
@@ -79,7 +79,7 @@ export function registerParticipantHandlers(io: AppServer, socket: AppSocket) {
         });
       }
 
-      if (newStatus === "live" && slot_index == null) {
+      if (newStatus === "live" && (!Number.isInteger(slot_index) || slot_index! < 0 || slot_index! > 3)) {
         return socket.emit("error", { message: "slot_index required when setting status to live" });
       }
 
@@ -98,12 +98,15 @@ export function registerParticipantHandlers(io: AppServer, socket: AppSocket) {
         return socket.emit("error", { message: "Failed to update participant" });
       }
 
-      // Broadcast the individual change and the refreshed queue to the whole room
-      const updatedParticipant = updated as Participant;
-      io.to(session_id).emit("participant:status_change", { participant: updatedParticipant });
-
+      if (newStatus === "removed") {
+        try { await removeLiveKitParticipant(session_id, participant.slot_index); }
+        catch { socket.emit("error", { message: "Participant access revoked, but media disconnect failed. End the session if needed." }); }
+      }
+      const safe = { ...(updated as Participant), user_id: null };
+      io.to(`host:${session_id}`).to(`participant:${participant_id}`).emit("participant:status_change", { participant: safe });
+      if (newStatus === "live" || currentStatus === "live") io.to(session_id).emit("participant:status_change", { participant: safe });
       const participants = await fetchActiveParticipants(session_id);
-      io.to(session_id).emit("participant:queue_update", { session_id, participants });
+      io.to(`host:${session_id}`).emit("participant:queue_update", { session_id, participants: participants.map(p => ({ ...p, user_id: null })) });
     } catch (err) {
       console.error("[realtime] participant:status_change failed:", err);
       socket.emit("error", { message: "Failed to update participant" });
@@ -137,7 +140,7 @@ export function registerParticipantHandlers(io: AppServer, socket: AppSocket) {
       }
 
       const participants = await fetchActiveParticipants(session_id);
-      socket.emit("participant:queue_update", { session_id, participants });
+      socket.emit("participant:queue_update", { session_id, participants: participants.map(p => ({ ...p, user_id: null })) });
     } catch (err) {
       console.error("[realtime] participant:queue_update failed:", err);
       socket.emit("error", { message: "Failed to load queue" });
@@ -153,8 +156,9 @@ export function registerParticipantHandlers(io: AppServer, socket: AppSocket) {
    */
   socket.on("participant:notify_new", async ({ session_id }) => {
     try {
+      if (!socket.rooms.has(session_id)) return;
       const participants = await fetchActiveParticipants(session_id);
-      io.to(session_id).emit("participant:queue_update", { session_id, participants });
+      io.to(`host:${session_id}`).emit("participant:queue_update", { session_id, participants: participants.map(p => ({ ...p, user_id: null })) });
     } catch (err) {
       console.error("[realtime] participant:notify_new failed:", err);
     }

@@ -115,6 +115,10 @@ export async function communityRoutes(server: FastifyInstance) {
 
       if (chanErr || !channel) return reply.status(404).send({ error: "Channel not found" });
 
+      if (session_id) {
+        const { data: session } = await supabaseAdmin!.from("live_sessions").select("id").eq("id", session_id).eq("channel_id", channel.id).maybeSingle();
+        if (!session) return reply.status(400).send({ error: "Invalid session for this channel" });
+      }
       const { data: row, error } = await supabaseAdmin!
         .from("community_posts")
         .insert({ channel_id: channel.id, author_id, type, title, body, media_url, session_id })

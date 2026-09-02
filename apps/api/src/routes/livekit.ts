@@ -7,7 +7,7 @@ import { verifyParticipantToken } from "../lib/participantToken";
 
 const CREATOR_UIDS = new Set([997, 998, 999]);
 const PARTICIPANT_UIDS = new Set([1, 2, 3, 4]);
-const TOKEN_TTL = "6h";
+const TOKEN_TTL = "5m";
 
 export async function livekitRoutes(server: FastifyInstance) {
   server.get<{ Querystring: { session_id: string; uid: number; participant_token?: string } }>(
@@ -34,7 +34,8 @@ export async function livekitRoutes(server: FastifyInstance) {
         return reply.status(503).send({ error: "LiveKit is not configured" });
       }
 
-      const { session_id, uid, participant_token } = request.query;
+      const { session_id, uid } = request.query;
+      const participant_token = typeof request.headers["x-participant-token"] === "string" ? request.headers["x-participant-token"] : undefined;
       let canPublish = false;
       let identity = `audience-${randomUUID()}`;
 
@@ -112,12 +113,13 @@ export async function livekitRoutes(server: FastifyInstance) {
         room: session_id,
         canPublish,
         canSubscribe: true,
+        canPublishData: false,
       });
       return reply.send({
         token: await accessToken.toJwt(),
         url,
         identity,
-        expires_in: 21_600,
+        expires_in: 300,
       });
     },
   );

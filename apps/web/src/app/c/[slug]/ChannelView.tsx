@@ -616,11 +616,14 @@ export default function ChannelView({
       if (err) { setSessionError(err); return; }
       if (state) {
         setParticipants(state.participants);
+        if (participantToken) socket.emit("participant:notify_new", { session_id: sessionId });
         setMessages(state.recentMessages.slice(-MAX_CHAT));
         setConnected(true);
       }
     };
-    socket.emit("session:join", { session_id: sessionId }, onJoin);
+    function join() { socket.emit("session:join", { session_id: sessionId, participant_token: participantToken ?? undefined }, onJoin); }
+    socket.on("connect", join);
+    if (socket.connected) join();
 
     socket.on("chat:message", ({ message }) => {
       setMessages((prev) => [...prev.slice(-MAX_CHAT + 1), message]);
@@ -633,7 +636,9 @@ export default function ChannelView({
       });
     });
     socket.on("participant:status_change", ({ participant }) => {
-      setParticipants((prev) => prev.map((p) => (p.id === participant.id ? participant : p)));
+      setParticipants((prev) => prev.some(p => p.id === participant.id)
+        ? prev.map(p => p.id === participant.id ? participant : p)
+        : participant.status === "live" ? [...prev, participant] : prev);
       setMyParticipant((prev) => (prev?.id === participant.id ? participant : prev));
     });
     socket.on("session:ended", () => {
@@ -646,11 +651,12 @@ export default function ChannelView({
       socket.off("connect_error");
       socket.off("chat:message");
       socket.off("participant:queue_update");
+      socket.off("connect", join);
       socket.off("participant:status_change");
       socket.off("session:ended");
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, tokenState]);
+  }, [sessionId, tokenState, participantToken]);
 
   useEffect(() => {
     scrollChatToLatest("smooth");

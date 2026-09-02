@@ -1,6 +1,6 @@
 import type { Socket } from "socket.io";
 import type { ClientToServerEvents, ServerToClientEvents, SocketData } from "../types.js";
-import { verifyAccessToken } from "@ditch/db";
+import { verifyAccessToken, verifyServiceTicket } from "@ditch/db";
 
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
@@ -27,7 +27,7 @@ export async function authMiddleware(
   // keep the guard so nothing can escape this async middleware and become an
   // unhandled rejection that crashes the whole realtime process.
   try {
-    const user = await verifyAccessToken(token);
+    const user = await verifyServiceTicket(token, "realtime") ?? await verifyAccessToken(token);
 
     if (!user) {
       return next(new Error("Invalid or expired token"));
@@ -35,6 +35,9 @@ export async function authMiddleware(
 
     socket.data.user_id = user.id;
     socket.data.display_name = user.display_name;
+    const expiry = setTimeout(() => socket.disconnect(true), 300_000);
+    expiry.unref();
+    socket.once("disconnect", () => clearTimeout(expiry));
     next();
   } catch (err) {
     console.error("[realtime] token verification failed:", err);

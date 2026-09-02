@@ -21,11 +21,13 @@ async function request<T>(
 ): Promise<T> {
   const headers: Record<string, string> = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token && typeof window === "undefined") headers["Authorization"] = `Bearer ${token}`;
 
+  if (typeof window !== "undefined") headers["X-Ditch-Request"] = "1";
+  const base = typeof window === "undefined" ? API_BASE : "/api/backend";
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, {
+    res = await fetch(`${base}${path}`, {
       method,
       headers,
       cache,

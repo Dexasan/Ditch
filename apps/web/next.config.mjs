@@ -1,14 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  poweredByHeader: false,
+  compiler: { removeConsole: process.env.NODE_ENV === "production" },
   transpilePackages: ["@ditch/types"],
 
   async headers() {
     const apiUrl      = process.env.NEXT_PUBLIC_API_URL      ?? "http://localhost:3002";
     const realtimeUrl = process.env.NEXT_PUBLIC_REALTIME_URL ?? "http://localhost:3001";
     const relayUrl    = process.env.NEXT_PUBLIC_RELAY_URL    ?? "ws://localhost:3003";
+    const mediaOrigins = [process.env.NEXT_PUBLIC_HLS_BASE_URL, process.env.NEXT_PUBLIC_LIVEKIT_URL]
+      .filter(Boolean).map(value => new URL(value.trim()).origin);
+    const realtimeSocketUrl = realtimeUrl.replace(/^http/, "ws");
 
     const connectSrc = [
       "'self'",
+      "https://hcaptcha.com",
+      "https://*.hcaptcha.com",
       // Supabase Auth + DB
       "https://*.supabase.co",
       "wss://*.supabase.co",
@@ -21,16 +28,20 @@ const nextConfig = {
       apiUrl,
       realtimeUrl,
       relayUrl,
+      realtimeSocketUrl,
+      ...mediaOrigins,
     ].join(" ");
 
-    // script-src retains 'unsafe-inline'/'unsafe-eval' because Next.js App Router
-    // inlines hydration scripts. Tighten to nonce-based CSP once the app is stable.
+    // Inline hydration/styles remain until the nonce rollout documented in docs/security.
+    // eval is a development-only Next.js debugging requirement.
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      "style-src 'self' 'unsafe-inline'",
+      `script-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
+      "style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com",
+      "frame-src https://hcaptcha.com https://*.hcaptcha.com",
+      "object-src 'none'",
       "img-src 'self' data: blob: https:",
-      "media-src 'self' blob:",
+      `media-src 'self' blob: ${mediaOrigins.join(" ")}`,
       `connect-src ${connectSrc}`,
       "worker-src 'self' blob:",
       "frame-ancestors 'none'",

@@ -21,7 +21,8 @@ validateEnv();
 
 const server = Fastify({
   logger: {
-    redact: ["req.headers.authorization"],
+    serializers: { req: req => ({ method: req.method, url: req.url?.split("?")[0], remoteAddress: req.ip }) },
+    redact: ["req.headers.authorization", "req.headers.cookie", "req.body.password", "req.body.captchaToken"],
   },
 });
 
@@ -32,10 +33,6 @@ function isOriginAllowed(origin: string | undefined): boolean {
   const explicit = (process.env.WEB_URL ?? "http://localhost:3000")
     .split(",").map((s) => s.trim());
   if (explicit.includes(origin)) return true;
-  const teamSlug = process.env.VERCEL_TEAM_SLUG;
-  if (teamSlug) {
-    return new RegExp(`^https://[\\w-]+-${teamSlug}\\.vercel\\.app$`).test(origin);
-  }
   return false;
 }
 
@@ -52,6 +49,18 @@ async function start() {
     max: 100,
     timeWindow: "1 minute",
     keyGenerator: (req) => req.ip,
+  });
+
+  // Cookie auth belongs to the web BFF. This service accepts explicit bearer
+  // credentials only; reject cross-site browser mutations as defense in depth.
+  server.addHook("onRequest", async (request, reply) => {
+    if (!["GET", "HEAD", "OPTIONS"].includes(request.method) && request.headers.origin && !isOriginAllowed(request.headers.origin)) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+  });
+  server.addHook("onSend", async (_request, reply, payload) => {
+    reply.header("Cache-Control", "private, no-store");
+    return payload;
   });
 
   // ── Routes ───────────────────────────────────────────────────────────────

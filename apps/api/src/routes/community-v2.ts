@@ -480,6 +480,8 @@ export async function communityV2Routes(server: FastifyInstance) {
       if (!row) return reply.status(404).send({ error: "Rundown item not found" });
       const post = row.community_posts;
       if (post?.channels?.owner_id !== request.user.id) return reply.status(403).send({ error: "Forbidden" });
+      const { data: targetSession } = await db.from("live_sessions").select("channels!inner(owner_id)").eq("id", request.params.sessionId).single();
+      if (targetSession?.channels?.owner_id !== request.user.id) return reply.status(403).send({ error: "Forbidden" });
       const usedAt = new Date().toISOString();
       await Promise.all([
         db.from("show_rundown_items").update({ state: "used", used_at: usedAt }).eq("id", row.id),

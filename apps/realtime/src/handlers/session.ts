@@ -1,6 +1,6 @@
 import type { Server, Socket } from "socket.io";
 import type { ClientToServerEvents, ServerToClientEvents, SocketData } from "../types.js";
-import { supabaseAdmin } from "@ditch/db";
+import { supabaseAdmin, verifyParticipantToken } from "@ditch/db";
 import type { Participant, ChatMessage } from "@ditch/types";
 import { startIngest, stopIngest } from "../ingest/manager.js";
 
@@ -14,11 +14,11 @@ export function registerSessionHandlers(io: AppServer, socket: AppSocket) {
    * Joins a Socket.io room keyed by session_id. Validates the session exists.
    * Responds with the current active (non-removed) participants via ack.
    */
-  socket.on("session:join", async ({ session_id }, ack) => {
+  socket.on("session:join", async ({ session_id, participant_token }, ack) => {
     try {
       const { data: session } = await supabaseAdmin!
         .from("live_sessions")
-        .select("id, status")
+        .select("id, status, channels!inner(owner_id)")
         .eq("id", session_id)
         .single();
 
@@ -30,6 +30,10 @@ export function registerSessionHandlers(io: AppServer, socket: AppSocket) {
         return ack("Session has ended");
       }
 
+      const owner = (session.channels as { owner_id: string }).owner_id === socket.data.user_id;
+      if (owner) await socket.join(`host:${session_id}`);
+      const guestId = typeof participant_token === "string" ? verifyParticipantToken(participant_token, session_id) : null;
+      // A session is a public audience room; private rooms are never client-chosen.
       await socket.join(session_id);
 
       // Start external chat ingestion (Twitch/YouTube) for this live session.
@@ -53,16 +57,17 @@ export function registerSessionHandlers(io: AppServer, socket: AppSocket) {
           .limit(50),
       ]);
 
+      const rows = (participants ?? []) as Participant[];
+      for (const p of rows) {
+        if (p.id === guestId || (socket.data.user_id && p.user_id === socket.data.user_id)) await socket.join(`participant:${p.id}`);
+      }
+      const visible = rows.filter(p => owner || p.status === "live" || p.id === guestId || (!!socket.data.user_id && p.user_id === socket.data.user_id))
+        .map(p => ({ ...p, user_id: null }));
       ack(null, {
-        participants: (participants ?? []) as Participant[],
+        participants: visible,
         recentMessages: (recentMessages ?? []) as ChatMessage[],
       });
 
-      // Notify the rest of the room that someone joined
-      socket.to(session_id).emit("session:state", {
-        session_id,
-        participants: (participants ?? []) as Participant[],
-      });
     } catch (err) {
       // Always resolve the ack — otherwise the viewer hangs on a spinner forever.
       console.error("[realtime] session:join failed:", err);
@@ -77,6 +82,8 @@ export function registerSessionHandlers(io: AppServer, socket: AppSocket) {
    */
   socket.on("session:leave", ({ session_id }) => {
     socket.leave(session_id);
+    socket.leave(`host:${session_id}`);
+    for (const room of socket.rooms) if (room.startsWith("participant:")) socket.leave(room);
   });
 
   /**
@@ -117,6 +124,6 @@ export function registerSessionHandlers(io: AppServer, socket: AppSocket) {
    * Logged here for observability.
    */
   socket.on("disconnect", () => {
-    console.log(`[realtime] socket ${socket.id} disconnected`);
+    if (process.env.NODE_ENV !== "production") console.log(`[realtime] socket ${socket.id} disconnected`);
   });
 }

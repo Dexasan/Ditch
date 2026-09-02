@@ -1,3 +1,4 @@
+import { sessionCookieOptions, sessionCookieAttributes, supabaseUrl } from "@/lib/supabase/options";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -8,9 +9,10 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl(),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: sessionCookieOptions,
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -21,30 +23,35 @@ export async function middleware(request: NextRequest) {
           );
           response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2])
+            response.cookies.set(name, value, { ...options, ...sessionCookieAttributes })
           );
         },
       },
     }
   );
 
-  // This is a fast navigation guard. Sensitive data still goes through the
-  // API, where access tokens are verified cryptographically. Reading the
-  // cookie-backed session avoids a Supabase Auth round trip on every route.
-  const { data: { session } } = await supabase.auth.getSession();
+  // Verify server-side and persist any rotated session cookies on the response.
+  const { data: { user } } = await supabase.auth.getUser();
   const { pathname } = request.nextUrl;
 
   const isProtected = PROTECTED.some((p) => pathname.startsWith(p));
   const isAuthOnly = AUTH_ONLY.some((p) => pathname.startsWith(p));
 
-  if (isProtected && !session) {
-    return NextResponse.redirect(new URL("/auth", request.url));
+  if (isProtected && !user) {
+    const redirect = NextResponse.redirect(new URL("/auth", request.url));
+    redirect.headers.set("Cache-Control", "private, no-store");
+    response.cookies.getAll().forEach(cookie => redirect.cookies.set(cookie));
+    return redirect;
   }
 
-  if (isAuthOnly && session) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  if (isAuthOnly && user) {
+    const redirect = NextResponse.redirect(new URL("/dashboard", request.url));
+    redirect.headers.set("Cache-Control", "private, no-store");
+    response.cookies.getAll().forEach(cookie => redirect.cookies.set(cookie));
+    return redirect;
   }
 
+  response.headers.set("Cache-Control", "private, no-store");
   return response;
 }
 

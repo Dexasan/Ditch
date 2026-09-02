@@ -13,7 +13,8 @@ type ConsoleHeaderProps = {
 async function signOut() {
   "use server";
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut({ scope: "global" });
+  if (error) throw new Error("Unable to sign out. Please try again.");
   redirect("/auth");
 }
 

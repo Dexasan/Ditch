@@ -105,7 +105,7 @@ export default async function ChannelPage({
           <div className="order-last flex w-full justify-end border-t border-white/5 pt-2 sm:order-none sm:w-auto sm:border-0 sm:pt-0">
             <ChannelSubscribeButton
               channelSlug={slug}
-              token={token}
+              token={token ? "cookie-session" : null}
               initialSubscribed={community.is_member}
               initialCount={community.member_count}
               isOwner={isOwner}
@@ -119,7 +119,7 @@ export default async function ChannelPage({
         isLive && session ? (
           <ChannelView
             sessionId={session.id}
-            token={token}
+            token={token ? "cookie-session" : null}
             viewerName={viewerName}
             isOwner={isOwner}
             channelSlug={slug}
@@ -147,7 +147,7 @@ export default async function ChannelPage({
         <CommunityBoard
           channelSlug={slug}
           initialPosts={community.posts}
-          token={token}
+          token={token ? "cookie-session" : null}
           initialIsMember={community.is_member}
           initialMemberCount={community.member_count}
           isOwner={isOwner}

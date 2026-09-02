@@ -9,6 +9,6 @@ export type LiveKitModule = typeof import("livekit-client");
 let liveKitModulePromise: Promise<LiveKitModule> | null = null;
 
 export function loadLiveKit(): Promise<LiveKitModule> {
-  if (!liveKitModulePromise) liveKitModulePromise = import("livekit-client");
+  if (!liveKitModulePromise) liveKitModulePromise = import("livekit-client").then(module => { if (process.env.NODE_ENV === "production") module.setLogLevel(module.LogLevel.silent); return module; });
   return liveKitModulePromise;
 }

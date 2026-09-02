@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { ParticipantStatus } from "@ditch/types";
 import type { Database } from "@ditch/db";
-import { supabaseAdmin } from "@ditch/db";
+import { supabaseAdmin, verifyAccessToken, removeLiveKitParticipant } from "@ditch/db";
 import { authenticate } from "../lib/authenticate";
 import { assertSessionOwner, assertParticipantAccess } from "../lib/guards";
 import { issueParticipantToken } from "../lib/participantToken";
@@ -59,8 +59,9 @@ export async function participantRoutes(server: FastifyInstance) {
       const authHeader = request.headers.authorization;
       if (authHeader?.startsWith("Bearer ")) {
         const token = authHeader.slice(7);
-        const { data } = await supabaseAdmin!.auth.getUser(token);
-        userId = data.user?.id ?? null;
+        const user = await verifyAccessToken(token);
+        if (!user) return reply.status(401).send({ error: "Authentication required" });
+        userId = user.id;
       }
 
       // Verify the session exists and is joinable
@@ -85,11 +86,10 @@ export async function participantRoutes(server: FastifyInstance) {
           .select("id")
           .eq("session_id", session_id)
           .eq("user_id", userId)
-          .in("status", ["waiting", "approved", "live"])
           .maybeSingle();
 
         if (existing) {
-          return reply.status(409).send({ error: "You already have an active participant request for this session" });
+          return reply.status(409).send({ error: "You already have a participant request for this session" });
         }
       }
 
@@ -144,11 +144,17 @@ export async function participantRoutes(server: FastifyInstance) {
     async (request, reply) => {
       const { session_id } = request.query;
 
+      let isOwner = false;
+      if (request.headers.authorization?.startsWith("Bearer ")) {
+        const user = await verifyAccessToken(request.headers.authorization.slice(7));
+        const { data: session } = await supabaseAdmin!.from("live_sessions").select("channels!inner(owner_id)").eq("id", session_id).single();
+        isOwner = !!user && (session?.channels as { owner_id: string } | null)?.owner_id === user.id;
+      }
       const { data: participants, error } = await supabaseAdmin!
         .from("participants")
         .select("*")
         .eq("session_id", session_id)
-        .neq("status", "removed")
+        .in("status", isOwner ? ["waiting", "approved", "live"] : ["live"])
         .order("joined_at", { ascending: true })
         .limit(200);
 
@@ -196,7 +202,7 @@ export async function participantRoutes(server: FastifyInstance) {
               type: "string",
               enum: ["waiting", "approved", "live", "removed"],
             },
-            slot_index: { type: "number", minimum: 0 },
+            slot_index: { type: "integer", minimum: 0, maximum: 3 },
           },
           additionalProperties: false,
         },
@@ -267,6 +273,10 @@ export async function participantRoutes(server: FastifyInstance) {
         return reply.status(500).send({ error: "Failed to update participant" });
       }
 
+      if (newStatus === "removed") {
+        try { await removeLiveKitParticipant(participant.session_id, participant.slot_index); }
+        catch { request.log.error("LiveKit participant removal failed"); return reply.status(502).send({ error: "Participant access revoked, but media disconnect failed. End the session if they remain on screen." }); }
+      }
       return reply.status(200).send({ participant: updated });
     }
   );
@@ -301,6 +311,7 @@ export async function participantRoutes(server: FastifyInstance) {
       const result = await assertParticipantAccess(userId, id, reply);
       if (!result) return;
 
+      const { data: before } = await supabaseAdmin!.from("participants").select("session_id, slot_index").eq("id", id).single();
       const { data: participant, error } = await supabaseAdmin!
         .from("participants")
         .update({ status: "removed", slot_index: null })
@@ -312,6 +323,10 @@ export async function participantRoutes(server: FastifyInstance) {
         return reply.status(500).send({ error: "Failed to remove participant" });
       }
 
+      if (before) {
+        try { await removeLiveKitParticipant(before.session_id, before.slot_index); }
+        catch { request.log.error("LiveKit participant removal failed"); return reply.status(502).send({ error: "Participant access revoked, but media disconnect failed." }); }
+      }
       return reply.status(200).send({ participant });
     }
   );

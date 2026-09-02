@@ -31,7 +31,7 @@ export default async function CreatorCommunityPage() {
           <Link href={`/c/${channel.slug}?tab=community`} className="rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-white/75 hover:text-white">View public board</Link>
         </div>
         {!activeSession && <div className="mb-4 rounded-lg border border-amber-300/15 bg-amber-300/[0.06] px-4 py-3 text-xs text-amber-100/60">Start a session before adding Ideas to a show rundown.</div>}
-        <CreatorCommunityInbox channelSlug={channel.slug} token={token} initialPosts={posts} activeSessionId={activeSession?.id ?? null} />
+        <CreatorCommunityInbox channelSlug={channel.slug} token="cookie-session" initialPosts={posts} activeSessionId={activeSession?.id ?? null} />
       </main>
     </div>
   );

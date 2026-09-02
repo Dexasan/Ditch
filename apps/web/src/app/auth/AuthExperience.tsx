@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { createClient } from "@/lib/supabase/browser";
 import styles from "./auth.module.css";
 
@@ -15,6 +16,8 @@ export default function AuthExperience({ initialMode = "signin" }: { initialMode
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string>();
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
   const [loading, setLoading] = useState(false);
   const [signedUp, setSignedUp] = useState(false);
 
@@ -30,26 +33,29 @@ export default function AuthExperience({ initialMode = "signin" }: { initialMode
         email,
         password,
         options: {
+          captchaToken,
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (signUpError) {
-        setError(signUpError.message);
+        setError("Unable to create an account. Please try again.");
       } else {
         setSignedUp(true);
       }
     } else {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
 
       if (signInError) {
-        setError(signInError.message);
+        setError("Unable to sign in. Check your details and try again.");
       } else {
         router.push("/home");
         router.refresh();
       }
     }
 
+    setCaptchaToken(undefined);
+    setCaptchaAttempt(value => value + 1);
     setLoading(false);
   }
 
@@ -142,10 +148,10 @@ export default function AuthExperience({ initialMode = "signin" }: { initialMode
                       type={showPassword ? "text" : "password"}
                       autoComplete={mode === "signin" ? "current-password" : "new-password"}
                       required
-                      minLength={8}
+                      minLength={mode === "signup" ? 12 : 1}
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
-                      placeholder="8 characters minimum"
+                      placeholder={mode === "signup" ? "12 characters minimum" : "Your password"}
                     />
                     <button
                       type="button"
@@ -158,9 +164,14 @@ export default function AuthExperience({ initialMode = "signin" }: { initialMode
                   </div>
                 </label>
 
+                {process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY && (
+                  <HCaptcha key={captchaAttempt} sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY}
+                    onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(undefined)} onError={() => setCaptchaToken(undefined)} />
+                )}
+
                 {error && <p className={styles.error} role="alert">{error}</p>}
 
-                <button type="submit" disabled={loading} className={styles.submit}>
+                <button type="submit" disabled={loading || (!!process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY && !captchaToken)} className={styles.submit}>
                   <span>{loading ? "CONTACTING NETWORK..." : mode === "signin" ? "ENTER DITCH" : "CREATE MY ACCOUNT"}</span>
                   <ArrowIcon />
                 </button>

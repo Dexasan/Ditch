@@ -161,7 +161,7 @@ export function startYouTube(channelRef: string, emit: EmitFn): Ingestor {
       }
       if (!active || !liveChatId) return;
 
-      console.log(`[ingest] youtube connector started for ${channelRef}`);
+      if (process.env.NODE_ENV !== "production") console.log(`[ingest] youtube connector started for ${channelRef}`);
       let pageToken: string | undefined;
       let firstPage = true;
 

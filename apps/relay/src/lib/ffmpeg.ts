@@ -23,7 +23,7 @@ function resolveFfmpeg(): string {
 }
 
 const FFMPEG_BIN = resolveFfmpeg();
-console.log("[ffmpeg] resolved binary:", FFMPEG_BIN);
+if (process.env.NODE_ENV !== "production") console.log("[ffmpeg] resolved binary:", FFMPEG_BIN);
 
 // An RTMP stream key is the last path segment of a destination URL, and it is a
 // full publishing credential: whoever holds it can broadcast to that channel.
@@ -121,7 +121,7 @@ export function spawnFfmpeg(
   const args = buildArgs(rtmpTargets, params, hlsPlaylistPath);
   const tag = `[ffmpeg ${sessionId.slice(0, 8)}]`;
 
-  console.log(tag, "spawning:", FFMPEG_BIN, redactStreamKeys(args.join(" ")));
+  if (process.env.NODE_ENV !== "production") console.log(tag, "spawning:", FFMPEG_BIN, redactStreamKeys(args.join(" ")));
 
   const proc: ChildProcess = spawn(FFMPEG_BIN, args, { stdio: ["pipe", "ignore", "pipe"] });
 
@@ -132,7 +132,7 @@ export function spawnFfmpeg(
   const stderrBuf: Buffer[] = [];
   proc.stderr?.on("data", (chunk: Buffer) => {
     stderrBuf.push(chunk);
-    console.log(tag, redactStreamKeys(chunk.toString().trimEnd()));
+    if (process.env.NODE_ENV !== "production") console.log(tag, redactStreamKeys(chunk.toString().trimEnd()));
   });
 
   // Resolves once the process is truly gone. Settling on "error" too covers a
@@ -323,13 +323,13 @@ export function spawnRtmpIngest(
 ): FfmpegSession {
   const args = buildRtmpIngestArgs(rtmpTargets, inputUrl, hlsPlaylistPath);
   const tag = `[ffmpeg ingest ${sessionId.slice(0, 8)}]`;
-  console.log(tag, "spawning:", FFMPEG_BIN, redactStreamKeys(args.join(" ")));
+  if (process.env.NODE_ENV !== "production") console.log(tag, "spawning:", FFMPEG_BIN, redactStreamKeys(args.join(" ")));
 
   const proc: ChildProcess = spawn(FFMPEG_BIN, args, { stdio: ["ignore", "ignore", "pipe"] });
   const stderrBuf: Buffer[] = [];
   proc.stderr?.on("data", (chunk: Buffer) => {
     stderrBuf.push(chunk);
-    console.log(tag, redactStreamKeys(chunk.toString().trimEnd()));
+    if (process.env.NODE_ENV !== "production") console.log(tag, redactStreamKeys(chunk.toString().trimEnd()));
   });
 
   const exited = new Promise<void>((resolve) => {

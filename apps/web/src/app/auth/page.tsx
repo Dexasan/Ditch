@@ -1,11 +1,11 @@
 import AuthExperience from "./AuthExperience";
 
-export default function AuthPage({
+export default async function AuthPage({
   searchParams,
 }: {
-  searchParams: { mode?: string | string[] };
+  searchParams: Promise<{ mode?: string | string[] }>;
 }) {
-  const mode = searchParams.mode === "signup" ? "signup" : "signin";
+  const mode = (await searchParams).mode === "signup" ? "signup" : "signin";
 
   return <AuthExperience key={mode} initialMode={mode} />;
 }

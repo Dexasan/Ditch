@@ -17,7 +17,7 @@ export default async function InboxPage() {
     <div className="min-h-screen bg-[#11100F] text-white">
       <ConsoleHeader active="inbox" />
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <InboxList initialNotifications={notifications} token={session.access_token} />
+        <InboxList initialNotifications={notifications} token="cookie-session" />
       </main>
     </div>
   );

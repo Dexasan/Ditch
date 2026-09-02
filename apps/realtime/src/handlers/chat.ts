@@ -22,12 +22,15 @@ export function registerChatHandlers(io: AppServer, socket: AppSocket) {
         socket.emit("chat:error", { code: "auth_required", message: "Sign in to chat" });
         return;
       }
-      if (!body?.trim()) return;
+      if (!socket.rooms.has(session_id)) return;
+      const { data: session } = await supabaseAdmin!.from("live_sessions").select("status").eq("id", session_id).single();
+      if (!session || session.status === "ended" || session.status === "ending") return;
+      if (typeof body !== "string" || !body.trim()) return;
       if (body.length > 500) return;
 
       // Authenticated users: use verified display name stored at connect time.
       // Anonymous users: use the client-provided name (unverifiable).
-      const rawName = socket.data.display_name ?? display_name ?? "Viewer";
+      const rawName = socket.data.display_name ?? "Viewer";
       const authorName = rawName.slice(0, 64);
 
       const { data: message, error } = await supabaseAdmin!

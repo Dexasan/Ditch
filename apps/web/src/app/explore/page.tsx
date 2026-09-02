@@ -83,7 +83,7 @@ function FeaturedCard({ item, token, subscribed, isOwner }: CardProps) {
             The community is quiet. See what you can start
           </Link>}
         </div>
-        <ChannelSubscribeButton channelSlug={item.channel.slug} token={token} initialSubscribed={subscribed}
+        <ChannelSubscribeButton channelSlug={item.channel.slug} token={token ? "cookie-session" : null} initialSubscribed={subscribed}
           initialCount={community.member_count} isOwner={isOwner} />
       </div>
     </div>
@@ -104,7 +104,7 @@ function ChannelCard({ item, token, subscribed, isOwner }: CardProps) {
       </Link>}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-[12px] text-white/50">{community.post_count} community {community.post_count === 1 ? "post" : "posts"}</span>
-        <ChannelSubscribeButton channelSlug={item.channel.slug} token={token} initialSubscribed={subscribed}
+        <ChannelSubscribeButton channelSlug={item.channel.slug} token={token ? "cookie-session" : null} initialSubscribed={subscribed}
           initialCount={community.member_count} isOwner={isOwner} compact />
       </div>
     </div>
