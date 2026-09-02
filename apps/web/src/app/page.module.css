@@ -240,6 +240,14 @@
   padding-top: clamp(32px, 4vh, 48px);
 }
 
+@media (min-width: 1024px) {
+  .hero {
+    min-height: calc(100vh - 230px);
+    padding-top: clamp(52px, 6vh, 84px);
+    padding-bottom: 28px;
+  }
+}
+
 .eyebrow,
 .sectionIndex,
 .definitionCode,

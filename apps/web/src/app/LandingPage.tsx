@@ -117,7 +117,7 @@ export default function LandingPage() {
 
         <section className={sections.comparison} id="why-ditch" aria-labelledby="comparison-title">
           <div className={sections.compactHeading}>
-            <span className={sections.index}>04 / WHY DITCH</span>
+            <span className={sections.index}>03 / WHY DITCH</span>
             <h2 id="comparison-title">Less setup. More show.</h2>
           </div>
           <table>
@@ -140,7 +140,7 @@ export default function LandingPage() {
         <section className={sections.earnings} aria-labelledby="earnings-title">
           <div>
             <p className={sections.index}>Coming next</p>
-            <h2 id="earnings-title">Your audience is the ad unit.</h2>
+            <h2 id="earnings-title">Your audience pays you back.</h2>
           </div>
           <p>
             Sponsored seats are coming. Brands pay to put a real person inside
@@ -150,10 +150,10 @@ export default function LandingPage() {
         </section>
 
         <section className={sections.finalCta} id="start" aria-labelledby="cta-title">
-          <span className={sections.index}>06 / OPEN THE ROOM</span>
+          <span className={sections.index}>04 / OPEN THE ROOM</span>
           <h2 id="cta-title">Give them somewhere to enter.</h2>
           <div className={styles.ctaActions}>
-            <Link href="/auth?mode=signup" className={styles.darkButton}>
+            <Link href="/auth?mode=signup" className={styles.primaryButton}>
               Claim your channel
               <span aria-hidden="true">-&gt;</span>
             </Link>

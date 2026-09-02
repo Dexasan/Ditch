@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalShell title="Terms of service" updated="june 12, 2026">
+    <LegalShell title="Terms of service" updated="September 3, 2026">
       <LegalSection number="01" title="acceptance">
         <p>
           These terms govern your use of DITCH, a live streaming service

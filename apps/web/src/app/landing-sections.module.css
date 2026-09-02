@@ -18,6 +18,7 @@
   padding: 112px 0;
   color: var(--ink);
   background: var(--paper);
+  border-block: 2px solid var(--pink);
   scroll-margin-top: 74px;
 }
 
@@ -402,13 +403,18 @@
   width: min(1280px, calc(100% - 48px));
   margin: 0 auto 64px;
   padding: 60px 72px;
-  color: var(--ink);
-  background: var(--paper);
+  color: var(--paper);
+  background: var(--night-raised);
+  border: 1px solid var(--line);
   box-shadow: 11px 11px 0 var(--pink-dark);
 }
 
 .finalCta .index {
-  color: #bd176c;
+  color: var(--pink);
+}
+
+.finalCta > div > span {
+  color: var(--muted);
 }
 
 .finalCta h2 {

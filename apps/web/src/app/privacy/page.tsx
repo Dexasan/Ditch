@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy policy" updated="june 12, 2026">
+    <LegalShell title="Privacy policy" updated="September 3, 2026">
       <LegalSection number="01" title="who we are">
         <p>
           DITCH is a live streaming service operated from Rome, Italy. For
