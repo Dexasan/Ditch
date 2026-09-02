@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  --text-xs: 0.8125rem;
   /* ── Spec-aligned design tokens ─────────────────────────────────── */
   --bg-base:           #111122;
   --bg-mid:            #1A1A3E;
@@ -195,7 +196,7 @@ body {
 
   .channel-live-pill {
     padding-inline: 0.45rem;
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
   }
 
   .channel-page-tabs {
@@ -210,7 +211,7 @@ body {
     min-height: 34px;
     padding-inline: 0.55rem;
     border-radius: 0.6rem;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
   }
 
   .audience-mobile-panel {
@@ -231,7 +232,7 @@ body {
     border-radius: 0.75rem;
     color: #888899 !important;
     background: transparent;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     letter-spacing: 0;
     text-transform: none;
   }
@@ -311,7 +312,7 @@ body {
     gap: 0.4rem;
     margin: 0.125rem 0 0;
     color: #77778a;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
   }
 
   .audience-mobile-panel .audience-join-trust span {
@@ -343,7 +344,7 @@ body {
 
   .channel-page-tab {
     padding-inline: 0.4rem;
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
   }
 }
 

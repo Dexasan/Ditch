@@ -213,7 +213,7 @@ export default function SignInModal({
 
               {/* Draft reminder */}
               {initialDraft && (
-                <p className="text-[11px] text-[var(--color-text-muted)] text-center">
+                <p className="text-[12px] text-[var(--color-text-muted)] text-center">
                   Your message "{initialDraft}" will be sent after sign in.
                 </p>
               )}

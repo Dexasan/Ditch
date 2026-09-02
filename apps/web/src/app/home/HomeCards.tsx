@@ -177,7 +177,7 @@ function ExploreCard() {
 
         <h2 className="text-xl font-bold text-white mb-2">Explore</h2>
         <p className="text-sm text-white/35 leading-relaxed max-w-xs">
-          Watch live streams from creators broadcasting across every platform at once.
+          Watch live streams from creators broadcasting to Twitch, YouTube, TikTok and Kick.
         </p>
 
         <div className="mt-auto pt-10 flex items-center gap-1.5 text-sm font-semibold text-white/50 group-hover:text-white transition-colors duration-300">
@@ -272,7 +272,7 @@ function StudioCard() {
           <div className="absolute top-3.5 right-10 flex items-center gap-1.5 pointer-events-none"
             style={{ animation: "fadeUp 0.25s ease-out both" }}>
             <span className="w-2 h-2 rounded-full" style={{ background: "#FF1DB4", animation: "recBlink 1.1s step-end infinite" }} />
-            <span className="text-[10px] font-bold tracking-widest" style={{ color: "rgba(255,29,180,0.75)" }}>REC</span>
+            <span className="text-[11px] font-bold tracking-widest" style={{ color: "rgba(255,29,180,0.75)" }}>REC</span>
           </div>
         </>
       )}

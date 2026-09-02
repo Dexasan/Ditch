@@ -118,12 +118,12 @@ function PostCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
           {post.is_pinned && (
-            <span className="text-[10px] font-bold tracking-wider uppercase text-[#FF1DB4] opacity-70">
+            <span className="text-[11px] font-bold tracking-wider uppercase text-[#FF1DB4] opacity-70">
               Pinned
             </span>
           )}
           <span
-            className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+            className="text-[11px] font-bold px-1.5 py-0.5 rounded"
             style={{ color: colors.text, background: colors.bg }}
           >
             {TYPE_LABELS[post.type]}
@@ -136,7 +136,7 @@ function PostCard({
           <p className="text-xs text-white/45 leading-relaxed line-clamp-2">{post.body}</p>
         )}
 
-        <p className="text-[11px] text-white/25 mt-2">
+        <p className="text-[12px] text-white/25 mt-2">
           {post.author_display_name} · {timeAgo(post.created_at)}
         </p>
       </div>

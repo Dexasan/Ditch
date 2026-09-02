@@ -384,16 +384,16 @@ function GoLiveModal({
 
         {/* Section 1 - Destinations */}
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
             Destinations
           </p>
 
           {loadingSaved && (
-            <p className="text-[12px] text-[var(--text-muted)] py-1">Loading…</p>
+            <p className="text-[13px] text-[var(--text-muted)] py-1">Loading…</p>
           )}
 
           {!loadingSaved && saved.length === 0 && !showAddForm && (
-            <p className="text-[12px] text-[var(--text-muted)] py-1">
+            <p className="text-[13px] text-[var(--text-muted)] py-1">
               No destinations yet. Add one below and it&apos;s saved for next time.
             </p>
           )}
@@ -413,7 +413,7 @@ function GoLiveModal({
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: DEST_PLATFORM_COLOR[dest.platform] }}
               />
-              <span className="text-[12px] text-[var(--text-primary)] flex-1 truncate">
+              <span className="text-[13px] text-[var(--text-primary)] flex-1 truncate">
                 {dest.label ?? DEST_PLATFORM_LABEL[dest.platform]}
               </span>
               <button
@@ -436,7 +436,7 @@ function GoLiveModal({
                   <button
                     key={p}
                     onClick={() => setNewPlatform(p)}
-                    className={`px-2 py-1 rounded text-[10px] font-semibold border transition-colors ${
+                    className={`px-2 py-1 rounded text-[11px] font-semibold border transition-colors ${
                       newPlatform === p
                         ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
                         : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -451,7 +451,7 @@ function GoLiveModal({
                 placeholder="RTMP URL (e.g. rtmp://live.twitch.tv/live)"
                 value={newRtmpUrl}
                 onChange={(e) => setNewRtmpUrl(e.target.value)}
-                className="w-full px-3 py-1.5 rounded bg-[var(--bg-mid)] border border-[var(--border)] text-[12px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
+                className="w-full px-3 py-1.5 rounded bg-[var(--bg-mid)] border border-[var(--border)] text-[13px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
               />
               <div className="relative">
                 <input
@@ -459,7 +459,7 @@ function GoLiveModal({
                   placeholder="Stream key"
                   value={newStreamKey}
                   onChange={(e) => setNewStreamKey(e.target.value)}
-                  className="w-full px-3 py-1.5 pr-9 rounded bg-[var(--bg-mid)] border border-[var(--border)] text-[12px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
+                  className="w-full px-3 py-1.5 pr-9 rounded bg-[var(--bg-mid)] border border-[var(--border)] text-[13px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
                 />
                 <button
                   type="button"
@@ -476,9 +476,9 @@ function GoLiveModal({
                     placeholder={newPlatform === "twitch" ? "Twitch channel name (for chat)" : "YouTube channel ID (for chat)"}
                     value={newChannelRef}
                     onChange={(e) => setNewChannelRef(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded bg-[var(--bg-mid)] border border-[var(--border)] text-[12px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
+                    className="w-full px-3 py-1.5 rounded bg-[var(--bg-mid)] border border-[var(--border)] text-[13px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
                   />
-                  <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                  <p className="text-[11px] text-[var(--text-muted)] mt-1">
                     Needed to pull this platform&apos;s chat into your unified feed.
                   </p>
                 </div>
@@ -490,14 +490,14 @@ function GoLiveModal({
                     setNewStreamKey("");
                     setNewRtmpUrl(PLATFORM_RTMP_URL[newPlatform] ?? "");
                   }}
-                  className="flex-1 py-1.5 rounded text-[11px] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  className="flex-1 py-1.5 rounded text-[12px] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleAdd}
                   disabled={addLoading || !newRtmpUrl.trim() || !newStreamKey.trim()}
-                  className="flex-1 py-1.5 rounded text-[11px] font-semibold bg-[var(--accent-primary)] text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 py-1.5 rounded text-[12px] font-semibold bg-[var(--accent-primary)] text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {addLoading ? "Saving…" : "Add"}
                 </button>
@@ -506,7 +506,7 @@ function GoLiveModal({
           ) : (
             <button
               onClick={() => setShowAddForm(true)}
-              className="w-full py-1.5 rounded text-[11px] border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent-primary)]/50 transition-colors"
+              className="w-full py-1.5 rounded text-[12px] border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent-primary)]/50 transition-colors"
             >
               + Add destination
             </button>
@@ -515,7 +515,7 @@ function GoLiveModal({
 
         {/* Section 2 - Stream info */}
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
             Stream Info
           </p>
           <input
@@ -523,7 +523,7 @@ function GoLiveModal({
             placeholder="Stream title"
             value={settings.streamTitle}
             onChange={(e) => updateSettings({ streamTitle: e.target.value })}
-            className="w-full px-3 py-1.5 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[12px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
+            className="w-full px-3 py-1.5 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[13px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
           />
         </div>
 
@@ -531,7 +531,7 @@ function GoLiveModal({
         <button
           onClick={handleGoLive}
           disabled={enabledCount === 0 || goingLive}
-          className="w-full py-2.5 rounded-lg text-[13px] font-bold bg-[var(--accent-primary)] text-white hover:bg-[var(--color-brand-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="w-full py-2.5 rounded-lg text-[14px] font-bold bg-[var(--accent-primary)] text-white hover:bg-[var(--color-brand-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {goingLive
             ? "Starting…"
@@ -585,19 +585,19 @@ function InviteModal({ slug, onClose }: { slug: string; onClose: () => void }) {
             ✕
           </button>
         </div>
-        <p className="text-[12px] text-[var(--text-muted)]">
+        <p className="text-[13px] text-[var(--text-muted)]">
           Share this link so viewers can join your stream as participants.
         </p>
         <div className="flex items-center gap-2">
           <span
-            className="flex-1 px-3 py-2 rounded text-[12px] font-mono truncate"
+            className="flex-1 px-3 py-2 rounded text-[13px] font-mono truncate"
             style={{ background: "var(--bg-mid, #1A1A2E)", border: "1px solid var(--border, #1A1A3E)", color: "var(--text-primary)" }}
           >
             {url}
           </span>
           <button
             onClick={handleCopy}
-            className="shrink-0 h-8 px-3 rounded text-[11px] font-semibold border transition-colors"
+            className="shrink-0 h-8 px-3 rounded text-[12px] font-semibold border transition-colors"
             style={{
               borderColor: copied ? "var(--status-ok, #22c55e)" : "var(--border, #1A1A3E)",
               color: copied ? "var(--status-ok, #22c55e)" : "var(--text-muted)",
@@ -647,13 +647,13 @@ function EndStreamModal({
         <div className="flex gap-2">
           <button
             onClick={onCancel}
-            className="flex-1 py-2 rounded text-[12px] font-semibold border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex-1 py-2 rounded text-[13px] font-semibold border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 py-2 rounded text-[12px] font-semibold text-white transition-colors"
+            className="flex-1 py-2 rounded text-[13px] font-semibold text-white transition-colors"
             style={{ background: "var(--status-live)" }}
           >
             End Stream
@@ -950,7 +950,7 @@ function LayerRow({
         ⠿
       </span>
       <span className="text-[var(--text-muted)] shrink-0">{layerTypeIcon(layer.type)}</span>
-      <span className="flex-1 text-[13px] text-[var(--text-primary)] truncate">{layer.name}</span>
+      <span className="flex-1 text-[14px] text-[var(--text-primary)] truncate">{layer.name}</span>
       {layer.sourceUnavailable && (
         <span title="Source unavailable" style={{ color: "var(--status-connecting)", fontSize: 13, lineHeight: 1 }} className="shrink-0">⚠</span>
       )}
@@ -975,33 +975,33 @@ function LayerRow({
             <button
               disabled={!onMoveUp}
               onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMoveUp?.(); }}
-              className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-[var(--bg-base)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="w-full text-left px-3 py-1.5 text-[12px] hover:bg-[var(--bg-base)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               Move up
             </button>
             <button
               disabled={!onMoveDown}
               onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMoveDown?.(); }}
-              className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-[var(--bg-base)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="w-full text-left px-3 py-1.5 text-[12px] hover:bg-[var(--bg-base)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               Move down
             </button>
             {onDuplicate && (
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDuplicate(); }}
-                className="w-full text-left px-3 py-1.5 text-[11px] flex items-center justify-between hover:bg-[var(--bg-base)] transition-colors"
+                className="w-full text-left px-3 py-1.5 text-[12px] flex items-center justify-between hover:bg-[var(--bg-base)] transition-colors"
               >
                 Duplicate
-                <span className="text-[9px] text-[var(--text-muted)]">Ctrl+D</span>
+                <span className="text-[10px] text-[var(--text-muted)]">Ctrl+D</span>
               </button>
             )}
             {onDelete && (
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }}
-                className="w-full text-left px-3 py-1.5 text-[11px] flex items-center justify-between text-red-400 hover:bg-[var(--bg-base)] transition-colors"
+                className="w-full text-left px-3 py-1.5 text-[12px] flex items-center justify-between text-red-400 hover:bg-[var(--bg-base)] transition-colors"
               >
                 Delete
-                <span className="text-[9px] text-[var(--text-muted)]">Del</span>
+                <span className="text-[10px] text-[var(--text-muted)]">Del</span>
               </button>
             )}
           </div>
@@ -1228,7 +1228,7 @@ function LayersPanel({
   }
 
   const menuItemCls =
-    "w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 hover:bg-[var(--bg-base)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
+    "w-full text-left px-3 py-2 text-[12px] flex items-center gap-2 hover:bg-[var(--bg-base)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
 
   return (
     <div className={`${studioStyles.panel} ${studioStyles.layersPanel} flex flex-col overflow-hidden border-r border-[var(--border)]`}>
@@ -1259,7 +1259,7 @@ function LayersPanel({
         style={{ height: 36 }}
       >
         <IconLayers />
-        <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex-1">
+        <span className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex-1">
           Layers
         </span>
         <span className={studioStyles.panelCounter}>{activeScene.layers.length.toString().padStart(2, "0")}</span>
@@ -1279,7 +1279,7 @@ function LayersPanel({
                   <IconCamera />
                   Video Device
                   {hasPrimaryCamera && (
-                    <span className="ml-auto text-[10px] text-[var(--text-muted)]">+</span>
+                    <span className="ml-auto text-[11px] text-[var(--text-muted)]">+</span>
                   )}
                 </button>
                 <button
@@ -1290,7 +1290,7 @@ function LayersPanel({
                   <IconMonitor />
                   Display Capture
                   {isScreenSharing && (
-                    <span className="ml-auto text-[10px] text-[var(--accent-primary)]">Active</span>
+                    <span className="ml-auto text-[11px] text-[var(--accent-primary)]">Active</span>
                   )}
                 </button>
                 <button
@@ -1393,7 +1393,7 @@ function SceneCard({
     return () => document.removeEventListener("mousedown", onDown);
   }, [menuOpen, onMenuClose]);
 
-  const menuItemCls = "w-full text-left px-3 py-1.5 text-[11px] hover:bg-[var(--bg-mid)] transition-colors";
+  const menuItemCls = "w-full text-left px-3 py-1.5 text-[12px] hover:bg-[var(--bg-mid)] transition-colors";
 
   return (
     <div
@@ -1420,7 +1420,7 @@ function SceneCard({
       {isRenaming ? (
         <input
           ref={inputRef}
-          className="flex-1 text-[11px] bg-[var(--bg-mid)] border border-[var(--accent-primary)] rounded px-1 py-0.5 outline-none text-[var(--text-primary)] min-w-0"
+          className="flex-1 text-[12px] bg-[var(--bg-mid)] border border-[var(--accent-primary)] rounded px-1 py-0.5 outline-none text-[var(--text-primary)] min-w-0"
           value={renameValue}
           onChange={(e) => onRenameChange(e.target.value)}
           onBlur={onRenameCommit}
@@ -1431,7 +1431,7 @@ function SceneCard({
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
-        <span className={`flex-1 truncate text-[11px] min-w-0 ${
+        <span className={`flex-1 truncate text-[12px] min-w-0 ${
           isActive ? "text-[var(--text-primary)] font-semibold" : "text-[var(--text-muted)]"
         }`}>
           {scene.name}
@@ -1536,7 +1536,7 @@ function ScenesPanel() {
         style={{ height: 36 }}
       >
         <IconScenes />
-        <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex-1">
+        <span className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex-1">
           Scenes
         </span>
         <span className={studioStyles.panelCounter}>{scenes.length.toString().padStart(2, "0")}</span>
@@ -1740,7 +1740,7 @@ function CamOverlay({
         onPointerDown={onBodyDown}
       >
         <span
-          className="absolute top-1 left-1.5 text-[9px] font-bold uppercase tracking-widest pointer-events-none"
+          className="absolute top-1 left-1.5 text-[10px] font-bold uppercase tracking-widest pointer-events-none"
           style={{ color: "rgba(255,255,255,0.5)", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
         >
           {label}
@@ -1904,7 +1904,7 @@ function LayerOverlay({
       >
         {isSelected && (
           <span
-            className="absolute top-1 left-1.5 text-[9px] font-bold uppercase tracking-widest pointer-events-none"
+            className="absolute top-1 left-1.5 text-[10px] font-bold uppercase tracking-widest pointer-events-none"
             style={{ color: "rgba(255,255,255,0.5)", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
           >
             {layer.name}
@@ -2023,7 +2023,7 @@ const PreviewCanvas = forwardRef<PreviewCanvasHandle, {
                 <line x1="12" y1="17" x2="12" y2="21" />
               </svg>
             </div>
-            <span className="text-[11px] uppercase tracking-widest text-[var(--text-muted)]">
+            <span className="text-[12px] uppercase tracking-widest text-[var(--text-muted)]">
               Starting camera…
             </span>
           </div>
@@ -2047,7 +2047,7 @@ const PreviewCanvas = forwardRef<PreviewCanvasHandle, {
               <polyline points="17 8 12 3 7 8" />
               <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
-            <span className="text-[12px] font-semibold" style={{ color: "var(--accent-primary)" }}>Drop image</span>
+            <span className="text-[13px] font-semibold" style={{ color: "var(--accent-primary)" }}>Drop image</span>
           </div>
         )}
       </div>
@@ -2079,7 +2079,7 @@ function ChatPanel({
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5 min-h-0">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-24">
-            <p className="text-[11px] text-[var(--text-muted)]">No messages yet</p>
+            <p className="text-[12px] text-[var(--text-muted)]">No messages yet</p>
           </div>
         )}
         {messages.map((m) => (
@@ -2090,12 +2090,12 @@ function ChatPanel({
           >
             <div className="min-w-0">
               <span
-                className="text-[11px] font-semibold"
+                className="text-[12px] font-semibold"
                 style={{ color: PLATFORM_COLOR[m.platform] ?? "var(--text-muted)" }}
               >
                 {m.author_display_name}
               </span>
-              <span className="text-[11px] text-[var(--text-primary)] ml-1.5 break-words">
+              <span className="text-[12px] text-[var(--text-primary)] ml-1.5 break-words">
                 {m.body}
               </span>
             </div>
@@ -2114,12 +2114,12 @@ function ChatPanel({
           onChange={(e) => onChange(e.target.value)}
           placeholder="Message…"
           maxLength={500}
-          className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-[var(--bg-base)] border border-[var(--border)] text-[11px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
+          className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-[var(--bg-base)] border border-[var(--border)] text-[12px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
         />
         <button
           type="submit"
           disabled={!chatBody.trim()}
-          className="px-3 py-1.5 rounded-lg bg-[var(--accent-primary)] hover:bg-[var(--color-brand-light)] text-white text-[11px] font-semibold disabled:opacity-40 transition-colors shrink-0"
+          className="px-3 py-1.5 rounded-lg bg-[var(--accent-primary)] hover:bg-[var(--color-brand-light)] text-white text-[12px] font-semibold disabled:opacity-40 transition-colors shrink-0"
         >
           Send
         </button>
@@ -2158,10 +2158,10 @@ function QueueItem({
           {initial}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold truncate">{participant.display_name}</p>
+          <p className="text-[12px] font-semibold truncate">{participant.display_name}</p>
         </div>
         <span
-          className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0 ${
+          className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0 ${
             isWaiting
               ? "bg-amber-500/15 text-amber-400"
               : "bg-blue-500/15 text-blue-400"
@@ -2175,7 +2175,7 @@ function QueueItem({
         {isWaiting && (
           <button
             onClick={onApprove}
-            className="flex-1 py-1 rounded text-[10px] font-semibold border border-[var(--accent-primary)] text-[var(--accent-primary)] hover:bg-[var(--accent-primary)] hover:text-white transition-colors"
+            className="flex-1 py-1 rounded text-[11px] font-semibold border border-[var(--accent-primary)] text-[var(--accent-primary)] hover:bg-[var(--accent-primary)] hover:text-white transition-colors"
           >
             Approve
           </button>
@@ -2183,14 +2183,14 @@ function QueueItem({
         {!isWaiting && canGoLive && (
           <button
             onClick={onSetLive}
-            className="flex-1 py-1 rounded text-[10px] font-semibold bg-green-600 hover:bg-green-500 text-white transition-colors"
+            className="flex-1 py-1 rounded text-[11px] font-semibold bg-green-600 hover:bg-green-500 text-white transition-colors"
           >
             Set live → {nextSlot + 1}
           </button>
         )}
         <button
           onClick={onRemove}
-          className="px-2.5 py-1 rounded text-[10px] font-semibold border border-[var(--border)] text-[var(--text-muted)] hover:border-red-500 hover:text-red-400 transition-colors"
+          className="px-2.5 py-1 rounded text-[11px] font-semibold border border-[var(--border)] text-[var(--text-muted)] hover:border-red-500 hover:text-red-400 transition-colors"
         >
           ✕
         </button>
@@ -2217,7 +2217,7 @@ function QueuePanel({
       {queue.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-32 gap-2">
           <span className="text-2xl opacity-20">👥</span>
-          <p className="text-[11px] text-[var(--text-muted)]">No one waiting</p>
+          <p className="text-[12px] text-[var(--text-muted)]">No one waiting</p>
         </div>
       ) : (
         queue.map((p) => (
@@ -2250,10 +2250,10 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
   const autoBitrateKbps = recommendedBitrateKbps(settings.outputResolution, targetFps);
   const effectiveBitrateKbps = settings.autoBitrate ? autoBitrateKbps : settings.videoBitrateKbps;
 
-  const sectionHd = "text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider";
+  const sectionHd = "text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider";
   const row = "flex items-center justify-between gap-4";
   const pill = (active: boolean, disabled = false) =>
-    `px-3 py-1 rounded text-[10px] font-semibold border transition-colors ${
+    `px-3 py-1 rounded text-[11px] font-semibold border transition-colors ${
       active
         ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
         : disabled
@@ -2276,11 +2276,11 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] shrink-0">
           <div className="flex items-center gap-2">
             <IconSettings />
-            <h2 className="text-[13px] font-bold text-[var(--text-primary)]">Settings</h2>
+            <h2 className="text-[14px] font-bold text-[var(--text-primary)]">Settings</h2>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--bg-mid)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-[12px]"
+            className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--bg-mid)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-[13px]"
           >
             ✕
           </button>
@@ -2294,7 +2294,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             <p className={sectionHd}>Output</p>
 
             <div className={row}>
-              <span className="text-[11px] text-[var(--text-primary)]">Resolution</span>
+              <span className="text-[12px] text-[var(--text-primary)]">Resolution</span>
               <div className="flex gap-1">
                 {(["720p", "1080p"] as const).map((res) => (
                   <button
@@ -2309,7 +2309,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
 
             <div className={row}>
-              <span className="text-[11px] text-[var(--text-primary)]">Content</span>
+              <span className="text-[12px] text-[var(--text-primary)]">Content</span>
               <div className="flex gap-1">
                 {(["detail", "motion"] as const).map((mode) => (
                   <button
@@ -2331,7 +2331,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
 
             <div className={row}>
-              <span className="text-[11px] text-[var(--text-primary)]">Frame rate</span>
+              <span className="text-[12px] text-[var(--text-primary)]">Frame rate</span>
               <div className="flex gap-1">
                 {([30, 60] as const).map((fps) => {
                   // 60fps only in Motion. Detail stays 30 for sharpness, and
@@ -2361,7 +2361,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
 
             <div>
               <div className={row}>
-                <span className="text-[11px] text-[var(--text-primary)]">Target bitrate</span>
+                <span className="text-[12px] text-[var(--text-primary)]">Target bitrate</span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => updateSettings({ autoBitrate: !settings.autoBitrate })}
@@ -2370,7 +2370,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
                   >
                     Auto
                   </button>
-                  <span className="text-[11px] font-mono" style={{ color: "var(--accent-primary)" }}>
+                  <span className="text-[12px] font-mono" style={{ color: "var(--accent-primary)" }}>
                     {(effectiveBitrateKbps / 1000).toFixed(1)} Mbps
                   </span>
                 </div>
@@ -2382,13 +2382,13 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) => updateSettings({ videoBitrateKbps: Number(e.target.value) })}
                 className="w-full mt-2 accent-[var(--accent-primary)] disabled:opacity-40 disabled:cursor-not-allowed"
               />
-              <div className="flex justify-between text-[9px] text-[var(--text-muted)] mt-0.5">
+              <div className="flex justify-between text-[10px] text-[var(--text-muted)] mt-0.5">
                 <span>1 Mbps</span><span>4 Mbps</span><span>8 Mbps</span>
               </div>
             </div>
 
             <div className={row}>
-              <span className="text-[11px] text-[var(--text-primary)]">Encoder preset</span>
+              <span className="text-[12px] text-[var(--text-primary)]">Encoder preset</span>
               <div className="flex gap-1">
                 {(["quality", "balanced", "performance"] as const).map((p) => (
                   <button key={p} onClick={() => updateSettings({ encoderPreset: p })}
@@ -2406,7 +2406,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
           <section className="space-y-3">
             <p className={sectionHd}>Audio</p>
             <div className={row}>
-              <span className="text-[11px] text-[var(--text-primary)]">Bitrate</span>
+              <span className="text-[12px] text-[var(--text-primary)]">Bitrate</span>
               <div className="flex gap-1">
                 {([96, 128, 192, 320] as const).map((kbps) => (
                   <button key={kbps} onClick={() => updateSettings({ audioBitrateKbps: kbps })}
@@ -2422,7 +2422,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-[var(--border)] shrink-0" style={{ background: "var(--bg-mid)" }}>
-          <p className="text-[10px] text-[var(--text-muted)]">
+          <p className="text-[11px] text-[var(--text-muted)]">
             Auto bitrate is picked from resolution and frame rate. Changes take effect on next stream start. 1080p output coming soon.
           </p>
         </div>
@@ -2452,12 +2452,12 @@ function TransformSection({
 
   return (
     <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
-      <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Transform</p>
+      <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Transform</p>
 
       <div className="space-y-1">
         <div className="flex justify-between">
-          <label className="text-[10px] text-[var(--text-muted)]">Opacity</label>
-          <span className="text-[10px] font-mono text-[var(--text-primary)]">{layer.opacity}%</span>
+          <label className="text-[11px] text-[var(--text-muted)]">Opacity</label>
+          <span className="text-[11px] font-mono text-[var(--text-primary)]">{layer.opacity}%</span>
         </div>
         <input
           type="range" min={0} max={100} value={layer.opacity}
@@ -2470,11 +2470,11 @@ function TransformSection({
       <div className="grid grid-cols-2 gap-2">
         {(["x", "y"] as const).map((field) => (
           <div key={field}>
-            <label className="text-[10px] text-[var(--text-muted)] block mb-0.5 uppercase">{field}</label>
+            <label className="text-[11px] text-[var(--text-muted)] block mb-0.5 uppercase">{field}</label>
             <input
               type="number" value={t[field]}
               onChange={(e) => patchTransform(field, e.target.value)}
-              className="w-full px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[11px] font-mono focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
+              className="w-full px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[12px] font-mono focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
             />
           </div>
         ))}
@@ -2483,24 +2483,24 @@ function TransformSection({
       <div className="grid grid-cols-2 gap-2">
         {(["width", "height"] as const).map((field) => (
           <div key={field}>
-            <label className="text-[10px] text-[var(--text-muted)] block mb-0.5">
+            <label className="text-[11px] text-[var(--text-muted)] block mb-0.5">
               {field === "width" ? "W" : "H"}
             </label>
             <input
               type="number" value={t[field]}
               onChange={(e) => patchTransform(field, e.target.value)}
-              className="w-full px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[11px] font-mono focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
+              className="w-full px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[12px] font-mono focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
             />
           </div>
         ))}
       </div>
 
       <div>
-        <label className="text-[10px] text-[var(--text-muted)] block mb-0.5">Rotation °</label>
+        <label className="text-[11px] text-[var(--text-muted)] block mb-0.5">Rotation °</label>
         <input
           type="number" value={t.rotation} step={1}
           onChange={(e) => patchTransform("rotation", e.target.value)}
-          className="w-full px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[11px] font-mono focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
+          className="w-full px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[12px] font-mono focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
         />
       </div>
     </div>
@@ -2528,12 +2528,12 @@ function ChromaKeySection({
   return (
     <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+        <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
           Chroma Key
         </p>
         <button
           onClick={() => set({ enabled: !ck.enabled })}
-          className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+          className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
             ck.enabled
               ? "bg-[var(--accent-primary)] text-white"
               : "border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -2546,7 +2546,7 @@ function ChromaKeySection({
       {ck.enabled && (
         <>
           <div className="space-y-1.5">
-            <label className="text-[10px] text-[var(--text-muted)]">Key Color</label>
+            <label className="text-[11px] text-[var(--text-muted)]">Key Color</label>
             <div className="flex items-center gap-2">
               {CK_PRESETS.map((p) => (
                 <button
@@ -2567,7 +2567,7 @@ function ChromaKeySection({
                 className="w-6 h-6 rounded cursor-pointer border border-[var(--border)] bg-transparent shrink-0"
                 title="Custom color"
               />
-              <span className="text-[10px] font-mono text-[var(--text-muted)] truncate">{ck.color}</span>
+              <span className="text-[11px] font-mono text-[var(--text-muted)] truncate">{ck.color}</span>
             </div>
           </div>
 
@@ -2580,8 +2580,8 @@ function ChromaKeySection({
           ).map(({ key, label, min, max, step }) => (
             <div key={key} className="space-y-1">
               <div className="flex justify-between">
-                <label className="text-[10px] text-[var(--text-muted)]">{label}</label>
-                <span className="text-[10px] font-mono text-[var(--text-primary)]">{ck[key].toFixed(2)}</span>
+                <label className="text-[11px] text-[var(--text-muted)]">{label}</label>
+                <span className="text-[11px] font-mono text-[var(--text-primary)]">{ck[key].toFixed(2)}</span>
               </div>
               <input
                 type="range" min={min} max={max} step={step} value={ck[key]}
@@ -2599,10 +2599,10 @@ function ChromaKeySection({
 const FONT_OPTIONS = ["Arial", "Verdana", "Georgia", "Times New Roman", "Courier New", "Impact", "Trebuchet MS"];
 
 const inputCls =
-  "w-full px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[11px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors";
+  "w-full px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[12px] focus:outline-none focus:border-[var(--accent-primary)] transition-colors";
 
 function sectionToggleCls(active: boolean) {
-  return `px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+  return `px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
     active
       ? "bg-[var(--accent-primary)] text-white"
       : "border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -2625,7 +2625,7 @@ function TextSection({
 
   return (
     <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
-      <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Text</p>
+      <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Text</p>
 
       <textarea
         value={(cfg["content"] as string) ?? ""}
@@ -2637,7 +2637,7 @@ function TextSection({
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-[10px] text-[var(--text-muted)] block mb-0.5">Font</label>
+          <label className="text-[11px] text-[var(--text-muted)] block mb-0.5">Font</label>
           <select
             value={(cfg["fontFamily"] as string) || "Arial"}
             onChange={(e) => set({ fontFamily: e.target.value })}
@@ -2649,7 +2649,7 @@ function TextSection({
           </select>
         </div>
         <div>
-          <label className="text-[10px] text-[var(--text-muted)] block mb-0.5">Size px</label>
+          <label className="text-[11px] text-[var(--text-muted)] block mb-0.5">Size px</label>
           <input
             type="number" min={8} max={400}
             value={Number(cfg["fontSizePx"]) || 64}
@@ -2667,7 +2667,7 @@ function TextSection({
           className="w-6 h-6 rounded cursor-pointer border border-[var(--border)] bg-transparent shrink-0"
           title="Text color"
         />
-        <span className="text-[10px] font-mono text-[var(--text-muted)] flex-1">{(cfg["color"] as string) || "#FFFFFF"}</span>
+        <span className="text-[11px] font-mono text-[var(--text-muted)] flex-1">{(cfg["color"] as string) || "#FFFFFF"}</span>
         <button onClick={() => set({ weight: weight === "700" ? "400" : "700" })} className={sectionToggleCls(weight === "700")}>
           Bold
         </button>
@@ -2681,7 +2681,7 @@ function TextSection({
           <button
             key={a}
             onClick={() => set({ align: a })}
-            className={`flex-1 py-1 rounded text-[10px] font-semibold border transition-colors capitalize ${
+            className={`flex-1 py-1 rounded text-[11px] font-semibold border transition-colors capitalize ${
               align === a
                 ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
                 : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -2711,7 +2711,7 @@ function ShapeSection({
 
   return (
     <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
-      <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Rectangle</p>
+      <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Rectangle</p>
 
       <div className="flex items-center gap-2">
         <input
@@ -2721,13 +2721,13 @@ function ShapeSection({
           className="w-6 h-6 rounded cursor-pointer border border-[var(--border)] bg-transparent shrink-0"
           title="Fill color"
         />
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">{(cfg["fill"] as string) || "#FF1DB4"}</span>
+        <span className="text-[11px] font-mono text-[var(--text-muted)]">{(cfg["fill"] as string) || "#FF1DB4"}</span>
       </div>
 
       <div className="space-y-1">
         <div className="flex justify-between">
-          <label className="text-[10px] text-[var(--text-muted)]">Corner radius</label>
-          <span className="text-[10px] font-mono text-[var(--text-primary)]">{cornerRadius}px</span>
+          <label className="text-[11px] text-[var(--text-muted)]">Corner radius</label>
+          <span className="text-[11px] font-mono text-[var(--text-primary)]">{cornerRadius}px</span>
         </div>
         <input
           type="range" min={0} max={120} value={cornerRadius}
@@ -2738,8 +2738,8 @@ function ShapeSection({
 
       <div className="space-y-1">
         <div className="flex justify-between">
-          <label className="text-[10px] text-[var(--text-muted)]">Border</label>
-          <span className="text-[10px] font-mono text-[var(--text-primary)]">{borderWidth}px</span>
+          <label className="text-[11px] text-[var(--text-muted)]">Border</label>
+          <span className="text-[11px] font-mono text-[var(--text-primary)]">{borderWidth}px</span>
         </div>
         <input
           type="range" min={0} max={20} value={borderWidth}
@@ -2755,7 +2755,7 @@ function ShapeSection({
               className="w-6 h-6 rounded cursor-pointer border border-[var(--border)] bg-transparent shrink-0"
               title="Border color"
             />
-            <span className="text-[10px] font-mono text-[var(--text-muted)]">{(cfg["borderColor"] as string) || "#FFFFFF"}</span>
+            <span className="text-[11px] font-mono text-[var(--text-muted)]">{(cfg["borderColor"] as string) || "#FFFFFF"}</span>
           </div>
         )}
       </div>
@@ -2793,19 +2793,19 @@ function MediaSection({
         }}
       />
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Media</p>
+        <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Media</p>
         <button onClick={() => onUpdateLayer({ sourceConfig: { ...cfg, loop: !loop } })} className={sectionToggleCls(loop)}>
           Loop
         </button>
       </div>
 
-      <p className="text-[11px] text-[var(--text-muted)] truncate" title={(cfg["fileName"] as string) || ""}>
+      <p className="text-[12px] text-[var(--text-muted)] truncate" title={(cfg["fileName"] as string) || ""}>
         {(cfg["fileName"] as string) || "No file"}
       </p>
 
       <button
         onClick={() => fileInputRef.current?.click()}
-        className="w-full py-1.5 rounded text-[11px] border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent-primary)]/50 transition-colors"
+        className="w-full py-1.5 rounded text-[12px] border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent-primary)]/50 transition-colors"
       >
         {layer.sourceUnavailable ? "Re-select file" : "Replace file"}
       </button>
@@ -2833,7 +2833,7 @@ function BrowserSection({
 
   return (
     <div className="px-3 py-3 space-y-2 border-t border-[var(--border)]">
-      <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Browser</p>
+      <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Browser</p>
 
       <input
         type="text"
@@ -2847,19 +2847,19 @@ function BrowserSection({
         <button
           onClick={openUrl}
           disabled={!url.trim()}
-          className="flex-1 py-1.5 rounded text-[11px] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex-1 py-1.5 rounded text-[12px] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           1. Open page
         </button>
         <button
           onClick={() => { void attachDisplayCapture(layer.id); }}
-          className="flex-1 py-1.5 rounded text-[11px] font-semibold bg-[var(--accent-primary)] text-white hover:bg-[var(--color-brand-light)] transition-colors"
+          className="flex-1 py-1.5 rounded text-[12px] font-semibold bg-[var(--accent-primary)] text-white hover:bg-[var(--color-brand-light)] transition-colors"
         >
           {layer.sourceUnavailable ? "2. Capture tab" : "Re-capture"}
         </button>
       </div>
 
-      <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
+      <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
         Pick the overlay tab in the share dialog (tab shares include sound).
         For transparency, set the overlay page to a green background and turn on
         Chroma Key below.
@@ -2883,7 +2883,7 @@ function MarkdownSection({
   return (
     <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Markdown</p>
+        <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Markdown</p>
         <button onClick={() => set({ bg: !cfg["bg"] })} className={sectionToggleCls(!!cfg["bg"])}>
           Card
         </button>
@@ -2905,7 +2905,7 @@ function MarkdownSection({
           className="w-6 h-6 rounded cursor-pointer border border-[var(--border)] bg-transparent shrink-0"
           title="Text color"
         />
-        <span className="text-[10px] text-[var(--text-muted)] flex-1">Base size</span>
+        <span className="text-[11px] text-[var(--text-muted)] flex-1">Base size</span>
         <input
           type="number" min={10} max={80}
           value={Number(cfg["fontSizePx"]) || 24}
@@ -2914,7 +2914,7 @@ function MarkdownSection({
           style={{ width: 64 }}
         />
       </div>
-      <p className="text-[10px] text-[var(--text-muted)]">
+      <p className="text-[11px] text-[var(--text-muted)]">
         Supports # headings, **bold**, *italic*, `code`, lists, quotes and ---.
       </p>
     </div>
@@ -2940,12 +2940,12 @@ function WidgetSection({
 
   return (
     <div className="px-3 py-3 space-y-3 border-t border-[var(--border)]">
-      <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Live Chat</p>
+      <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Live Chat</p>
 
       <div className="space-y-1">
         <div className="flex justify-between">
-          <label className="text-[10px] text-[var(--text-muted)]">Backdrop opacity</label>
-          <span className="text-[10px] font-mono text-[var(--text-primary)]">
+          <label className="text-[11px] text-[var(--text-muted)]">Backdrop opacity</label>
+          <span className="text-[11px] font-mono text-[var(--text-primary)]">
             {bgOpacity === 0 ? "off" : `${bgOpacity}%`}
           </span>
         </div>
@@ -2954,15 +2954,15 @@ function WidgetSection({
           onChange={(e) => set({ bgOpacity: Number(e.target.value) })}
           className="w-full h-1 cursor-pointer accent-[var(--accent-primary)]"
         />
-        <p className="text-[10px] text-[var(--text-muted)]">
+        <p className="text-[11px] text-[var(--text-muted)]">
           0 removes the box; the text stays fully sharp.
         </p>
       </div>
 
       <div className="space-y-1">
         <div className="flex justify-between">
-          <label className="text-[10px] text-[var(--text-muted)]">Text size</label>
-          <span className="text-[10px] font-mono text-[var(--text-primary)]">{fontSize}px</span>
+          <label className="text-[11px] text-[var(--text-muted)]">Text size</label>
+          <span className="text-[11px] font-mono text-[var(--text-primary)]">{fontSize}px</span>
         </div>
         <input
           type="range" min={12} max={40} value={fontSize}
@@ -2973,8 +2973,8 @@ function WidgetSection({
 
       <div className="space-y-1">
         <div className="flex justify-between">
-          <label className="text-[10px] text-[var(--text-muted)]">Messages shown</label>
-          <span className="text-[10px] font-mono text-[var(--text-primary)]">{maxMessages}</span>
+          <label className="text-[11px] text-[var(--text-muted)]">Messages shown</label>
+          <span className="text-[11px] font-mono text-[var(--text-primary)]">{maxMessages}</span>
         </div>
         <input
           type="range" min={2} max={20} value={maxMessages}
@@ -2983,7 +2983,7 @@ function WidgetSection({
         />
       </div>
 
-      <p className="text-[10px] text-[var(--text-muted)]">
+      <p className="text-[11px] text-[var(--text-muted)]">
         Shows your unified chat from every connected platform, live on stream.
       </p>
     </div>
@@ -3027,7 +3027,7 @@ function CameraSection({
 
   return (
     <div className="px-3 py-3 space-y-2 border-t border-[var(--border)]">
-      <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+      <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
         Device{isPrimary ? " (on-air camera)" : ""}
       </p>
       <select
@@ -3095,13 +3095,13 @@ function Inspector({
         style={{ height: 36 }}
       >
         <IconProperties />
-        <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex-1">
+        <span className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex-1">
           Inspector
         </span>
         {tab === "properties" && selectedLayer && (
           <button
             onClick={() => setSelectedLayerId(null)}
-            className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             title="Deselect"
           >
             ✕
@@ -3115,7 +3115,7 @@ function Inspector({
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`relative flex-1 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors border-b-2 -mb-px ${
+            className={`relative flex-1 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-colors border-b-2 -mb-px ${
               tab === t
                 ? "border-[var(--accent-primary)] text-[var(--text-primary)]"
                 : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -3123,7 +3123,7 @@ function Inspector({
           >
             {t}
             {t === "queue" && queueProps.waiting.length > 0 && (
-              <span className="absolute top-1 right-2 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-[var(--accent-primary)] text-white text-[8px] font-bold leading-none">
+              <span className="absolute top-1 right-2 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-[var(--accent-primary)] text-white text-[9px] font-bold leading-none">
                 {queueProps.waiting.length}
               </span>
             )}
@@ -3138,17 +3138,17 @@ function Inspector({
             {!selectedLayer ? (
               /* No selection - scene properties */
               <div className="px-3 py-3 space-y-4">
-                <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Scene</p>
+                <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Scene</p>
 
                 <div>
-                  <label className="text-[10px] text-[var(--text-muted)] block mb-1">Name</label>
-                  <p className="px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[11px] text-[var(--text-primary)]">
+                  <label className="text-[11px] text-[var(--text-muted)] block mb-1">Name</label>
+                  <p className="px-2 py-1 rounded bg-[var(--bg-base)] border border-[var(--border)] text-[12px] text-[var(--text-primary)]">
                     {activeScene.name}
                   </p>
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-[var(--text-muted)] block mb-1">Background</label>
+                  <label className="text-[11px] text-[var(--text-muted)] block mb-1">Background</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -3156,12 +3156,12 @@ function Inspector({
                       onChange={(e) => updateScene(activeScene.id, { bgColor: e.target.value })}
                       className="w-8 h-8 rounded border border-[var(--border)] bg-transparent cursor-pointer p-0.5"
                     />
-                    <span className="text-[11px] font-mono text-[var(--text-muted)]">{activeScene.bgColor}</span>
+                    <span className="text-[12px] font-mono text-[var(--text-muted)]">{activeScene.bgColor}</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-[var(--text-muted)] block mb-1.5">Transition</label>
+                  <label className="text-[11px] text-[var(--text-muted)] block mb-1.5">Transition</label>
                   <div className="flex gap-1">
                     {(["cut", "fade", "slide"] as const).map((type) => (
                       <button
@@ -3172,7 +3172,7 @@ function Inspector({
                             transition: { type, durationMs: defaultDuration },
                           });
                         }}
-                        className={`flex-1 py-1 rounded text-[10px] font-semibold border transition-colors capitalize ${
+                        className={`flex-1 py-1 rounded text-[11px] font-semibold border transition-colors capitalize ${
                           activeScene.transition.type === type
                             ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
                             : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]"
@@ -3197,7 +3197,7 @@ function Inspector({
                         }
                         className="flex-1 accent-[var(--accent-primary)]"
                       />
-                      <span className="text-[10px] text-[var(--text-muted)] w-10 text-right shrink-0">
+                      <span className="text-[11px] text-[var(--text-muted)] w-10 text-right shrink-0">
                         {activeScene.transition.durationMs}ms
                       </span>
                     </div>
@@ -3208,19 +3208,19 @@ function Inspector({
               /* Layer selected - source header + transform */
               <>
                 <div className="px-3 py-3">
-                  <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+                  <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
                     {LAYER_TYPE_LABEL[selectedLayer.type] ?? "Layer"}
                   </p>
                   <div className="flex items-center gap-2 px-2 py-2 rounded bg-[var(--bg-base)] border border-[var(--border)]">
                     <span className="text-[var(--text-muted)] shrink-0">
                       {layerTypeIcon(selectedLayer.type)}
                     </span>
-                    <span className="text-[11px] text-[var(--text-primary)] truncate">{selectedLayer.name}</span>
+                    <span className="text-[12px] text-[var(--text-primary)] truncate">{selectedLayer.name}</span>
                   </div>
                 </div>
                 {selectedLayer.sourceUnavailable && (
                   <div
-                    className="mx-3 mb-3 flex items-center gap-2 px-3 py-2 rounded border text-[11px]"
+                    className="mx-3 mb-3 flex items-center gap-2 px-3 py-2 rounded border text-[12px]"
                     style={{
                       background: "rgba(255,170,0,0.08)",
                       borderColor: "var(--status-connecting)",
@@ -3482,7 +3482,7 @@ function AudioMixer({
 
   return (
     <div className="flex items-center gap-1.5 overflow-x-auto">
-      <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-widest shrink-0">Mixer</span>
+      <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-widest shrink-0">Mixer</span>
       {sources.map((src) => {
         const ch = channels[src.id] ?? { volume: 1.0, muted: false };
         const isMic = src.id === "mic";
@@ -3493,7 +3493,7 @@ function AudioMixer({
             style={{ width: isMic && (audioInputs.length > 1 || !programAudioTrack) ? 160 : 108 }}
           >
             <div className="flex items-center justify-between gap-1">
-              <span className="text-[9px] font-semibold uppercase tracking-wide truncate"
+              <span className="text-[10px] font-semibold uppercase tracking-wide truncate"
                 style={{ color: ch.muted ? "var(--text-muted)" : "var(--text-primary)" }}>
                 {src.label}
               </span>
@@ -3502,7 +3502,7 @@ function AudioMixer({
                   <button
                     onClick={() => onRemoveParticipant(src.participantId!)}
                     title="Remove from stream"
-                    className="w-4 h-4 flex items-center justify-center rounded text-[9px] font-bold bg-[var(--bg-mid)] text-[var(--text-muted)] hover:bg-red-500/20 hover:text-red-400 transition-colors"
+                    className="w-4 h-4 flex items-center justify-center rounded text-[10px] font-bold bg-[var(--bg-mid)] text-[var(--text-muted)] hover:bg-red-500/20 hover:text-red-400 transition-colors"
                   >
                     ✕
                   </button>
@@ -3510,7 +3510,7 @@ function AudioMixer({
                 <button
                   onClick={() => update(src.id, { muted: !ch.muted })}
                   title={ch.muted ? "Unmute" : "Mute"}
-                  className={`w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold transition-colors ${
+                  className={`w-4 h-4 flex items-center justify-center rounded text-[9px] font-bold transition-colors ${
                     ch.muted
                       ? "bg-red-500/20 text-red-400"
                       : "bg-[var(--bg-mid)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -3525,7 +3525,7 @@ function AudioMixer({
               <button
                 type="button"
                 onClick={onEnableMic}
-                className="h-5 border border-[var(--accent-primary)]/50 bg-[var(--accent-primary)]/10 px-2 text-[8px] font-bold uppercase tracking-wider text-[var(--color-brand-light)] hover:bg-[var(--accent-primary)]/20"
+                className="h-5 border border-[var(--accent-primary)]/50 bg-[var(--accent-primary)]/10 px-2 text-[9px] font-bold uppercase tracking-wider text-[var(--color-brand-light)] hover:bg-[var(--accent-primary)]/20"
               >
                 Enable microphone
               </button>
@@ -3537,7 +3537,7 @@ function AudioMixer({
                 onChange={(e) => update(src.id, { volume: Number(e.target.value), muted: false })}
                 className={`flex-1 h-0.5 cursor-pointer accent-[var(--accent-primary)] transition-opacity ${ch.muted ? "opacity-30" : ""}`}
               />
-              <span className="text-[9px] font-mono w-6 text-right shrink-0 tabular-nums"
+              <span className="text-[10px] font-mono w-6 text-right shrink-0 tabular-nums"
                 style={{ color: ch.muted ? "var(--text-muted)" : "var(--text-primary)" }}>
                 {ch.muted ? "--" : `${Math.round(ch.volume * 100)}`}
               </span>
@@ -3549,7 +3549,7 @@ function AudioMixer({
                   setActiveMicId(e.target.value);
                   switchMicDevice(e.target.value).catch(() => {});
                 }}
-                className="w-full text-[8px] bg-[var(--bg-mid)] border border-[var(--border)] rounded px-1 py-0.5 text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)] cursor-pointer truncate"
+                className="w-full text-[9px] bg-[var(--bg-mid)] border border-[var(--border)] rounded px-1 py-0.5 text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)] cursor-pointer truncate"
                 title="Select microphone"
               >
                 {audioInputs.map((d) => (
@@ -3629,7 +3629,7 @@ function StreamPulse({
           <button
             key={scene.id}
             onClick={() => switchScene(scene.id)}
-            className={`shrink-0 flex items-center justify-center rounded text-[9px] font-bold tracking-wide transition-all ${
+            className={`shrink-0 flex items-center justify-center rounded text-[10px] font-bold tracking-wide transition-all ${
               scene.id === activeSceneId
                 ? "ring-1 ring-[var(--accent-primary)] bg-[var(--accent-primary)]/15 text-[var(--text-primary)]"
                 : "bg-[var(--bg-base)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-mid)]"
@@ -3669,15 +3669,15 @@ function StreamPulse({
             className={`w-2 h-2 rounded-full ${streamStatus === "live" ? "animate-pulse" : ""}`}
             style={{ backgroundColor: statusColor }}
           />
-          <span className="text-[10px] font-bold tracking-widest tabular-nums" style={{ color: statusColor }}>
+          <span className="text-[11px] font-bold tracking-widest tabular-nums" style={{ color: statusColor }}>
             {statusLabel}
           </span>
         </div>
-        <span className="text-[10px] font-mono text-[var(--text-muted)] tabular-nums">
+        <span className="text-[11px] font-mono text-[var(--text-muted)] tabular-nums">
           <span className="text-[var(--text-primary)]">{fps ?? "--"}</span> fps
         </span>
         <BitrateSparkline data={bitrateHistory} />
-        <span className="text-[10px] font-mono text-[var(--text-muted)] tabular-nums">
+        <span className="text-[11px] font-mono text-[var(--text-muted)] tabular-nums">
           {streamStatus === "live" && bitrateKbps > 0 ? `${bitrateKbps.toLocaleString()} kbps` : "-- kbps"}
         </span>
       </div>
@@ -3704,7 +3704,7 @@ function StreamPulse({
         </button>
         <div className="flex items-center gap-1 px-2 py-1 rounded bg-[var(--bg-base)] text-[var(--text-muted)]">
           <IconUsers />
-          <span className="text-[10px] font-mono tabular-nums">{liveParticipants.length}</span>
+          <span className="text-[11px] font-mono tabular-nums">{liveParticipants.length}</span>
         </div>
       </div>
     </div>

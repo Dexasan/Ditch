@@ -8,9 +8,9 @@ import styles from "./auth.module.css";
 
 type Mode = "signin" | "signup";
 
-export default function AuthExperience() {
+export default function AuthExperience({ initialMode = "signin" }: { initialMode?: Mode }) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("signin");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

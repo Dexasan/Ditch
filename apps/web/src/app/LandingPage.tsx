@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
+import sections from "./landing-sections.module.css";
 import TransmissionField from "./TransmissionField";
 
 const DESTINATIONS = [
@@ -10,136 +11,27 @@ const DESTINATIONS = [
   { name: "Kick", logo: "/platforms/kick.svg", tone: "green" },
 ] as const;
 
-/* The slide being screen-shared inside the studio preview. */
-const SLIDE_BRANCHES = [
-  {
-    claim: "Cats cost less to keep than dogs.",
-    support: ["Cats eat less than dogs.", "Their gear is smaller and cheaper."],
-  },
-  {
-    claim: "Cats need less time than dogs.",
-    support: ["No walks, ever.", "They wash themselves."],
-  },
-] as const;
-
-/* Unified chat: the dogs in the audience are not taking it well. */
+/* The audience reacts to the dogs-versus-cats screen share. */
 const CHAT_MESSAGES = [
-  {
-    id: "m1",
-    user: "rex_thegoodboy",
-    platform: "twitch",
-    body: "this is slander and i will not stand for it",
-  },
-  {
-    id: "m2",
-    user: "borkfast_club",
-    platform: "youtube",
-    body: "\"they wash themselves\" ok and? we ROLL in things. character.",
-  },
-  {
-    id: "m3",
-    user: "pug_life",
-    platform: "tiktok",
-    body: "no walks is a CON. respectfully.",
-  },
-  {
-    id: "m4",
-    user: "mittens",
-    platform: "ditch",
-    body: "let him cook",
-  },
-  {
-    id: "m5",
-    user: "sir_barksalot",
-    platform: "kick",
-    body: "mods. MODS.",
-  },
-  {
-    id: "m6",
-    user: "doberman_dan",
-    platform: "twitch",
-    body: "where is the peer review on any of this",
-  },
-  {
-    id: "m7",
-    user: "goodest_boi",
-    platform: "youtube",
-    body: "i have retrieved 4,000 balls. name one thing a cat has brought back.",
-  },
-  {
-    id: "m8",
-    user: "whiskers_ceo",
-    platform: "ditch",
-    body: "slide 2 is loyalty metrics. you will not enjoy slide 2.",
-  },
-  {
-    id: "m9",
-    user: "beagle_bites",
-    platform: "tiktok",
-    body: "unsubscribing. resubscribing. unsubscribing.",
-  },
-  {
-    id: "m10",
-    user: "sir_barksalot",
-    platform: "kick",
-    body: "still here. still furious.",
-  },
-  {
-    id: "m11",
-    user: "rex_thegoodboy",
-    platform: "twitch",
-    body: "MY OWNER IS IN THIS CHAT",
-  },
+  { id: "m1", user: "rex_thegoodboy", platform: "twitch", body: "scavenging? I prefer snack researcher." },
+  { id: "m2", user: "mittens", platform: "ditch", body: "obligate carnivore. finally, my job title." },
+  { id: "m3", user: "borkfast_club", platform: "youtube", body: "pack animals = we have a group chat." },
+  { id: "m4", user: "pug_life", platform: "tiktok", body: "running long distances? wrong dog." },
+  { id: "m5", user: "whiskers_ceo", platform: "ditch", body: "independent, but the bowl is empty. explain." },
+  { id: "m6", user: "sir_barksalot", platform: "kick", body: "command, perform trick, receive reward. fair contract." },
+  { id: "m7", user: "beagle_bites", platform: "twitch", body: "cue me in. I have notes on the snack section." },
 ] as const;
 
-const STEPS = [
-  {
-    number: "01",
-    title: "Claim your channel",
-    body: "Choose your Ditch address. It becomes the permanent home for every live session.",
-  },
-  {
-    number: "02",
-    title: "Save your destinations",
-    body: "Connect Twitch, YouTube, TikTok, and Kick once. Turn any destination on or off for each show.",
-  },
-  {
-    number: "03",
-    title: "Open the studio and go live",
-    body: "Use your camera, mic, and screen in the browser, or bring OBS. One launch sends the show everywhere.",
-  },
+const FEATURES = [
+  { title: "Produce", body: "Run camera, mic, screens and scenes in your browser, or bring OBS." },
+  { title: "Distribute", body: "Connect Twitch, YouTube, TikTok and Kick once for every show." },
+  { title: "Participate", body: "Turn your Ditch channel into a room where viewers become guests." },
 ] as const;
 
 const COMPARISON_ROWS = [
-  {
-    need: "Start",
-    oldWay: "Install studio software, add plugins, and wire a relay.",
-    ditchWay: "Open one browser tab, or bring the OBS setup you already know.",
-  },
-  {
-    need: "Reach",
-    oldWay: "Broadcast to one platform or add another service to the stack.",
-    ditchWay: "Send one show to every destination you have saved.",
-  },
-  {
-    need: "Audience",
-    oldWay: "Leave viewers split between separate platforms and chats.",
-    ditchWay: "Give the show one Ditch channel alongside every platform output.",
-  },
-  {
-    need: "Guests",
-    oldWay: "Share separate call links, then rebuild the scene around them.",
-    ditchWay: "Let viewers request a spot and cue them directly onto the broadcast.",
-  },
-] as const;
-
-const USE_CASES = [
-  "Live podcasts",
-  "Interviews",
-  "Call-in shows",
-  "Co-streams",
-  "Q and As",
-  "Community nights",
+  { need: "Setup", oldWay: "Apps, plugins, relays", ditchWay: "Browser or OBS" },
+  { need: "Destinations", oldWay: "Separate dashboards", ditchWay: "One saved setup" },
+  { need: "Guests", oldWay: "Call links and scene edits", ditchWay: "A queue inside the show" },
 ] as const;
 
 export default function LandingPage() {
@@ -156,41 +48,36 @@ export default function LandingPage() {
           <div className={styles.heroMain}>
             <p className={styles.eyebrow}>
               <span className={styles.liveDot} aria-hidden="true" />
-              Browser studio + live channel
+              The live participation network
             </p>
 
             <h1 id="hero-title" className={styles.heroTitle}>
-              <span>Go live.</span>
-              <strong>Everywhere.</strong>
-              <em>Let people in.</em>
+              <span>Stream everywhere.</span>
+              <strong>Bring your audience</strong>
+              <em>onstage.</em>
             </h1>
           </div>
 
           <div className={styles.heroAside}>
             <p className={styles.heroLead}>
-              Ditch is a <strong>browser-based livestream studio</strong> and a{" "}
-              <strong>streaming platform</strong> in one. Produce your show,
-              send it to every major platform, then bring viewers onto the
-              broadcast.
+              Run your show in the browser, send it to Twitch, YouTube, TikTok
+              and Kick, and let viewers request a spot and join live - no
+              download or account.
             </p>
 
             <div className={styles.heroActions}>
-              <Link href="/auth" className={styles.primaryButton}>
-                Start streaming free
+              <Link href="/auth?mode=signup" className={styles.primaryButton}>
+                Create your free channel
                 <span aria-hidden="true">-&gt;</span>
               </Link>
-              <a href="#how-it-works" className={styles.textButton}>
-                See how it works
+              <a href="#product" className={styles.textButton}>
+                Watch a viewer join
               </a>
             </div>
+            <p className={styles.trustStrip}>
+              Free during public beta · No card required · No download · OBS supported
+            </p>
           </div>
-
-          <p className={styles.heroNote}>
-            <span className={styles.heroNoteBadge}>No setup</span>
-            <span className={styles.heroNoteText}>
-              No download. No pile of plugins. OBS is welcome if you want it.
-            </span>
-          </p>
 
           <div className={styles.platformLine}>
             <span>One broadcast</span>
@@ -209,128 +96,64 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className={styles.signalSection} id="product">
-          <SectionHeading
-            number="01"
-            label="The signal"
-            title="One room runs the whole live."
-            body="Ditch sits at the center. Your show goes out to every platform, while the audience has one place to watch, chat, and step on screen."
-          />
+        <section className={sections.studio} id="studio" aria-labelledby="studio-title">
+          <div className={sections.compactHeading}>
+            <span className={sections.index}>01 / THE STUDIO</span>
+            <h2 id="studio-title">Your show, in one room.</h2>
+          </div>
           <BroadcastBoard />
         </section>
 
-        <section className={styles.definitionSection}>
-          <div className={styles.sectionIndex}>
-            <span>02</span>
-            <span>What Ditch is</span>
-          </div>
+        <WalkOn />
 
-          <div className={styles.definitionIntro}>
-            <p>Two sides of the same live session.</p>
-            <h2>
-              A streaming tool when you need reach.
-              <span>A streaming platform when you need a room.</span>
-            </h2>
-          </div>
-
-          <div className={styles.definitionPair}>
-            <article>
-              <span className={styles.definitionCode}>A / THE TOOL</span>
-              <h3>Open a tab. Run the show.</h3>
-              <p>
-                Camera, mic, screen share, scenes, guests, and every output live
-                in the browser. If OBS is already part of your workflow, send
-                that signal into Ditch instead.
-              </p>
+        <section className={sections.features} id="features" aria-label="Produce, distribute, participate">
+          {FEATURES.map((feature) => (
+            <article key={feature.title}>
+              <h2>{feature.title}</h2>
+              <p>{feature.body}</p>
             </article>
-            <article>
-              <span className={styles.definitionCode}>B / THE PLATFORM</span>
-              <h3>Give the show one address.</h3>
-              <p>
-                Your Ditch channel is a place to watch, chat, and request to
-                join. It stays open while the same show reaches viewers on
-                Twitch, YouTube, TikTok, and Kick.
-              </p>
-            </article>
-          </div>
+          ))}
         </section>
 
-        <section className={styles.stepsSection} id="how-it-works">
-          <SectionHeading
-            number="03"
-            label="From zero to live"
-            title="Set up once. Start in minutes."
-            body="The technical parts stay out of the way, so you can spend your energy on the format, the guests, and the people watching."
-          />
-
-          <ol className={styles.steps}>
-            {STEPS.map((step) => (
-              <li key={step.number}>
-                <span>{step.number}</span>
-                <div>
-                  <h3>{step.title}</h3>
-                  <p>{step.body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-
-          <div className={styles.setupFacts} aria-label="Setup facts">
-            <span>Nothing to install</span>
-            <span>Destinations remembered</span>
-            <span>Free during public beta</span>
+        <section className={sections.comparison} id="why-ditch" aria-labelledby="comparison-title">
+          <div className={sections.compactHeading}>
+            <span className={sections.index}>04 / WHY DITCH</span>
+            <h2 id="comparison-title">Less setup. More show.</h2>
           </div>
-        </section>
-
-        <section className={styles.comparisonSection} id="why-ditch">
-          <SectionHeading
-            number="04"
-            label="Why Ditch"
-            title="Run a show, not a streaming stack."
-            body="Traditional setups make creators operate a collection of tools. Ditch turns the same work into one clear flow."
-            inverted
-          />
-
-          <div className={styles.comparisonWrap}>
-            <table className={styles.comparisonTable}>
-              <caption className={styles.srOnly}>
-                Traditional streaming setup compared with Ditch
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Need</th>
-                  <th scope="col">Traditional setup</th>
-                  <th scope="col">With Ditch</th>
+          <table>
+            <caption className={styles.srOnly}>Traditional streaming setup compared with Ditch</caption>
+            <thead>
+              <tr><th scope="col">The work</th><th scope="col">Traditional setup</th><th scope="col">With Ditch</th></tr>
+            </thead>
+            <tbody>
+              {COMPARISON_ROWS.map((row) => (
+                <tr key={row.need}>
+                  <th scope="row">{row.need}</th>
+                  <td data-label="Traditional setup">{row.oldWay}</td>
+                  <td data-label="With Ditch">{row.ditchWay}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {COMPARISON_ROWS.map((row) => (
-                  <tr key={row.need}>
-                    <th scope="row">{row.need}</th>
-                    <td data-label="Traditional setup">{row.oldWay}</td>
-                    <td data-label="With Ditch">{row.ditchWay}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
+        </section>
+
+        <section className={sections.earnings} aria-labelledby="earnings-title">
+          <div>
+            <p className={sections.index}>Coming next</p>
+            <h2 id="earnings-title">Your audience is the ad unit.</h2>
           </div>
+          <p>
+            Sponsored seats are coming. Brands pay to put a real person inside
+            your live show, across every destination you stream to. <strong>60%
+            of that revenue goes to you.</strong>
+          </p>
         </section>
 
-        <section className={styles.useCases}>
-          <p>Made for shows that get better when people join.</p>
-          <ul>
-            {USE_CASES.map((useCase) => (
-              <li key={useCase}>{useCase}</li>
-            ))}
-          </ul>
-        </section>
-
-        <section className={styles.finalCta} id="start">
-          <span className={styles.ctaIndex}>05 / OPEN THE ROOM</span>
-          <p>Your next great guest is already watching.</p>
-          <h2>Give them somewhere to enter.</h2>
+        <section className={sections.finalCta} id="start" aria-labelledby="cta-title">
+          <span className={sections.index}>06 / OPEN THE ROOM</span>
+          <h2 id="cta-title">Give them somewhere to enter.</h2>
           <div className={styles.ctaActions}>
-            <Link href="/auth" className={styles.darkButton}>
+            <Link href="/auth?mode=signup" className={styles.darkButton}>
               Claim your channel
               <span aria-hidden="true">-&gt;</span>
             </Link>
@@ -357,22 +180,85 @@ function Header() {
         </Link>
 
         <div className={styles.navLinks}>
-          <a href="#product">Product</a>
+          <a href="#features">Product</a>
           <a href="#how-it-works">How it works</a>
           <a href="#why-ditch">Why Ditch</a>
         </div>
 
         <div className={styles.navActions}>
-          <Link href="/auth" className={styles.signIn}>
+          <Link href="/auth?mode=signin" className={styles.signIn}>
             Sign in
           </Link>
-          <Link href="/auth" className={styles.navCta}>
+          <Link href="/auth?mode=signup" className={styles.navCta}>
             Start free
             <span aria-hidden="true">-&gt;</span>
           </Link>
         </div>
       </nav>
     </header>
+  );
+}
+
+function WalkOn() {
+  return (
+    <section className={sections.walkOn} id="product" aria-labelledby="walk-on-title">
+      <div className={sections.walkOnInner} id="how-it-works">
+        <p className={sections.index}>02 / THE WALK-ON</p>
+        <div className={sections.walkOnHeading}>
+          <h2 id="walk-on-title">From chat to <span>onstage.</span></h2>
+          <p>No account. No download. Any viewer, on screen, everywhere you stream.</p>
+        </div>
+
+        <ol className={sections.walkOnSteps} aria-label="How a viewer joins your show">
+          <li>
+            <div className={sections.stepLabel}><span>01</span><h3>Request a spot.</h3></div>
+            <div className={sections.watchPreview} aria-hidden="true">
+              <Image src="/studio-host.webp" alt="" fill sizes="(max-width: 680px) 354px, 300px" />
+              <span className={sections.previewLabel}>Watching your Ditch channel</span>
+              <span className={sections.previewAction}>Request a spot <b>-&gt;</b></span>
+            </div>
+            <p>A viewer watching your channel asks to join.</p>
+          </li>
+          <li>
+            <div className={sections.stepLabel}><span>02</span><h3>Join the queue.</h3></div>
+            <div className={sections.queuePreview} aria-hidden="true">
+              <span className={sections.previewLabel}>Participant queue / 01</span>
+              <div className={sections.queueGuest}>
+                <Image src="/studio-guest.webp" alt="" width={56} height={56} />
+                <span>Guest 01<small>Waiting</small></span>
+                <i />
+              </div>
+              <span className={sections.queueNote}>Request received</span>
+            </div>
+            <p>Their request appears in your participant queue.</p>
+          </li>
+          <li>
+            <div className={sections.stepLabel}><span>03</span><h3>You cue them.</h3></div>
+            <div className={sections.cuePreview} aria-hidden="true">
+              <span className={sections.previewLabel}>Host control</span>
+              <div className={sections.queueGuest}>
+                <Image src="/studio-guest.webp" alt="" width={56} height={56} />
+                <span>Guest 01<small>Ready for your cue</small></span>
+              </div>
+              <span className={sections.previewAction}>Cue onstage <b>-&gt;</b></span>
+            </div>
+            <p>You choose who joins and when they go on screen.</p>
+          </li>
+          <li>
+            <div className={sections.stepLabel}><span>04</span><h3>Live, together.</h3></div>
+            <div className={sections.onstagePreview} aria-hidden="true">
+              <span className={sections.previewLabel}><i /> On air / Host + guest</span>
+              <div className={sections.livePair}>
+                <Image src="/studio-host.webp" alt="" width={150} height={150} />
+                <Image src="/studio-guest.webp" alt="" width={150} height={150} />
+              </div>
+              <span className={sections.liveDestinations}>Twitch · YouTube · TikTok · Kick</span>
+            </div>
+            <p>They are live beside you, across every connected destination.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
   );
 }
 
@@ -483,7 +369,7 @@ function BroadcastBoard() {
                 />
                 <figcaption>
                   <b>Audience</b>
-                  <span>Joined from Twitch</span>
+                  <span>Joined from your Ditch channel</span>
                 </figcaption>
               </figure>
             </div>
@@ -549,28 +435,21 @@ function BroadcastBoard() {
   );
 }
 
-/* The creator's screen share: a slide the cats are arguing over. */
+/* The supplied image is shared intact inside the program canvas. */
 function SharedSlide() {
   return (
-    <div className={styles.spSlide} aria-label="Shared screen: why cats beat dogs">
-      <span className={styles.spSlideTag}>Screen share</span>
-
-      <div className={styles.spSlideRoot}>Cats are better pets than dogs.</div>
-
-      <div className={styles.spSlideBranches}>
-        {SLIDE_BRANCHES.map((branch) => (
-          <div key={branch.claim} className={styles.spSlideBranch}>
-            <span className={styles.spSlideWhy}>because</span>
-            <div className={styles.spSlideNode}>{branch.claim}</div>
-            <div className={styles.spSlideLeaves}>
-              {branch.support.map((leaf) => (
-                <span key={leaf}>{leaf}</span>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <figure className={styles.spSlide}>
+      <figcaption>Screen share</figcaption>
+      <Image
+        src="/studio-dogs-vs-cats.jpg"
+        alt="Dogs versus cats: differences in diet, temperament and behavior, shown on the host's shared screen."
+        width={720}
+        height={720}
+        sizes="(max-width: 900px) 90vw, 600px"
+        className={styles.spSharedImage}
+        unoptimized
+      />
+    </figure>
   );
 }
 
@@ -588,31 +467,6 @@ function PlatformMark({
   );
 }
 
-function SectionHeading({
-  number,
-  label,
-  title,
-  body,
-  inverted = false,
-}: {
-  number: string;
-  label: string;
-  title: string;
-  body: string;
-  inverted?: boolean;
-}) {
-  return (
-    <div className={styles.sectionHeading} data-inverted={inverted}>
-      <div className={styles.sectionIndex}>
-        <span>{number}</span>
-        <span>{label}</span>
-      </div>
-      <h2>{title}</h2>
-      <p>{body}</p>
-    </div>
-  );
-}
-
 function Footer() {
   return (
     <footer className={styles.footer}>
@@ -627,7 +481,7 @@ function Footer() {
         <nav aria-label="Footer navigation">
           <Link href="/terms">Terms</Link>
           <Link href="/privacy">Privacy</Link>
-          <a href="mailto:sendmailtodex@gmail.com">Contact</a>
+          <a href="mailto:hello@ditchlive.app">Contact</a>
         </nav>
       </div>
       <div className={styles.footerMeta}>

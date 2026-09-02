@@ -51,7 +51,7 @@ export default function ChannelSubscribeButton({
   }
 
   const buttonClass = compact
-    ? "rounded-lg px-3 py-1.5 text-[11px] font-bold transition-colors"
+    ? "rounded-lg px-3 py-1.5 text-[12px] font-bold transition-colors"
     : "rounded-lg px-4 py-2 text-xs font-bold transition-colors";
   const stateClass = subscribed
     ? "border border-white/12 bg-white/[0.04] text-white/75 hover:border-white/25 hover:text-white"
@@ -78,7 +78,7 @@ export default function ChannelSubscribeButton({
           Subscribe
         </Link>
       )}
-      {error && <span role="status" className="basis-full text-right text-[11px] text-red-300">{error}</span>}
+      {error && <span role="status" className="basis-full text-right text-[12px] text-red-300">{error}</span>}
     </div>
   );
 }

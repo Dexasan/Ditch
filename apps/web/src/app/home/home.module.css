@@ -53,7 +53,7 @@
   margin: 0 0 17px;
   color: #aaa29a;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -105,7 +105,7 @@
   color: #7d756e;
   background: #141210;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
 }
@@ -160,14 +160,14 @@
   flex-direction: column;
 }
 
-.readinessBody strong { color: #e9e4dc; font-size: 11px; }
+.readinessBody strong { color: #e9e4dc; font-size: 12px; }
 
 .readinessBody small {
   margin-top: 4px;
   overflow: hidden;
   color: #9a928a;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 10px;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -175,7 +175,7 @@
 .readinessBody b {
   color: #9bd1c2;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .cards {
@@ -232,7 +232,7 @@
   color: #8c847d;
   background: rgba(20, 18, 17, 0.92);
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -294,7 +294,7 @@
   color: #f08791;
   background: rgba(65, 15, 24, 0.62);
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.12em;
 }
@@ -329,7 +329,7 @@
   position: relative;
   z-index: 1;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.16em;
 }
 
@@ -348,7 +348,7 @@
   color: #d8d1ca;
   background: rgba(10, 9, 10, 0.72);
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.1em;
   backdrop-filter: blur(8px);
 }
@@ -390,8 +390,8 @@
 }
 
 .consoleStrip > div:last-child { border: 0; }
-.consoleStrip small { color: #928a83; font-family: var(--font-jbmono), monospace; font-size: 10px; letter-spacing: 0.12em; }
-.consoleStrip span, .consoleStrip strong { color: #aaa29a; font-size: 11px; }
+.consoleStrip small { color: #928a83; font-family: var(--font-jbmono), monospace; font-size: 11px; letter-spacing: 0.12em; }
+.consoleStrip span, .consoleStrip strong { color: #aaa29a; font-size: 12px; }
 .consoleStrip span { display: flex; align-items: center; gap: 6px; }
 .consoleStrip span > i { width: 5px; height: 5px; border-radius: 50%; background: #8cc9b8; }
 
@@ -429,7 +429,7 @@
   margin: 0 0 7px;
   color: #ff62ad;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.13em;
 }
@@ -452,7 +452,7 @@
   max-width: 430px;
   margin-top: 9px;
   color: #8e8780;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -547,7 +547,7 @@
   align-self: end;
   color: #8cc9b8;
   font-family: var(--font-jbmono), monospace;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.13em;
 }
@@ -575,7 +575,7 @@
   background: #272223;
   box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.3);
   font-family: var(--font-jbmono), monospace;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -583,7 +583,7 @@
   position: absolute;
   top: 44px;
   color: #766f69;
-  font-size: 5px;
+  font-size: 6px;
   letter-spacing: 0.06em;
 }
 
@@ -606,7 +606,7 @@
   border-top: 1px solid #312d2a;
   color: #5d5752;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -649,7 +649,7 @@
   .consoleStrip > div:nth-child(2) { border: 0; }
   .cardCopy { padding: 19px 18px 21px; }
   .cardCopy h2 { font-size: 30px; }
-  .cardCopy div > span { font-size: 10px; }
+  .cardCopy div > span { font-size: 11px; }
   .arrowBadge { width: 39px; height: 39px; }
   .radar::before { width: 280px; height: 280px; }
   .telemetry span:nth-child(n + 2) { display: none; }

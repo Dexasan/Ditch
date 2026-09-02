@@ -79,7 +79,7 @@
   color: var(--night) !important;
   background: var(--mint);
   font-family: var(--font-jbmono), monospace;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   text-transform: uppercase;
   transform: translateY(-160%);
@@ -141,7 +141,7 @@
 .wordmark small {
   color: #766d74;
   font-family: var(--font-jbmono), monospace;
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.11em;
   line-height: 1;
@@ -156,7 +156,7 @@
   margin-right: 40px;
   color: #928991;
   font-family: var(--font-jbmono), monospace;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -186,7 +186,7 @@
   min-height: 44px;
   padding: 13px 11px;
   color: #a79da5;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -201,7 +201,7 @@
   padding: 0 18px;
   border: 1px solid transparent;
   font-family: var(--font-jbmono), monospace;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -225,9 +225,9 @@
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1.38fr) minmax(340px, 0.62fr);
-  /* Free vertical space collects in the first row so the note and the
-     platform line stay tucked under the hero instead of drifting apart. */
-  grid-template-rows: 1fr auto auto;
+  /* Free vertical space collects in the first row; the platform line stays
+     tucked under the hero. */
+  grid-template-rows: 1fr auto;
   gap: 44px 64px;
   width: min(1280px, calc(100% - 48px));
   min-height: calc(100vh - 74px);
@@ -237,6 +237,7 @@
 
 .heroMain {
   min-width: 0;
+  padding-top: clamp(32px, 4vh, 48px);
 }
 
 .eyebrow,
@@ -244,7 +245,7 @@
 .definitionCode,
 .ctaIndex {
   font-family: var(--font-jbmono), monospace;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -277,7 +278,7 @@
 .heroTitle {
   margin: 0;
   font-family: var(--font-bebas), Impact, sans-serif;
-  font-size: clamp(80px, 10.5vw, 154px);
+  font-size: clamp(64px, 7vw, 104px);
   font-weight: 400;
   line-height: 0.77;
   letter-spacing: 0.012em;
@@ -327,6 +328,7 @@
 .heroActions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 22px;
   margin-top: 34px;
 }
@@ -341,52 +343,21 @@
   border-bottom: 1px solid #5a5258;
   color: #a79da5;
   font-family: var(--font-jbmono), monospace;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
-/* Spans the full hero rather than the 430px aside, which is what forced it
-   onto two lines. Full width also lets it carry real weight. */
-.heroNote {
-  grid-column: 1 / -1;
-  /* Hugs its content rather than stretching the full grid, which left a
-     large empty run of border to the right of the sentence. */
-  justify-self: start;
-  max-width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin: 0;
-  padding: 15px 20px;
-  border: 1px solid rgba(255, 45, 147, 0.34);
-  background: linear-gradient(
-    90deg,
-    rgba(255, 45, 147, 0.11),
-    rgba(255, 45, 147, 0.01)
-  );
-  text-wrap: nowrap;
-}
-
-.heroNoteBadge {
-  flex: 0 0 auto;
-  padding: 6px 10px;
-  color: #ffffff;
-  background: var(--pink);
+.trustStrip {
+  margin: 18px 0 0;
+  color: var(--muted);
   font-family: var(--font-jbmono), monospace;
   font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-weight: 700;
+  line-height: 1.8;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-}
-
-.heroNoteText {
-  min-width: 0;
-  color: var(--paper);
-  font-size: clamp(14px, 1.15vw, 16.5px);
-  line-height: 1.5;
-  white-space: nowrap;
 }
 
 .platformLine {
@@ -404,7 +375,7 @@
   padding: 0 22px;
   color: #776f75;
   font-family: var(--font-jbmono), monospace;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -434,7 +405,7 @@
   min-height: 72px;
   border-right: 1px solid var(--line);
   color: #d5ccd2;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -582,7 +553,7 @@
 .spMeta small {
   color: #6f666d;
   font-family: var(--font-jbmono), monospace;
-  font-size: 6px;
+  font-size: 7px;
   font-weight: 800;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -598,7 +569,7 @@
 .spMeta b {
   color: #ded6dc;
   font-family: var(--font-jbmono), monospace;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
@@ -612,7 +583,7 @@
   background: rgba(255, 45, 147, 0.1);
   color: var(--pink);
   font-family: var(--font-jbmono), monospace;
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -631,7 +602,7 @@
   background: var(--pink);
   box-shadow: 3px 3px 0 var(--pink-dark);
   font-family: var(--font-jbmono), monospace;
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -639,7 +610,7 @@
 
 .spBody {
   display: grid;
-  grid-template-columns: 142px minmax(0, 1fr) 226px;
+  grid-template-columns: 142px minmax(0, 1fr) 256px;
 }
 
 /* Left rail: scenes + layers */
@@ -659,7 +630,7 @@
   margin: 0 0 9px;
   color: #877e85;
   font-family: var(--font-jbmono), monospace;
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -673,7 +644,7 @@
   padding: 7px 9px;
   border: 1px solid transparent;
   color: #8d848b;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -710,7 +681,7 @@
   border: 1px solid rgba(140, 201, 184, 0.34);
   color: var(--mint);
   font-family: var(--font-jbmono), monospace;
-  font-size: 6px;
+  font-size: 7px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -736,7 +707,7 @@
   margin-left: auto;
   color: #6d646b;
   font-family: var(--font-jbmono), monospace;
-  font-size: 6px;
+  font-size: 7px;
   font-weight: 800;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -747,24 +718,21 @@
   font-weight: 800;
 }
 
-/* Canvas: shared slide on top, the two cats below and large. */
+/* Shared screen with host and audience cameras alongside it. */
 .spCanvas {
   position: relative;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   gap: 9px;
   aspect-ratio: 16 / 9;
   padding: 11px;
-  background:
-    linear-gradient(rgba(238, 232, 218, 0.028) 1px, transparent 1px) 0 0 / 100% 26px,
-    #08070a;
+  background: #08070a;
 }
 
-/* The cats are the point of this preview, so they take the larger share. */
+/* Camera tiles stay secondary to the shared screen. */
 .spCams {
   display: grid;
-  flex: 0 0 57%;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 9px;
   min-height: 0;
 }
@@ -821,127 +789,43 @@
 .spCam figcaption span {
   color: var(--mint);
   font-family: var(--font-jbmono), monospace;
-  font-size: 5.5px;
+  font-size: 6.5px;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-/* The shared screen: a slide the cats are presenting. */
+/* Keep the supplied screen share intact inside the program canvas. */
 .spSlide {
-  position: relative;
-  display: flex;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
   min-height: 0;
-  flex: 1 1 auto;
-  flex-direction: column;
-  align-items: center;
-  /* Centred so the diagram never leaves a dead band of white below it. */
-  justify-content: center;
-  gap: 5px;
+  margin: 0;
   overflow: hidden;
-  padding: 16px 12px 12px;
   border: 1px solid rgba(238, 232, 218, 0.13);
-  background: #eeece6;
+  background: #0d0b0e;
 }
 
-.spSlideTag {
-  position: absolute;
-  top: 0;
-  left: 0;
-  padding: 3px 6px;
-  background: #23732f;
-  color: #ffffff;
+.spSlide figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  color: var(--paper-soft);
   font-family: var(--font-jbmono), monospace;
-  font-size: 5px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-size: 8px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
-.spSlideRoot {
-  max-width: 46%;
-  padding: 5px 11px;
-  border: 1px solid #23732f;
-  color: #14150f;
-  background: #ffffff;
-  font-size: 7.5px;
-  font-weight: 700;
-  text-align: center;
-}
-
-/* Capped so the claim boxes read as a tree rather than stretched bars. */
-.spSlideBranches {
-  position: relative;
-  display: grid;
+.spSharedImage {
+  display: block;
   width: 100%;
-  max-width: 86%;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 26px;
-}
-
-/* Tree connectors */
-.spSlideBranches::before {
-  content: "";
-  position: absolute;
-  top: -6px;
-  left: 25%;
-  width: 50%;
-  height: 1px;
-  background: #23732f;
-}
-
-.spSlideBranch {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.spSlideBranch::before {
-  content: "";
-  position: absolute;
-  top: -6px;
-  left: 50%;
-  width: 1px;
-  height: 6px;
-  background: #23732f;
-}
-
-.spSlideWhy {
-  color: #23732f;
-  font-family: var(--font-jbmono), monospace;
-  font-size: 5px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-}
-
-.spSlideNode {
-  width: 100%;
-  padding: 4px 7px;
-  border: 1px solid #23732f;
-  color: #17180f;
-  background: #ffffff;
-  font-size: 6.5px;
-  font-weight: 600;
-  text-align: center;
-}
-
-.spSlideLeaves {
-  display: grid;
-  width: 100%;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px;
-}
-
-.spSlideLeaves span {
-  padding: 4px 5px;
-  border: 1px solid #6ba871;
-  color: #33352a;
-  background: #ffffff;
-  font-size: 5.5px;
-  line-height: 1.35;
-  text-align: center;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
 }
 
 /* Signal rail under the canvas */
@@ -953,7 +837,7 @@
   border-top: 1px solid var(--line);
   color: #756c73;
   font-family: var(--font-jbmono), monospace;
-  font-size: 6px;
+  font-size: 7px;
   font-weight: 800;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -971,7 +855,7 @@
   background: var(--mint);
 }
 
-/* Inspector: chat tab, with the dogs taking it badly. */
+/* Inspector: compact live chat from the connected destinations. */
 .spInspector {
   display: flex;
   min-width: 0;
@@ -995,7 +879,7 @@
   border-bottom: 2px solid transparent;
   color: #6f666d;
   font-family: var(--font-jbmono), monospace;
-  font-size: 6px;
+  font-size: 7px;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1010,19 +894,29 @@
   padding: 1px 4px;
   background: var(--pink);
   color: #ffffff;
-  font-size: 5px;
+  font-size: 6px;
 }
 
-/* Deliberately overfilled: the last message clipping at the bottom edge is
-   what a live chat actually looks like. */
-.spChat {
+/* Match the list reset's specificity so the chat keeps its gutter. */
+.page .spChat {
   display: grid;
   align-content: start;
-  gap: 12px;
-  flex: 1 1 auto;
+  gap: 0;
+  flex: 1 1 0;
   min-height: 0;
-  overflow: hidden;
-  padding: 12px 11px;
+  overflow-y: auto;
+  padding: 4px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: #371a2a transparent;
+}
+
+.spChat li {
+  min-width: 0;
+  padding: 9px 0;
+}
+
+.spChat li + li {
+  border-top: 1px solid rgba(238, 232, 218, 0.06);
 }
 
 .spChatUser {
@@ -1031,7 +925,7 @@
   gap: 6px;
   color: #b6acb4;
   font-family: var(--font-jbmono), monospace;
-  font-size: 7.5px;
+  font-size: 8.5px;
   font-weight: 800;
   letter-spacing: 0.05em;
 }
@@ -1049,14 +943,10 @@
 .spChatUser i[data-platform="ditch"] { background: var(--pink); }
 
 .spChat p {
-  margin: 5px 0 0;
+  margin: 4px 0 0 12px;
   color: #d6cdd4;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.45;
-}
-
-.spChat li[data-platform="ditch"] p {
-  color: var(--mint);
 }
 
 .spChatBar {
@@ -1064,10 +954,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 9px 11px;
-  border-top: 1px solid var(--line);
-  color: #5f575e;
-  font-size: 8.5px;
+  margin: 8px 12px 12px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 9.5px;
 }
 
 .spChatBar b {
@@ -1075,7 +966,7 @@
   border: 1px solid rgba(255, 45, 147, 0.4);
   color: var(--pink);
   font-family: var(--font-jbmono), monospace;
-  font-size: 6px;
+  font-size: 7px;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1095,7 +986,7 @@
 .spUplinkRate {
   color: #6f666d;
   font-family: var(--font-jbmono), monospace;
-  font-size: 6px;
+  font-size: 7px;
   font-weight: 800;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -1119,7 +1010,7 @@
   padding: 5px 9px 5px 5px;
   border: 1px solid var(--line);
   color: #cdc4cb;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -1155,7 +1046,7 @@
   margin: 0 0 20px;
   color: #bd176c;
   font-family: var(--font-jbmono), monospace;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1334,7 +1225,7 @@
   margin-top: 32px;
   color: #81777f;
   font-family: var(--font-jbmono), monospace;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -1377,7 +1268,7 @@
   height: 64px;
   color: #716970;
   font-family: var(--font-jbmono), monospace;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-align: left;
@@ -1451,7 +1342,7 @@
   left: 0;
   color: #5c545a;
   font-family: var(--font-jbmono), monospace;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.62;
 }
 
@@ -1475,7 +1366,7 @@
 .useCases > p {
   margin: 0 0 34px;
   font-family: var(--font-jbmono), monospace;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1556,7 +1447,7 @@
 .ctaActions > span {
   color: #73686d;
   font-family: var(--font-jbmono), monospace;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1582,7 +1473,7 @@
   gap: 28px;
   color: #81777f;
   font-family: var(--font-jbmono), monospace;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1594,7 +1485,7 @@
   border-top: 1px solid var(--line);
   color: #5f575d;
   font-family: var(--font-jbmono), monospace;
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -1642,7 +1533,7 @@
 
   /* Inspector drops away first; the canvas keeps the width. */
   .spBody {
-    grid-template-columns: 128px minmax(0, 1fr) 200px;
+    grid-template-columns: 128px minmax(0, 1fr) 226px;
   }
 
   .definitionSection {
@@ -1672,6 +1563,10 @@
 }
 
 @media (max-width: 900px) {
+  .heroMain {
+    padding-top: 0;
+  }
+
   .hero {
     grid-template-columns: 1fr;
     min-height: auto;
@@ -1722,9 +1617,10 @@
     border-top: 1px solid var(--line);
   }
 
-  .spChat {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 11px 18px;
+  .page .spChat {
+    grid-template-columns: minmax(0, 1fr);
+    flex: 0 1 auto;
+    max-height: 280px;
   }
 
   .definitionSection {
@@ -1769,7 +1665,7 @@
     min-height: 44px;
     padding-inline: 14px;
     gap: 14px;
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .hero {
@@ -1780,7 +1676,7 @@
 
   .eyebrow {
     margin-bottom: 22px;
-    font-size: 8px;
+    font-size: 9px;
   }
 
   .heroTitle {
@@ -1793,20 +1689,6 @@
   .heroLead {
     font-size: clamp(20px, 5.6vw, 24px);
     line-height: 1.3;
-  }
-
-  /* No room for a single line at this width, so let it wrap and stack. */
-  .heroNote {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
-    padding: 14px 15px;
-    text-wrap: pretty;
-  }
-
-  .heroNoteText {
-    font-size: 14px;
-    white-space: normal;
   }
 
   .heroActions {
@@ -1900,12 +1782,20 @@
   }
 
   .spCanvas {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 150px;
+    aspect-ratio: auto;
     gap: 7px;
     padding: 8px;
   }
 
+  .spSharedImage {
+    height: auto;
+  }
+
   .spCams {
-    flex-basis: 44%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
     gap: 7px;
   }
 
@@ -1913,9 +1803,6 @@
     display: none;
   }
 
-  .spSlideLeaves {
-    display: none;
-  }
 
   .spSignalRail {
     gap: 6px 13px;
@@ -2045,7 +1932,7 @@
     margin-bottom: 8px;
     color: #726970;
     font-family: var(--font-jbmono), monospace;
-    font-size: 7px;
+    font-size: 8px;
     font-weight: 800;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -2170,7 +2057,7 @@
     padding-inline: 14px;
     border-radius: 10px;
     box-shadow: none;
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .hero {
@@ -2184,7 +2071,7 @@
 
   .eyebrow {
     margin-bottom: 18px;
-    font-size: 8px;
+    font-size: 9px;
   }
 
   .heroTitle {
@@ -2226,7 +2113,7 @@
     min-height: 52px;
     border-radius: 13px;
     box-shadow: none;
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .textButton {
@@ -2240,28 +2127,6 @@
     border-radius: 13px;
     color: #d7cfd5;
     background: rgba(255, 255, 255, 0.025);
-  }
-
-  .heroNote {
-    width: 100%;
-    align-items: center;
-    flex-direction: row;
-    gap: 11px;
-    padding: 14px 15px;
-    border-radius: 14px;
-    text-wrap: pretty;
-  }
-
-  .heroNoteBadge {
-    padding: 6px 8px;
-    border-radius: 7px;
-    font-size: 7px;
-  }
-
-  .heroNoteText {
-    font-size: 13px;
-    line-height: 1.4;
-    white-space: normal;
   }
 
   .platformLine {
@@ -2285,7 +2150,7 @@
 
   .platformLine li {
     min-height: 60px;
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .signalSection,

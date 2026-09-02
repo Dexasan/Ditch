@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
 export const alt =
-  "ditch master control: one stream to every platform, anyone can join";
+  "ditch master control: one stream to your connected destinations, anyone can join";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

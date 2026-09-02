@@ -15,7 +15,7 @@ export default function PrivacyPage() {
           DITCH is a live streaming service operated from Rome, Italy. For
           the purposes of the GDPR, DITCH is the data controller for the
           personal data described in this policy. Contact:
-          sendmailtodex@gmail.com
+          hello@ditchlive.app
         </p>
       </LegalSection>
 
@@ -107,7 +107,7 @@ export default function PrivacyPage() {
         <p>
           Under the GDPR you can request access, correction, deletion,
           portability and restriction of your personal data, and you can
-          object to certain processing. Write to sendmailtodex@gmail.com and we
+          object to certain processing. Write to hello@ditchlive.app and we
           will respond within the statutory deadline. You also have the right
           to complain to your supervisory authority; in Italy that is the
           Garante per la protezione dei dati personali.

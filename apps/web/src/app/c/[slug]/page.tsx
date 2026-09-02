@@ -71,12 +71,12 @@ export default async function ChannelPage({
         <span className="channel-header-divider shrink-0 text-sm text-white/25">/</span>
         <span className="channel-header-name min-w-0 truncate text-sm font-semibold text-white">{channel.display_name}</span>
         {isLive ? (
-          <span className="channel-live-pill flex shrink-0 items-center gap-1.5 rounded-full border border-[#FF1DB4]/20 bg-[#FF1DB4]/10 px-2 py-0.5 text-[11px] font-bold text-[#FF1DB4]">
+          <span className="channel-live-pill flex shrink-0 items-center gap-1.5 rounded-full border border-[#FF1DB4]/20 bg-[#FF1DB4]/10 px-2 py-0.5 text-[12px] font-bold text-[#FF1DB4]">
             <span className="w-1.5 h-1.5 rounded-full bg-[#FF1DB4] animate-pulse" />
             LIVE
           </span>
         ) : (
-          <span className="shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-white/30">Offline</span>
+          <span className="shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-[12px] text-white/30">Offline</span>
         )}
 
         <div className="channel-page-tabs ml-auto flex shrink-0 items-center gap-1 rounded-lg bg-white/5 p-1">

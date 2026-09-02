@@ -1,11 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-// Shared frame for /terms and /privacy. Dark theme, matching the landing
-// page. Both documents ship with a visible draft notice until the founder
-// signs off on the content.
-// TODO(founder): review both documents, then remove the notice here.
-const SHOW_DRAFT_NOTICE = true;
+// Shared frame for /terms and /privacy, matching the landing page.
 
 export function LegalShell({
   title,
@@ -20,19 +16,13 @@ export function LegalShell({
     <div className="min-h-screen bg-[var(--bg-deep)] text-[var(--text-primary)] antialiased">
       <LegalHeader />
       <main className="mx-auto w-full max-w-3xl px-6 py-14 sm:py-16">
-        {SHOW_DRAFT_NOTICE && (
-          <p className="mb-8 rounded-xl border border-[var(--border)] bg-[var(--bg-base)] p-4 text-[13px] leading-relaxed text-[var(--text-muted)]">
-            Draft for founder review. This document is a sensible starting
-            point and has not yet been reviewed by counsel.
-          </p>
-        )}
-        <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-primary)]">
+        <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-primary)]">
           Legal
         </p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--text-white)]">
           {title}
         </h1>
-        <p className="mt-2 text-[13px] text-[var(--text-muted)]">
+        <p className="mt-2 text-[14px] text-[var(--text-muted)]">
           Last updated: {updated}
         </p>
         <div className="mt-12 flex flex-col gap-10">{children}</div>
@@ -75,13 +65,13 @@ function LegalHeader() {
         </Link>
         <div className="flex items-center gap-2">
           <Link
-            href="/auth"
+            href="/auth?mode=signin"
             className="rounded-lg px-3 py-2 text-[14px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
           >
             Sign in
           </Link>
           <Link
-            href="/auth"
+            href="/auth?mode=signup"
             className="rounded-lg bg-[var(--accent-primary)] px-4 py-2 text-[14px] font-semibold text-white transition hover:opacity-90"
           >
             Get started
@@ -108,12 +98,12 @@ function LegalFooter() {
             <Link href="/privacy" className="text-[14px] text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
               Privacy
             </Link>
-            <a href="mailto:sendmailtodex@gmail.com" className="text-[14px] text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
+            <a href="mailto:hello@ditchlive.app" className="text-[14px] text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
               Contact
             </a>
           </nav>
         </div>
-        <div className="flex flex-col items-start justify-between gap-2 border-t border-[var(--border)] pt-6 text-[13px] text-[var(--text-muted)] sm:flex-row sm:items-center">
+        <div className="flex flex-col items-start justify-between gap-2 border-t border-[var(--border)] pt-6 text-[14px] text-[var(--text-muted)] sm:flex-row sm:items-center">
           <span>ditch, Rome</span>
           <span>© 2026 ditch. All rights reserved.</span>
         </div>

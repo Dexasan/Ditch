@@ -48,25 +48,25 @@ export default function RundownPanel({ sessionId, token }: { sessionId: string; 
     }
   }
 
-  if (loading) return <div className="p-4 text-[11px] text-[var(--text-muted)]">Loading rundown...</div>;
+  if (loading) return <div className="p-4 text-[12px] text-[var(--text-muted)]">Loading rundown...</div>;
 
   return (
     <div className="flex-1 overflow-y-auto min-h-0">
-      {error && <div className="m-3 rounded border border-red-500/20 bg-red-500/10 p-2 text-[10px] text-red-300">{error}</div>}
+      {error && <div className="m-3 rounded border border-red-500/20 bg-red-500/10 p-2 text-[11px] text-red-300">{error}</div>}
       {items.length === 0 ? (
         <div className="flex h-32 flex-col items-center justify-center gap-2 px-4 text-center">
-          <p className="text-[11px] text-[var(--text-muted)]">No Ideas in this show yet</p>
+          <p className="text-[12px] text-[var(--text-muted)]">No Ideas in this show yet</p>
           <Link href="/dashboard/community" className="text-xs font-semibold text-[var(--accent-primary)]">Open community inbox</Link>
         </div>
       ) : items.map((item, index) => (
         <article key={item.id} className="space-y-2 border-b border-[var(--border)] px-3 py-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--accent-primary)]">Segment {(index + 1).toString().padStart(2, "0")}</span>
-            <span className={`text-[9px] font-bold uppercase ${item.state === "used" ? "text-green-400" : "text-[var(--text-muted)]"}`}>{item.state}</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent-primary)]">Segment {(index + 1).toString().padStart(2, "0")}</span>
+            <span className={`text-[10px] font-bold uppercase ${item.state === "used" ? "text-green-400" : "text-[var(--text-muted)]"}`}>{item.state}</span>
           </div>
-          <p className="text-[11px] font-semibold leading-snug text-[var(--text-primary)]">{item.title}</p>
-          <p className="text-[10px] text-[var(--text-muted)]">{item.author_display_name} · {item.vote_count} support · {item.comment_count} replies</p>
-          <button type="button" disabled={busyId === item.id || item.state === "used"} onClick={() => markUsed(item)} className="w-full rounded border border-[var(--accent-primary)] px-2 py-1.5 text-[10px] font-semibold text-[var(--accent-primary)] transition-colors hover:bg-[var(--accent-primary)] hover:text-white disabled:opacity-40">
+          <p className="text-[12px] font-semibold leading-snug text-[var(--text-primary)]">{item.title}</p>
+          <p className="text-[11px] text-[var(--text-muted)]">{item.author_display_name} · {item.vote_count} support · {item.comment_count} replies</p>
+          <button type="button" disabled={busyId === item.id || item.state === "used"} onClick={() => markUsed(item)} className="w-full rounded border border-[var(--accent-primary)] px-2 py-1.5 text-[11px] font-semibold text-[var(--accent-primary)] transition-colors hover:bg-[var(--accent-primary)] hover:text-white disabled:opacity-40">
             {item.state === "used" ? "Used on stream" : busyId === item.id ? "Updating..." : "Mark used on stream"}
           </button>
         </article>

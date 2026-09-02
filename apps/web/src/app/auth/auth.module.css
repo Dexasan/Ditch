@@ -126,7 +126,7 @@
 .panelTop,
 .accessFooter {
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 6px;
+  font-size: 7px;
   font-weight: 700;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -163,7 +163,7 @@
   margin: 0 0 17px;
   color: #ff62ad;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -219,8 +219,8 @@
 
 .signalOrigin img { width: 38px; height: 38px; object-fit: cover; }
 .signalOrigin span { display: flex; flex-direction: column; gap: 4px; }
-.signalOrigin small { color: #726a64; font-family: var(--font-jbmono), monospace; font-size: 6px; }
-.signalOrigin strong { color: #e9e3dc; font-size: 8px; letter-spacing: 0.04em; }
+.signalOrigin small { color: #726a64; font-family: var(--font-jbmono), monospace; font-size: 7px; }
+.signalOrigin strong { color: #e9e3dc; font-size: 9px; letter-spacing: 0.04em; }
 
 .routeLines {
   display: flex;
@@ -280,14 +280,14 @@
   border-radius: 3px;
   color: #fff;
   font-family: var(--font-jbmono), monospace;
-  font-size: 6px;
+  font-size: 7px;
   font-style: normal;
   font-weight: 800;
 }
 
 .destination span { display: flex; flex-direction: column; gap: 2px; }
-.destination strong { color: #b9b2aa; font-size: 8px; }
-.destination small { color: #69625c; font-family: var(--font-jbmono), monospace; font-size: 5px; }
+.destination strong { color: #b9b2aa; font-size: 9px; }
+.destination small { color: #69625c; font-family: var(--font-jbmono), monospace; font-size: 6px; }
 .destination > b { width: 5px; height: 5px; border-radius: 50%; background: #8cc9b8; box-shadow: 0 0 8px rgba(140, 201, 184, 0.48); }
 .purple { background: #59368f; }
 .red { background: #93333b; }
@@ -362,7 +362,7 @@
 .formIntro > p:last-child {
   margin: 11px 0 0;
   color: #8b837c;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -388,13 +388,13 @@
   color: #736c65;
   background: transparent;
   font-family: var(--font-inter), system-ui, sans-serif;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .modeSwitch button:last-child { border: 0; }
-.modeSwitch button span { color: #514b46; font-family: var(--font-jbmono), monospace; font-size: 6px; }
+.modeSwitch button span { color: #514b46; font-family: var(--font-jbmono), monospace; font-size: 7px; }
 .modeSwitch button[data-active="true"] { color: #f1ece5; background: #24201e; box-shadow: inset 0 -2px #ff2d93; }
 .modeSwitch button[data-active="true"] span { color: #ff62ad; }
 
@@ -410,7 +410,7 @@
 .field > span {
   color: #8d857e;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -453,7 +453,7 @@
   color: #ede8e2;
   background: transparent;
   font-family: var(--font-inter), system-ui, sans-serif;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .field input::placeholder { color: #514c48; }
@@ -467,7 +467,7 @@
   color: #756e67;
   background: transparent;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 6px;
+  font-size: 7px;
   font-weight: 800;
   letter-spacing: 0.08em;
   cursor: pointer;
@@ -482,7 +482,7 @@
   border-radius: 3px;
   color: #f38b94;
   background: rgba(238, 100, 113, 0.065);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -499,7 +499,7 @@
   background: #d9217f;
   box-shadow: 4px 4px 0 #68103d;
   font-family: var(--font-inter), system-ui, sans-serif;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.05em;
   cursor: pointer;
@@ -530,7 +530,7 @@
   margin: 0;
   padding: 0 34px 28px;
   color: #635d58;
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.5;
   text-align: center;
 }
@@ -567,7 +567,7 @@
   max-width: 360px;
   margin: 18px 0 28px;
   color: #8f8780;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.7;
 }
 

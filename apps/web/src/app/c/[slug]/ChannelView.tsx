@@ -93,7 +93,7 @@ function ParticipantTile({
         {isMe && (
           <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 animate-pulse" />
         )}
-        <span className="text-[10px] text-white/80 truncate leading-none">
+        <span className="text-[11px] text-white/80 truncate leading-none">
           {participant.display_name}
         </span>
       </div>
@@ -405,7 +405,7 @@ function ChatPanel({
           messages.map((m) => (
             <div
               key={m.id}
-              className="min-w-0 text-[12px] leading-relaxed"
+              className="min-w-0 text-[13px] leading-relaxed"
               style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
             >
               <span
@@ -1006,7 +1006,7 @@ export default function ChannelView({
               style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-white tracking-widest">LIVE</span>
+              <span className="text-[11px] font-bold text-white tracking-widest">LIVE</span>
             </div>
 
             {/* On-stream count */}
@@ -1016,10 +1016,10 @@ export default function ChannelView({
                 style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
               >
                 <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--color-brand)" }} />
-                <span className="text-[10px] font-semibold text-white">{onStreamCount} on stream</span>
+                <span className="text-[11px] font-semibold text-white">{onStreamCount} on stream</span>
               </div>
             )}
-            <div className="audience-video-bottom-right pointer-events-none absolute z-10 flex items-center rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold text-white/85 backdrop-blur-sm">
+            <div className="audience-video-bottom-right pointer-events-none absolute z-10 flex items-center rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white/85 backdrop-blur-sm">
               <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
               </svg>
@@ -1044,7 +1044,7 @@ export default function ChannelView({
                     className="absolute bottom-0 left-0 right-0 px-1.5 py-0.5"
                     style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75), transparent)" }}
                   >
-                    <span className="text-[10px] text-white/70">Screen</span>
+                    <span className="text-[11px] text-white/70">Screen</span>
                   </div>
                 </div>
               )}
@@ -1165,7 +1165,7 @@ export default function ChannelView({
                 {liveSlots.map((p) => (
                   <div key={p.id} className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-                    <span className="text-[12px] text-white truncate">{p.display_name}</span>
+                    <span className="text-[13px] text-white truncate">{p.display_name}</span>
                     {myParticipant?.id === p.id && (
                       <span
                         className="ml-auto text-xs font-bold shrink-0 uppercase tracking-wide"

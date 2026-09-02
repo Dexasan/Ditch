@@ -142,7 +142,7 @@ export default function TermsPage() {
 
       <LegalSection number="14" title="contact">
         <p>
-          Questions about these terms: sendmailtodex@gmail.com
+          Questions about these terms: hello@ditchlive.app
         </p>
       </LegalSection>
     </LegalShell>

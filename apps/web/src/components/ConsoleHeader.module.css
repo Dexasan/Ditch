@@ -82,7 +82,7 @@
   margin-top: 4px;
   color: #a39b94;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -102,7 +102,7 @@
   gap: 7px;
   padding: 0 21px;
   color: #aaa29a;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 650;
   text-decoration: none;
   transition: color 160ms ease, background 160ms ease;
@@ -111,7 +111,7 @@
 .navLink span {
   color: #77716b;
   font-family: var(--font-jbmono), "Courier New", monospace;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.08em;
 }
 
@@ -155,7 +155,7 @@
   min-height: 34px;
   border-radius: 4px;
   font-family: var(--font-inter), system-ui, sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   text-decoration: none;
   transition: color 160ms ease, border-color 160ms ease, background 160ms ease, transform 160ms ease;
@@ -265,7 +265,7 @@
   .navLink {
     gap: 0;
     padding: 0 5px;
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .navLink span { display: none; }
@@ -295,12 +295,12 @@
 
   .liveButton::before {
     content: "Live";
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .signOut {
     padding: 0 3px;
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 

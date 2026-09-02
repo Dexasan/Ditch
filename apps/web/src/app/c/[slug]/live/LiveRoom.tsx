@@ -265,7 +265,7 @@ export default function LiveRoom({
             Queue
           </span>
           {queueCount > 0 && (
-            <span className="ml-auto text-[10px] font-bold bg-[var(--color-brand)] text-white rounded-full px-1.5 py-0.5 leading-none">
+            <span className="ml-auto text-[11px] font-bold bg-[var(--color-brand)] text-white rounded-full px-1.5 py-0.5 leading-none">
               {queueCount}
             </span>
           )}
@@ -332,12 +332,12 @@ export default function LiveRoom({
               <AgoraVideoTile track={localVideoTrack} />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[10px] text-[var(--color-text-muted)]">
+                <span className="text-[11px] text-[var(--color-text-muted)]">
                   {camEnabled ? "Starting…" : "Cam off"}
                 </span>
               </div>
             )}
-            <span className="absolute bottom-0.5 left-1 text-[9px] text-white/50 bg-black/50 px-1 rounded leading-none py-0.5">
+            <span className="absolute bottom-0.5 left-1 text-[10px] text-white/50 bg-black/50 px-1 rounded leading-none py-0.5">
               You
             </span>
           </div>
@@ -349,7 +349,7 @@ export default function LiveRoom({
               style={{ width: "10rem", height: "3.9375rem" }}
             >
               <AgoraVideoTile track={localScreenTrack} />
-              <span className="absolute bottom-0.5 left-1 text-[9px] text-white/50 bg-black/50 px-1 rounded leading-none py-0.5">
+              <span className="absolute bottom-0.5 left-1 text-[10px] text-white/50 bg-black/50 px-1 rounded leading-none py-0.5">
                 Screen
               </span>
             </div>
@@ -408,7 +408,7 @@ export default function LiveRoom({
                     <div className="w-10 h-10 rounded-lg border-2 border-dashed border-current flex items-center justify-center text-lg font-bold">
                       {i + 1}
                     </div>
-                    <span className="text-[10px] uppercase tracking-widest">Empty</span>
+                    <span className="text-[11px] uppercase tracking-widest">Empty</span>
                   </div>
                 )}
               </div>
@@ -477,7 +477,7 @@ export default function LiveRoom({
             >
               <div className="min-w-0">
                 <span
-                  className="text-[11px] font-semibold"
+                  className="text-[12px] font-semibold"
                   style={{ color: PLATFORM_COLOR[m.platform] ?? "var(--color-text-muted)" }}
                 >
                   {m.author_display_name}
@@ -549,7 +549,7 @@ function QueueItem({
           <p className="text-sm font-semibold truncate">{participant.display_name}</p>
         </div>
         <span
-          className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0 ${
+          className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0 ${
             isWaiting
               ? "bg-amber-500/15 text-amber-400"
               : "bg-blue-500/15 text-blue-400"
@@ -617,7 +617,7 @@ function IconButton({
       title={label}
     >
       {icon}
-      <span className="text-[9px] uppercase tracking-widest leading-none">{label}</span>
+      <span className="text-[10px] uppercase tracking-widest leading-none">{label}</span>
     </button>
   );
 }

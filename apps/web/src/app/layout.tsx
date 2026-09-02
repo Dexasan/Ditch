@@ -57,9 +57,9 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://ditchlive.app",
     siteName: "DITCH",
-    title: "DITCH | Go live everywhere. Let viewers in.",
+    title: "DITCH - Bring your livestream audience onstage",
     description:
-      "A browser-based livestream studio and live channel. Send one show everywhere, then bring viewers onto the broadcast.",
+      "Multistream to Twitch, YouTube, TikTok and Kick, then let viewers request a spot and join the show live.",
     images: [
       {
         url: "https://ditchlive.app/og-v3.png",
@@ -71,9 +71,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "DITCH | Go live everywhere. Let viewers in.",
+    title: "DITCH - Bring your livestream audience onstage",
     description:
-      "A browser-based livestream studio and live channel. Send one show everywhere, then bring viewers onto the broadcast.",
+      "Multistream to Twitch, YouTube, TikTok and Kick, then let viewers request a spot and join the show live.",
     images: ["https://ditchlive.app/og-v3.png"],
   },
   robots: {
