@@ -57,6 +57,7 @@ const nextConfig = {
 
     const deckHeaders = [
       { key: "Content-Type", value: "application/pdf" },
+      { key: "Cache-Control", value: "no-store, max-age=0" },
       {
         key: "Content-Disposition",
         value: 'inline; filename="DITCH-Investor-Pitch-Deck.pdf"',
@@ -67,12 +68,13 @@ const nextConfig = {
       { source: "/(.*)", headers },
       { source: "/deck", headers: deckHeaders },
       { source: "/DITCH-Investor-Pitch-Deck.pdf", headers: deckHeaders },
+      { source: "/DITCH-Investor-Pitch-Deck-2026-08-22.pdf", headers: deckHeaders },
     ];
   },
 
   // Keep the clean /deck URL while letting the browser render the PDF inline.
   async rewrites() {
-    return [{ source: "/deck", destination: "/DITCH-Investor-Pitch-Deck.pdf" }];
+    return [{ source: "/deck", destination: "/DITCH-Investor-Pitch-Deck-2026-08-22.pdf" }];
   },
 };
 
